@@ -31,7 +31,7 @@ BydaoModuleManager::BydaoModuleManager() {
 }
 
 BydaoModuleManager::~BydaoModuleManager() {
-    qDebug() << "~BydaoModuleManager()";
+//    qDebug() << "~BydaoModuleManager()";
     unloadAllModules();
 }
 
@@ -171,7 +171,7 @@ BydaoModuleInfo* BydaoModuleManager::loadModuleInfo(const QString& name, QString
 }
 
 void BydaoModuleManager::unloadAllModules() {
-    qDebug() << "Unloading all modules, count:" << m_modules.size();
+    // qDebug() << "Unloading all modules, count:" << m_modules.size();
 
     // 1. Сначала вызываем shutdown для всех
     for (auto* module : m_modules) {
@@ -180,7 +180,7 @@ void BydaoModuleManager::unloadAllModules() {
 
     // 2. Потом удаляем
     for (auto it = m_modules.begin(); it != m_modules.end(); ++it) {
-        qDebug() << "  Deleting module:" << it.key();
+        // qDebug() << "  Deleting module:" << it.key();
         delete it.value();  // деструктор уже НЕ вызывает shutdown
     }
     m_modules.clear();
@@ -192,7 +192,7 @@ void BydaoModuleManager::unloadAllModules() {
     }
     m_libraries.clear();
 
-    qDebug() << "All modules unloaded";
+    // qDebug() << "All modules unloaded";
 }
 
 } // namespace BydaoScript

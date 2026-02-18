@@ -2,7 +2,7 @@
 #include "../include/BydaoScript/BydaoArray.h"
 #include "../include/BydaoScript/BydaoString.h"
 #include "BydaoDir.h"
-#include "BydaoDir_global.h"
+//#include "BydaoDir_global.h"
 
 namespace BydaoScript {
 namespace Modules {
@@ -36,20 +36,34 @@ BydaoModuleInfo* BydaoDirModule::info() const {
 BydaoDirModule::BydaoDirModule(QObject* parent)
     : BydaoModule(parent)
 {
-    registerMethod("open",   [this](auto& args, auto& result) { return this->method_open(args, result); });
-    registerMethod("list",   [this](auto& args, auto& result) { return this->method_list(args, result); });
-    registerMethod("cd",     [this](auto& args, auto& result) { return this->method_cd(args, result); });
-    registerMethod("current",[this](auto& args, auto& result) { return this->method_current(args, result); });
-    registerMethod("mkdir",  [this](auto& args, auto& result) { return this->method_mkdir(args, result); });
-    registerMethod("rmdir",  [this](auto& args, auto& result) { return this->method_rmdir(args, result); });
+    registerMethod("open",    &BydaoDirModule::method_open);
+    registerMethod("list",    &BydaoDirModule::method_list);
+    registerMethod("cd",      &BydaoDirModule::method_cd);
+    registerMethod("current", &BydaoDirModule::method_current);
+    registerMethod("mkdir",   &BydaoDirModule::method_mkdir);
+    registerMethod("rmdir",   &BydaoDirModule::method_rmdir);
 }
 
 BydaoDirModule::~BydaoDirModule() {
-    shutdown();
+//    shutdown();
 }
 
 bool BydaoDirModule::initialize() { return true; }
 bool BydaoDirModule::shutdown() { return true; }
+
+void BydaoDirModule::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+bool BydaoDirModule::callMethod(const QString& name,
+                             const QVector<BydaoValue>& args,
+                             BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
+    }
+    return false;
+}
 
 // ========== Методы модуля ==========
 
@@ -109,28 +123,37 @@ BydaoDirObject::BydaoDirObject(const QString& path, QObject* parent)
         m_dir = QDir(path);
     }
 
-    registerMethod("list",   [this](auto& args, auto& result) { return this->method_list(args, result); });
-    registerMethod("cd",     [this](auto& args, auto& result) { return this->method_cd(args, result); });
-    registerMethod("mkdir",  [this](auto& args, auto& result) { return this->method_mkdir(args, result); });
-    registerMethod("rmdir",  [this](auto& args, auto& result) { return this->method_rmdir(args, result); });
-    registerMethod("exists", [this](auto& args, auto& result) { return this->method_exists(args, result); });
-    registerMethod("current",[this](auto& args, auto& result) { return this->method_current(args, result); });
+    registerMethod("list",   &BydaoDirObject::method_list);
+    registerMethod("cd",     &BydaoDirObject::method_cd);
+    registerMethod("mkdir",  &BydaoDirObject::method_mkdir);
+    registerMethod("rmdir",  &BydaoDirObject::method_rmdir);
+    registerMethod("exists", &BydaoDirObject::method_exists);
+    registerMethod("current",&BydaoDirObject::method_current);
 
-    // Свойства "path" и "name" релизованы в методе getProperty()
-    // registerProperty("path");
-    // registerProperty("name");
+    // Свойства (ReadOnly)
+    registerProperty("path",
+                     [this]() { return BydaoValue::fromString(m_dir.path()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+
+    registerProperty("name",
+                     [this]() { return BydaoValue::fromString(m_dir.dirName()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 }
 
-bool BydaoDirObject::getProperty(const QString& name, BydaoValue& result) {
-    if (name == "path") {
-        result = BydaoValue(new BydaoString(m_dir.path()));
-        return true;
+void BydaoDirObject::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+bool BydaoDirObject::callMethod(const QString& name,
+                                const QVector<BydaoValue>& args,
+                                BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
     }
-    if (name == "name") {
-        result = BydaoValue(new BydaoString(m_dir.dirName()));
-        return true;
-    }
-    return BydaoModule::getProperty(name, result);
+    return false;
 }
 
 // ========== Методы объекта ==========

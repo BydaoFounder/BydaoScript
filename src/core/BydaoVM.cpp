@@ -16,7 +16,7 @@ namespace BydaoScript {
 BydaoVM::BydaoVM() : m_pc(0), m_running(false), m_debugMode(false) {}
 
 BydaoVM::~BydaoVM() {
-    qDebug() << "~BydaoVM()";
+//    qDebug() << "~BydaoVM()";
     // Очищаем ссылки на модули, но не удаляем их
     m_globals.clear();
 //    m_globalObjects.clear();
@@ -124,6 +124,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
 
     case BydaoOpCode::Load: {
+        // qDebug() << "LOAD" << instr.arg;
+        // qDebug() << "  globals contains:" << m_globals.contains(instr.arg);
+        // if (m_globals.contains(instr.arg)) {
+        //     qDebug() << "  value type:" << m_globals[instr.arg].typeId();
+        // }
         m_stack.push(m_globals.value(instr.arg));
         break;
     }
@@ -149,110 +154,126 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
 
     case BydaoOpCode::PushArray: {
-        m_stack.push(BydaoValue(new BydaoArray()));
+        int count = instr.arg.toInt();
+
+        // qDebug() << "Creating array with" << count << "elements";
+
+        auto* array = new BydaoArray();
+
+        // Извлекаем элементы в правильном порядке
+        // (они лежат на стеке в порядке вычисления: первый элемент - внизу)
+        QVector<BydaoValue> elements;
+        for (int i = 0; i < count; i++) {
+            // Так как первый элемент внизу, а мы pop берём сверху,
+            // нужно использовать prepend
+            elements.prepend(m_stack.pop());
+        }
+
+        for (const auto& elem : elements) {
+            array->append(elem);
+        }
+
+        m_stack.push(BydaoValue(array));
         break;
     }
 
     case BydaoOpCode::Add: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        // TODO: реализовать сложение для разных типов
-        m_stack.push(BydaoValue(BydaoNull::instance()));
+
+        if (!a.isObject() || !b.isObject()) {
+            error("Add on non-object", instr);
+            return false;
+        }
+
+        m_stack.push(a.toObject()->add(b));
         break;
     }
 
     case BydaoOpCode::Sub: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(BydaoNull::instance()));
+        m_stack.push(a.toObject()->sub(b));
         break;
     }
 
     case BydaoOpCode::Mul: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(BydaoNull::instance()));
+        m_stack.push(a.toObject()->mul(b));
         break;
     }
 
     case BydaoOpCode::Div: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(BydaoNull::instance()));
+        m_stack.push(a.toObject()->div(b));
         break;
     }
 
     case BydaoOpCode::Neg: {
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(BydaoNull::instance()));
+        m_stack.push(a.toObject()->neg());
         break;
     }
 
     case BydaoOpCode::Eq: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        // TODO: сравнение
-        m_stack.push(BydaoValue(new BydaoBool(false)));
-        break;
-    }
-
-    case BydaoOpCode::Neq: {
-        BydaoValue b = m_stack.pop();
-        BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(new BydaoBool(false)));
+        m_stack.push(a.toObject()->eq(b));
         break;
     }
 
     case BydaoOpCode::Lt: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(new BydaoBool(false)));
+        // qDebug() << "Lt: a type =" << a.typeId() << "b type =" << b.typeId();
+        m_stack.push(a.toObject()->lt(b));
         break;
     }
 
     case BydaoOpCode::Gt: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(new BydaoBool(false)));
+        m_stack.push(a.toObject()->gt(b));
         break;
     }
 
     case BydaoOpCode::Le: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(new BydaoBool(false)));
+        m_stack.push(a.toObject()->le(b));
         break;
     }
 
     case BydaoOpCode::Ge: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(new BydaoBool(false)));
+        m_stack.push(a.toObject()->ge(b));
         break;
     }
 
     case BydaoOpCode::And: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(new BydaoBool(false)));
+        m_stack.push(a.toObject()->and_(b));
         break;
     }
 
     case BydaoOpCode::Or: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(new BydaoBool(false)));
+        m_stack.push(a.toObject()->or_(b));
         break;
     }
 
     case BydaoOpCode::Not: {
         BydaoValue a = m_stack.pop();
-        m_stack.push(BydaoValue(new BydaoBool(false)));
+        m_stack.push(a.toObject()->not_());
         break;
     }
 
     case BydaoOpCode::Member: {
-        // Получаем имя свойства
         QString propName = instr.arg;
         BydaoValue obj = m_stack.pop();
 
@@ -261,25 +282,35 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             return false;
         }
 
-        if (auto* native = dynamic_cast<BydaoNative*>(obj.toObject())) {
-            BydaoValue result;
-            if (native->getProperty(propName, result)) {
-                m_stack.push(result);
+        BydaoObject* objPtr = obj.toObject();
+
+        if (auto* native = dynamic_cast<BydaoNative*>(objPtr)) {
+            if (native->hasProperty(propName)) {
+                m_stack.push(native->getProperty(propName));
                 break;
             }
         }
 
-        // Если свойства нет — кладём объект и имя для Call
-        m_stack.push(obj);
-        m_stack.push(BydaoValue(new BydaoString(propName)));
-        break;
+        // Свойство не найдено — ошибка!
+        error("Property not found: " + propName, instr);
+        return false;
     }
 
     case BydaoOpCode::Index: {
-        BydaoValue index = m_stack.pop();
-        BydaoValue obj = m_stack.pop();
-        // TODO: реализовать индексацию
-        m_stack.push(BydaoValue(BydaoNull::instance()));
+        // На стеке: сверху объект, под ним индекс
+        BydaoValue obj = m_stack.pop();    // забираем объект (сверху)
+        BydaoValue index = m_stack.pop();  // забираем индекс (следующий)
+
+        // qDebug() << "Index: obj type:" << obj.toObject()->typeName()
+        //          << "index:" << index.toInt();
+
+        if (auto* array = dynamic_cast<BydaoArray*>(obj.toObject())) {
+            m_stack.push(array->get(index));
+        }
+        else {
+            error("Index not supported for type: " + obj.toObject()->typeName(), instr);
+            return false;
+        }
         break;
     }
 
@@ -316,7 +347,14 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::JumpIfFalse: {
         BydaoValue cond = m_stack.pop();
-        if (!cond.toBool()) {
+        bool value;
+        if ( cond.typeId() == TYPE_BOOL ) {
+            value = static_cast<const BydaoBool*>(cond.toObject())->value();
+        }
+        else {
+            value = cond.toBool();
+        }
+        if (! value) {
             m_pc = instr.arg.toInt();
         }
         break;

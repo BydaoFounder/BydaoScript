@@ -28,6 +28,10 @@ public:
     QString version() const override { return "1.0.0"; }
     BydaoModuleInfo* info() const override;
 
+    bool callMethod(const QString& name,
+                    const QVector<BydaoValue>& args,
+                    BydaoValue& result) override;
+
 protected:
     bool initialize() override;
     bool shutdown() override;
@@ -56,6 +60,11 @@ private:
     bool method_tempDir(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_homeDir(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_drives(const QVector<BydaoValue>& args, BydaoValue& result);
+
+    using MethodPtr = bool (BydaoSysModule::*)(const QVector<BydaoValue>&, BydaoValue&);
+    void registerMethod(const QString& name, MethodPtr method);
+
+    QHash<QString, MethodPtr> m_methods;  // своя таблица методов
 
     static BydaoModuleInfoImpl* createInfo();
 

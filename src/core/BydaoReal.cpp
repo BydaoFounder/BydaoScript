@@ -8,33 +8,29 @@
 namespace BydaoScript {
 
 BydaoReal::BydaoReal(double value) : m_value(value) {
-    registerMethod("toString", [this](auto& args, auto& result) {
-        return this->method_toString(args, result);
-    });
-    registerMethod("toInt", [this](auto& args, auto& result) {
-        return this->method_toInt(args, result);
-    });
-    registerMethod("toBool", [this](auto& args, auto& result) {
-        return this->method_toBool(args, result);
-    });
-    registerMethod("abs", [this](auto& args, auto& result) {
-        return this->method_abs(args, result);
-    });
-    registerMethod("negate", [this](auto& args, auto& result) {
-        return this->method_negate(args, result);
-    });
-    registerMethod("isNull", [this](auto& args, auto& result) {
-        return this->method_isNull(args, result);
-    });
-    registerMethod("round", [this](auto& args, auto& result) {
-        return this->method_round(args, result);
-    });
-    registerMethod("floor", [this](auto& args, auto& result) {
-        return this->method_floor(args, result);
-    });
-    registerMethod("ceil", [this](auto& args, auto& result) {
-        return this->method_ceil(args, result);
-    });
+    registerMethod("toString", &BydaoReal::method_toString);
+    registerMethod("toInt", &BydaoReal::method_toInt);
+    registerMethod("toBool", &BydaoReal::method_toBool);
+    registerMethod("abs", &BydaoReal::method_abs);
+    registerMethod("negate", &BydaoReal::method_negate);
+    registerMethod("isNull", &BydaoReal::method_isNull);
+    registerMethod("round", &BydaoReal::method_round);
+    registerMethod("floor", &BydaoReal::method_floor);
+    registerMethod("ceil", &BydaoReal::method_ceil);
+}
+
+void BydaoReal::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+bool BydaoReal::callMethod(const QString& name,
+                          const QVector<BydaoValue>& args,
+                          BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
+    }
+    return false;
 }
 
 bool BydaoReal::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {

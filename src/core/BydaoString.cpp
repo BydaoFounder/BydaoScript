@@ -14,66 +14,101 @@ BydaoString::BydaoString(const QString& value, QObject* parent)
     : BydaoNative(parent)
     , m_value(value)
 {
-    registerMethod("toString", [this](auto& args, auto& result) {
-        return this->method_toString(args, result);
-    });
-    registerMethod("isNull", [this](auto& args, auto& result) {
-        return this->method_isNull(args, result);
-    });
-    registerMethod("length", [this](auto& args, auto& result) {
-        return this->method_length(args, result);
-    });
-    registerMethod("upper", [this](auto& args, auto& result) {
-        return this->method_upper(args, result);
-    });
-    registerMethod("lower", [this](auto& args, auto& result) {
-        return this->method_lower(args, result);
-    });
-    registerMethod("trim", [this](auto& args, auto& result) {
-        return this->method_trim(args, result);
-    });
-    registerMethod("substring", [this](auto& args, auto& result) {
-        return this->method_substring(args, result);
-    });
-    registerMethod("indexOf", [this](auto& args, auto& result) {
-        return this->method_indexOf(args, result);
-    });
-    registerMethod("contains", [this](auto& args, auto& result) {
-        return this->method_contains(args, result);
-    });
-    registerMethod("startsWith", [this](auto& args, auto& result) {
-        return this->method_startsWith(args, result);
-    });
-    registerMethod("endsWith", [this](auto& args, auto& result) {
-        return this->method_endsWith(args, result);
-    });
-    registerMethod("split", [this](auto& args, auto& result) {
-        return this->method_split(args, result);
-    });
-    registerMethod("replace", [this](auto& args, auto& result) {
-        return this->method_replace(args, result);
-    });
-    registerMethod("toInt", [this](auto& args, auto& result) {
-        return this->method_toInt(args, result);
-    });
-    registerMethod("toReal", [this](auto& args, auto& result) {
-        return this->method_toReal(args, result);
-    });
+    registerMethod("toString", &BydaoString::method_toString);
+    registerMethod("isNull", &BydaoString::method_isNull);
+    registerMethod("length", &BydaoString::method_length);
+    registerMethod("upper", &BydaoString::method_upper);
+    registerMethod("lower", &BydaoString::method_lower);
+    registerMethod("trim", &BydaoString::method_trim);
+    registerMethod("substring", &BydaoString::method_substring);
+    registerMethod("indexOf", &BydaoString::method_indexOf);
+    registerMethod("contains", &BydaoString::method_contains);
+    registerMethod("startsWith", &BydaoString::method_startsWith);
+    registerMethod("endsWith", &BydaoString::method_endsWith);
+    registerMethod("split", &BydaoString::method_split);
+    registerMethod("replace", &BydaoString::method_replace);
+    registerMethod("toInt", &BydaoString::method_toInt);
+    registerMethod("toReal", &BydaoString::method_toReal);
 #ifdef QT_CRYPTOGRAPHICHASH_LIB
-    registerMethod("md5", [this](auto& args, auto& result) {
-        return this->method_md5(args, result);
-    });
+    registerMethod("md5", &BydaoString::method_md5);
 #endif
 
-    registerProperty("length");
+    // Свойства
+    registerProperty("length",
+                     [this]() { return BydaoValue::fromInt(m_value.length()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 }
 
-bool BydaoString::getProperty(const QString& name, BydaoValue& result) {
-    if (name == "length") {
-        result = BydaoValue(new BydaoInt(m_value.length()));
-        return true;
+void BydaoString::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+bool BydaoString::callMethod(const QString& name,
+                          const QVector<BydaoValue>& args,
+                          BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
     }
-    return BydaoNative::getProperty(name, result);
+    return false;
+}
+
+BydaoValue BydaoString::add(const BydaoValue& other) {
+    if ( other.typeId() == TYPE_STRING ) {
+        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        return BydaoValue::fromString( m_value.append(otherStr->m_value) );
+    }
+    QString result = m_value + other.toString();
+    return BydaoValue::fromString(result);
+}
+
+BydaoValue BydaoString::eq(const BydaoValue& other) {
+    if ( other.typeId() == TYPE_STRING ) {
+        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        return BydaoValue::fromBool( m_value == otherStr->m_value );
+    }
+    return BydaoValue::fromBool(m_value == other.toString());
+}
+
+BydaoValue BydaoString::ne(const BydaoValue& other) {
+    if ( other.typeId() == TYPE_STRING ) {
+        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        return BydaoValue::fromBool( m_value != otherStr->m_value );
+    }
+    return BydaoValue::fromBool(m_value != other.toString());
+}
+
+BydaoValue BydaoString::lt(const BydaoValue& other) {
+    if ( other.typeId() == TYPE_STRING ) {
+        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        return BydaoValue::fromBool( m_value < otherStr->m_value );
+    }
+    return BydaoValue::fromBool(m_value < other.toString());
+}
+
+BydaoValue BydaoString::le(const BydaoValue& other) {
+    if ( other.typeId() == TYPE_STRING ) {
+        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        return BydaoValue::fromBool( m_value <= otherStr->m_value );
+    }
+    return BydaoValue::fromBool(m_value <= other.toString());
+}
+
+BydaoValue BydaoString::gt(const BydaoValue& other) {
+    if ( other.typeId() == TYPE_STRING ) {
+        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        return BydaoValue::fromBool( m_value > otherStr->m_value );
+    }
+    return BydaoValue::fromBool(m_value > other.toString());
+}
+
+BydaoValue BydaoString::ge(const BydaoValue& other) {
+    if ( other.typeId() == TYPE_STRING ) {
+        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        return BydaoValue::fromBool( m_value >= otherStr->m_value );
+    }
+    return BydaoValue::fromBool(m_value >= other.toString());
 }
 
 // ========== Реализации методов ==========

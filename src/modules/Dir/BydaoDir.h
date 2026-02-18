@@ -29,7 +29,14 @@ public:
     QString version() const override { return "1.0.0"; }
     BydaoModuleInfo* info() const override { return nullptr; }  // у объекта нет info
 
-    bool getProperty(const QString& name, BydaoValue& result) override;
+    // Доступ к директории
+    QString path() const { return m_dir.path(); }
+    QString dirName() const { return m_dir.dirName(); }
+    bool exists() const { return m_dir.exists(); }
+
+    bool callMethod(const QString& name,
+                    const QVector<BydaoValue>& args,
+                    BydaoValue& result) override;
 
 private:
     // Методы объекта
@@ -39,6 +46,11 @@ private:
     bool method_rmdir(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_exists(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_current(const QVector<BydaoValue>& args, BydaoValue& result);
+
+    using MethodPtr = bool (BydaoDirObject::*)(const QVector<BydaoValue>&, BydaoValue&);
+    void registerMethod(const QString& name, MethodPtr method);
+
+    QHash<QString, MethodPtr> m_methods;  // своя таблица методов
 
     QDir m_dir;
 };
@@ -59,6 +71,10 @@ public:
     QString version() const override { return "1.0.0"; }
     BydaoModuleInfo* info() const override;
 
+    bool callMethod(const QString& name,
+                    const QVector<BydaoValue>& args,
+                    BydaoValue& result) override;
+
 protected:
     bool initialize() override;
     bool shutdown() override;
@@ -71,6 +87,11 @@ private:
     bool method_current(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_mkdir(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_rmdir(const QVector<BydaoValue>& args, BydaoValue& result);
+
+    using MethodPtr = bool (BydaoDirModule::*)(const QVector<BydaoValue>&, BydaoValue&);
+    void registerMethod(const QString& name, MethodPtr method);
+
+    QHash<QString, MethodPtr> m_methods;  // своя таблица методов
 
     static BydaoModuleInfoImpl* createInfo();
     static BydaoModuleInfoImpl* s_info;

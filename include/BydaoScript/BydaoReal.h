@@ -11,6 +11,10 @@ public:
     QString typeName() const override { return "Real"; }
     double value() const { return m_value; }
 
+    bool callMethod(const QString& name,
+                    const QVector<BydaoValue>& args,
+                    BydaoValue& result) override;
+
 private:
 
     bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
@@ -22,7 +26,12 @@ private:
     bool method_round(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_floor(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_ceil(const QVector<BydaoValue>& args, BydaoValue& result);
-    
+
+    using MethodPtr = bool (BydaoReal::*)(const QVector<BydaoValue>&, BydaoValue&);
+    void registerMethod(const QString& name, MethodPtr method);
+
+    QHash<QString, MethodPtr> m_methods;  // своя таблица методов
+
     double m_value;
 };
 

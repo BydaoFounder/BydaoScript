@@ -48,15 +48,15 @@ BydaoModuleInfo* BydaoFileModule::info() const {
 BydaoFileModule::BydaoFileModule(QObject* parent)
     : BydaoModule(parent)
 {
-    registerMethod("open",     [this](auto& args, auto& result) { return this->method_open(args, result); });
-    registerMethod("exists",   [this](auto& args, auto& result) { return this->method_exists(args, result); });
-    registerMethod("copy",     [this](auto& args, auto& result) { return this->method_copy(args, result); });
-    registerMethod("move",     [this](auto& args, auto& result) { return this->method_move(args, result); });
-    registerMethod("rename",   [this](auto& args, auto& result) { return this->method_rename(args, result); });
-    registerMethod("remove",   [this](auto& args, auto& result) { return this->method_remove(args, result); });
-    registerMethod("size",     [this](auto& args, auto& result) { return this->method_size(args, result); });
-    registerMethod("readAll",  [this](auto& args, auto& result) { return this->method_readAll(args, result); });
-    registerMethod("writeAll", [this](auto& args, auto& result) { return this->method_writeAll(args, result); });
+    registerMethod("open",     &BydaoFileModule::method_open);
+    registerMethod("exists",   &BydaoFileModule::method_exists);
+    registerMethod("copy",     &BydaoFileModule::method_copy);
+    registerMethod("move",     &BydaoFileModule::method_move);
+    registerMethod("rename",   &BydaoFileModule::method_rename);
+    registerMethod("remove",   &BydaoFileModule::method_remove);
+    registerMethod("size",     &BydaoFileModule::method_size);
+    registerMethod("readAll",  &BydaoFileModule::method_readAll);
+    registerMethod("writeAll", &BydaoFileModule::method_writeAll);
 }
 
 BydaoFileModule::~BydaoFileModule() {
@@ -69,6 +69,20 @@ bool BydaoFileModule::initialize() {
 
 bool BydaoFileModule::shutdown() {
     return true;
+}
+
+void BydaoFileModule::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+bool BydaoFileModule::callMethod(const QString& name,
+                                 const QVector<BydaoValue>& args,
+                                 BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
+    }
+    return false;
 }
 
 // ========== Методы модуля ==========
@@ -157,29 +171,58 @@ BydaoFileObject::BydaoFileObject(const QString& path, QObject* parent)
     , m_file(path)
     , m_stream(nullptr)
 {
-    registerMethod("open",      [this](auto& args, auto& result) { return this->method_open(args, result); });
-    registerMethod("close",     [this](auto& args, auto& result) { return this->method_close(args, result); });
-    registerMethod("read",      [this](auto& args, auto& result) { return this->method_read(args, result); });
-    registerMethod("readLine",  [this](auto& args, auto& result) { return this->method_readLine(args, result); });
-    registerMethod("readLines", [this](auto& args, auto& result) { return this->method_readLines(args, result); });
-    registerMethod("write",     [this](auto& args, auto& result) { return this->method_write(args, result); });
-    registerMethod("writeLine", [this](auto& args, auto& result) { return this->method_writeLine(args, result); });
-    registerMethod("append",    [this](auto& args, auto& result) { return this->method_append(args, result); });
-    registerMethod("copy",      [this](auto& args, auto& result) { return this->method_copy(args, result); });
-    registerMethod("move",      [this](auto& args, auto& result) { return this->method_move(args, result); });
-    registerMethod("rename",    [this](auto& args, auto& result) { return this->method_rename(args, result); });
-    registerMethod("remove",    [this](auto& args, auto& result) { return this->method_remove(args, result); });
-    registerMethod("pos",       [this](auto& args, auto& result) { return this->method_pos(args, result); });
-    registerMethod("seek",      [this](auto& args, auto& result) { return this->method_seek(args, result); });
-    registerMethod("atEnd",     [this](auto& args, auto& result) { return this->method_atEnd(args, result); });
+    registerMethod("open",      &BydaoFileObject::method_open);
+    registerMethod("open",      &BydaoFileObject::method_open);
+    registerMethod("close",     &BydaoFileObject::method_close);
+    registerMethod("read",      &BydaoFileObject::method_read);
+    registerMethod("readLine",  &BydaoFileObject::method_readLine);
+    registerMethod("readLines", &BydaoFileObject::method_readLines);
+    registerMethod("write",     &BydaoFileObject::method_write);
+    registerMethod("writeLine", &BydaoFileObject::method_writeLine);
+    registerMethod("append",    &BydaoFileObject::method_append);
+    registerMethod("copy",      &BydaoFileObject::method_copy);
+    registerMethod("move",      &BydaoFileObject::method_move);
+    registerMethod("rename",    &BydaoFileObject::method_rename);
+    registerMethod("remove",    &BydaoFileObject::method_remove);
+    registerMethod("pos",       &BydaoFileObject::method_pos);
+    registerMethod("seek",      &BydaoFileObject::method_seek);
+    registerMethod("atEnd",     &BydaoFileObject::method_atEnd);
 
-    registerProperty("name");
-    registerProperty("path");
-    registerProperty("size");
-    registerProperty("exists");
-    registerProperty("isOpen");
-    registerProperty("isReadable");
-    registerProperty("isWritable");
+    // Регистрация свойств (ReadOnly)
+    registerProperty("name",
+                     [this]() { return BydaoValue::fromString(this->fileName()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+
+    registerProperty("path",
+                     [this]() { return BydaoValue::fromString(this->filePath()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+
+    registerProperty("size",
+                     [this]() { return BydaoValue::fromInt((int)this->fileSize()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+
+    registerProperty("exists",
+                     [this]() { return BydaoValue::fromBool(this->fileExists()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+
+    registerProperty("isOpen",
+                     [this]() { return BydaoValue::fromBool(this->isOpen()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+
+    registerProperty("isReadable",
+                     [this]() { return BydaoValue::fromBool(this->isReadable()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+
+    registerProperty("isWritable",
+                     [this]() { return BydaoValue::fromBool(this->isWritable()); },
+                     nullptr,
+                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 }
 
 BydaoFileObject::~BydaoFileObject() {
@@ -192,36 +235,18 @@ BydaoFileObject::~BydaoFileObject() {
     }
 }
 
-bool BydaoFileObject::getProperty(const QString& name, BydaoValue& result) {
-    if (name == "name") {
-        result = BydaoValue(new BydaoString(this->getName()));
-        return true;
+void BydaoFileObject::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+bool BydaoFileObject::callMethod(const QString& name,
+                                const QVector<BydaoValue>& args,
+                                BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
     }
-    if (name == "path") {
-        result = BydaoValue(new BydaoString(this->getPath()));
-        return true;
-    }
-    if (name == "size") {
-        result = BydaoValue(new BydaoInt((int)this->size()));
-        return true;
-    }
-    if (name == "exists") {
-        result = BydaoValue(new BydaoBool(this->exists()));
-        return true;
-    }
-    if (name == "isOpen") {
-        result = BydaoValue(new BydaoBool(this->isOpen()));
-        return true;
-    }
-    if (name == "isReadable") {
-        result = BydaoValue(new BydaoBool(this->isReadable()));
-        return true;
-    }
-    if (name == "isWritable") {
-        result = BydaoValue(new BydaoBool(this->isWritable()));
-        return true;
-    }
-    return BydaoModule::getProperty(name, result);
+    return false;
 }
 
 QIODevice::OpenMode BydaoFileObject::parseMode(const QString& mode) {

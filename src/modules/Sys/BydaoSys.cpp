@@ -71,28 +71,28 @@ BydaoSysModule::BydaoSysModule(QObject* parent)
     : BydaoModule(parent)
     , m_process(nullptr)
 {
-    REGISTER_MODULE_METHOD(out);
-    REGISTER_MODULE_METHOD(outln);
-    REGISTER_MODULE_METHOD(in);
-    REGISTER_MODULE_METHOD(err);
-    REGISTER_MODULE_METHOD(errln);
-    REGISTER_MODULE_METHOD(run);
-    REGISTER_MODULE_METHOD(exec);
-    REGISTER_MODULE_METHOD(shell);
-    REGISTER_MODULE_METHOD(getenv);
-    REGISTER_MODULE_METHOD(setenv);
-    REGISTER_MODULE_METHOD(unsetenv);
-    REGISTER_MODULE_METHOD(env);
-    REGISTER_MODULE_METHOD(sleep);
-    REGISTER_MODULE_METHOD(time);
-    REGISTER_MODULE_METHOD(date);
-    REGISTER_MODULE_METHOD(datetime);
-    REGISTER_MODULE_METHOD(platform);
-    REGISTER_MODULE_METHOD(currentDir);
-    REGISTER_MODULE_METHOD(setCurrentDir);
-    REGISTER_MODULE_METHOD(tempDir);
-    REGISTER_MODULE_METHOD(homeDir);
-    REGISTER_MODULE_METHOD(drives);
+    registerMethod("out",     &BydaoSysModule::method_out);
+    registerMethod("outln",   &BydaoSysModule::method_outln);
+    registerMethod("in",      &BydaoSysModule::method_in);
+    registerMethod("err",     &BydaoSysModule::method_err);
+    registerMethod("errln",   &BydaoSysModule::method_errln);
+    registerMethod("run",     &BydaoSysModule::method_run);
+    registerMethod("exec",     &BydaoSysModule::method_exec);
+    registerMethod("shell",     &BydaoSysModule::method_shell);
+    registerMethod("getenv",     &BydaoSysModule::method_getenv);
+    registerMethod("setenv",     &BydaoSysModule::method_setenv);
+    registerMethod("unsetenv",     &BydaoSysModule::method_unsetenv);
+    registerMethod("env",     &BydaoSysModule::method_env);
+    registerMethod("sleep",     &BydaoSysModule::method_sleep);
+    registerMethod("time",     &BydaoSysModule::method_time);
+    registerMethod("date",     &BydaoSysModule::method_date);
+    registerMethod("datetime",     &BydaoSysModule::method_datetime);
+    registerMethod("platform",     &BydaoSysModule::method_platform);
+    registerMethod("currentDir",     &BydaoSysModule::method_currentDir);
+    registerMethod("setCurrentDir",     &BydaoSysModule::method_setCurrentDir);
+    registerMethod("tempDir",     &BydaoSysModule::method_tempDir);
+    registerMethod("homeDir",     &BydaoSysModule::method_homeDir);
+    registerMethod("drives",     &BydaoSysModule::method_drives);
 
     m_timer.start();
     m_outStream = new QTextStream( stdout );
@@ -100,8 +100,7 @@ BydaoSysModule::BydaoSysModule(QObject* parent)
 }
 
 BydaoSysModule::~BydaoSysModule() {
-    qDebug() << "~BydaoSysModule()";
-//    shutdown();
+//    qDebug() << "~BydaoSysModule()";
 }
 
 bool BydaoSysModule::initialize() {
@@ -110,7 +109,7 @@ bool BydaoSysModule::initialize() {
 }
 
 bool BydaoSysModule::shutdown() {
-    qDebug() << "BydaoSysModule::shutdown()";
+    // qDebug() << "BydaoSysModule::shutdown()";
     if (m_process && m_process->state() != QProcess::NotRunning) {
         m_process->terminate();
         m_process->waitForFinished(3000);
@@ -118,6 +117,20 @@ bool BydaoSysModule::shutdown() {
         m_process = nullptr;
     }
     return true;
+}
+
+void BydaoSysModule::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+bool BydaoSysModule::callMethod(const QString& name,
+                                 const QVector<BydaoValue>& args,
+                                 BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
+    }
+    return false;
 }
 
 // ========== Методы модуля (С КВАЛИФИКАТОРОМ КЛАССА) ==========

@@ -3,45 +3,61 @@
 namespace BydaoScript {
 
 BydaoNative::BydaoNative(QObject* parent)
-    : QObject(parent)
-{}
-
-BydaoNative::~BydaoNative() {}
-
-bool BydaoNative::callMethod(const QString& name,
-                            const QVector<BydaoValue>& args,
-                            BydaoValue& result) {
-    auto it = m_methods.find(name);
-    if (it != m_methods.end()) {
-        return (it.value())(args, result);
-    }
-    return false;
+    : QObject(parent){
 }
 
-bool BydaoNative::getProperty(const QString& name, BydaoValue& result) {
-    Q_UNUSED(result)
-    if (m_properties.contains(name)) {
-        // Дочерние классы должны переопределить
-        return false;
+BydaoNative::~BydaoNative() {
+}
+
+// ========== Свойства ==========
+
+void BydaoNative::registerProperty(const QString& name,
+                                   std::function<BydaoValue()> getter,
+                                   std::function<bool(const BydaoValue&)> setter,
+                                   const BydaoPropertyInfo& info) {
+    PropertyEntry entry;
+    entry.info = info;
+    entry.getter = getter;
+    entry.setter = setter;
+    m_properties[name] = entry;
+}
+
+bool BydaoNative::hasProperty(const QString& name) const {
+    return m_properties.contains(name);
+}
+
+bool BydaoNative::canGetProperty(const QString& name) const {
+    auto it = m_properties.find(name);
+    if (it == m_properties.end()) return false;
+    return it.value().info.visibility != BydaoPropertyInfo::Internal;
+}
+
+bool BydaoNative::canSetProperty(const QString& name) const {
+    auto it = m_properties.find(name);
+    if (it == m_properties.end()) return false;
+    if (it.value().info.visibility == BydaoPropertyInfo::Internal) return false;
+    if (it.value().info.access == BydaoPropertyInfo::ReadOnly) return false;
+    return it.value().setter != nullptr;
+}
+
+BydaoValue BydaoNative::getProperty(const QString& name) {
+    auto it = m_properties.find(name);
+    if (it == m_properties.end()) return BydaoValue();
+    if (!canGetProperty(name)) return BydaoValue();
+    if (it.value().getter) {
+        return it.value().getter();
     }
-    return false;
+    return BydaoValue();
 }
 
 bool BydaoNative::setProperty(const QString& name, const BydaoValue& value) {
-    Q_UNUSED(value)
-    if (m_properties.contains(name)) {
-        // Дочерние классы должны переопределить
-        return false;
+    auto it = m_properties.find(name);
+    if (it == m_properties.end()) return false;
+    if (!canSetProperty(name)) return false;
+    if (it.value().setter) {
+        return it.value().setter(value);
     }
     return false;
-}
-
-void BydaoNative::registerMethod(const QString& name, NativeMethod method) {
-    m_methods[name] = method;
-}
-
-void BydaoNative::registerProperty(const QString& name) {
-    m_properties.insert(name);
 }
 
 } // namespace BydaoScript

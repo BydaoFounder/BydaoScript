@@ -10,21 +10,26 @@ BydaoBool::BydaoBool(bool value, QObject* parent)
     : BydaoNative(parent)
     , m_value(value)
 {
-    registerMethod("toString", [this](auto& args, auto& result) {
-        return this->method_toString(args, result);
-    });
-    registerMethod("toInt", [this](auto& args, auto& result) {
-        return this->method_toInt(args, result);
-    });
-    registerMethod("toReal", [this](auto& args, auto& result) {
-        return this->method_toReal(args, result);
-    });
-    registerMethod("negate", [this](auto& args, auto& result) {
-        return this->method_negate(args, result);
-    });
-    registerMethod("isNull", [this](auto& args, auto& result) {
-        return this->method_isNull(args, result);
-    });
+    registerMethod("toString", &BydaoBool::method_toString);
+    registerMethod("toInt",  &BydaoBool::method_toInt);
+    registerMethod("toReal", &BydaoBool::method_toReal);
+    registerMethod("toBool", &BydaoBool::method_toBool);
+    registerMethod("negate", &BydaoBool::method_negate);
+    registerMethod("isNull", &BydaoBool::method_isNull);
+}
+
+void BydaoBool::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+bool BydaoBool::callMethod(const QString& name,
+                          const QVector<BydaoValue>& args,
+                          BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
+    }
+    return false;
 }
 
 bool BydaoBool::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
@@ -42,6 +47,12 @@ bool BydaoBool::method_toInt(const QVector<BydaoValue>& args, BydaoValue& result
 bool BydaoBool::method_toReal(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
     result = BydaoValue(new BydaoReal(m_value ? 1.0 : 0.0));
+    return true;
+}
+
+bool BydaoBool::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue( new BydaoBool(m_value) );
     return true;
 }
 

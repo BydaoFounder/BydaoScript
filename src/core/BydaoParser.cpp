@@ -185,15 +185,14 @@ bool BydaoParser::loadModuleInfo(const QString& name) {
     // Загружаем через ModuleManager
     QString errorMsg;
     BydaoModuleInfo* info = BydaoModuleManager::instance().loadModuleInfo(name, &errorMsg);
-    
     if (info) {
         m_moduleInfoCache[name] = info;
         // qDebug() << "📦 Module info loaded:" << name << "v" << info->version();
         return true;
-    } else {
-        error("Cannot load module '" + name + "': " + errorMsg);
-        return false;
     }
+
+    error("Cannot load module '" + name + "': " + errorMsg);
+    return false;
 }
 
 // ============================================================
@@ -326,20 +325,16 @@ bool BydaoParser::parseWhile() {
         m_bytecode.resize(savedPos);
     }
 
-//    int loopStart = m_bytecode.size();  // запоминаем позицию начала цикла
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", token);
 
-    enterScope(true);
     m_inLoop = true;
 
     if (!parseBlock(true)) {
         m_inLoop = false;
-        exitScope();
         return false;
     }
 
     m_inLoop = false;
-    exitScope();
 
     // Вставляем next-код
     if (hasNext) {
@@ -609,14 +604,16 @@ bool BydaoParser::parseUnary() {
 bool BydaoParser::parsePrimary() {
     if (match(BydaoTokenType::Identifier)) {
         QString name = m_current.text;
+
+        // qDebug() << "=== Identifier ===";
+        // qDebug() << "Name:" << name;
+        // qDebug() << "isVariableDeclared:" << isVariableDeclared(name);
+        // qDebug() << "isModule:" << isModule(name);
+
         BydaoToken nameToken = m_current;
         
         if (!isVariableDeclared(name) && !isModule(name)) {
-            // Пробуем автоматически загрузить модуль
-            loadModuleInfo(name);
-            if (!isModule(name)) {
-                error("Undeclared variable or unknown module: " + name);
-            }
+            error("Undeclared variable or unknown module: " + name);
         }
         
         nextToken();
@@ -648,11 +645,16 @@ bool BydaoParser::parsePrimary() {
     }
     
     if (match(BydaoTokenType::String)) {
-        emitCode(BydaoOpCode::PushString, m_current.text, m_current);
+        QString text = m_current.text;
+        // Убираем внешние кавычки
+        if (text.length() >= 2 && (text.startsWith('\'') || text.startsWith('"'))) {
+            text = text.mid(1, text.length() - 2);
+        }
+        emitCode(BydaoOpCode::PushString, text, m_current);
         nextToken();
         return true;
     }
-    
+
     if (match(BydaoTokenType::LBracket)) {
         return parseArrayLiteral();
     }
@@ -719,9 +721,9 @@ bool BydaoParser::parseMember(bool canAssign) {
                 }
 
                 // ======= Проверяем валидность указателя
-                qDebug() << "Module info pointer:" << info;
-                qDebug() << "Module name:" << info->name();
-                qDebug() << "Module version:" << info->version();
+                // qDebug() << "Module info pointer:" << info;
+                // qDebug() << "Module name:" << info->name();
+                // qDebug() << "Module version:" << info->version();
                 // ======================================
 
                 if (!info->hasMember(member)) {
@@ -800,18 +802,28 @@ bool BydaoParser::parseCall(const QString& object) {
 }
 
 bool BydaoParser::parseArrayLiteral() {
-    nextToken();
-    emitCode(BydaoOpCode::PushArray);
-    int idx = 0;
-    
+    nextToken(); // [
+
+    int elementCount = 0;
+
     if (!match(BydaoTokenType::RBracket)) {
         do {
             if (!parseExpression()) return false;
-            emitCode(BydaoOpCode::Member, QString::number(idx++));
+            elementCount++;
         } while (match(BydaoTokenType::Comma) && (nextToken(), true));
+
+        // Разрешаем висящую запятую
+        if (match(BydaoTokenType::Comma)) {
+            nextToken();
+        }
     }
-    
-    return expect(BydaoTokenType::RBracket);
+
+    if (!expect(BydaoTokenType::RBracket)) return false;
+
+    // Генерируем одну инструкцию с количеством элементов
+    emitCode(BydaoOpCode::PushArray, QString::number(elementCount));
+
+    return true;
 }
 
 } // namespace BydaoScript

@@ -11,11 +11,20 @@ public:
     
     QString typeName() const override { return "String"; }
     const QString& value() const { return m_value; }
-
     int length() const { return m_value.length(); }
 
-    // Переопределяем для свойств
-    bool getProperty(const QString& name, BydaoValue& result) override;
+    bool callMethod(const QString& name,
+                    const QVector<BydaoValue>& args,
+                    BydaoValue& result) override;
+
+    // Операции
+    BydaoValue add(const BydaoValue& other) override;   // сложение (конкатенация) строк
+    BydaoValue eq(const BydaoValue& other) override;   // сравнение на равенство
+    BydaoValue ne(const BydaoValue& other) override;   // сравнение на равенство
+    BydaoValue lt(const BydaoValue& other) override;   // лексикографическое сравнение
+    BydaoValue le(const BydaoValue& other) override;   // лексикографическое сравнение
+    BydaoValue gt(const BydaoValue& other) override;   // лексикографическое сравнение
+    BydaoValue ge(const BydaoValue& other) override;   // лексикографическое сравнение
 
 private:
 
@@ -37,7 +46,12 @@ private:
 #ifdef QT_CRYPTOGRAPHICHASH_LIB
     bool method_md5(const QVector<BydaoValue>& args, BydaoValue& result);
 #endif
-    
+
+    using MethodPtr = bool (BydaoString::*)(const QVector<BydaoValue>&, BydaoValue&);
+    void registerMethod(const QString& name, MethodPtr method);
+
+    QHash<QString, MethodPtr> m_methods;  // своя таблица методов
+
     QString m_value;
 };
 
