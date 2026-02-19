@@ -9,11 +9,11 @@ class BydaoInt : public BydaoNative {
     // Q_PROPERTY(int value READ value)
 
 public:
-    explicit BydaoInt(int value = 0, QObject* parent = nullptr);
+    explicit BydaoInt(qint64 value = 0, QObject* parent = nullptr);
     virtual ~BydaoInt() override = default;
 
     QString typeName() const override { return "Int"; }
-    int value() const { return m_value; }
+    qint64 value() const { return m_value; }
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,
@@ -48,7 +48,7 @@ private:
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
 
-    int m_value;
+    qint64 m_value;
 };
 
 } // namespace BydaoScript

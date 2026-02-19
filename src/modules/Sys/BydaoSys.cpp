@@ -320,14 +320,14 @@ bool BydaoSysModule::method_env(const QVector<BydaoValue>& args, BydaoValue& res
 bool BydaoSysModule::method_sleep(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
 
-    QThread::msleep(args[0].toInt());
+    QThread::msleep( (unsigned long) args[0].toInt());
     result = BydaoValue();
     return true;
 }
 
 bool BydaoSysModule::method_time(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( new BydaoInt((int)QDateTime::currentSecsSinceEpoch()));
+    result = BydaoValue( new BydaoInt(QDateTime::currentMSecsSinceEpoch()));
     return true;
 }
 

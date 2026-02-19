@@ -3,11 +3,11 @@
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoString.h"
 #include "BydaoScript/BydaoNull.h"
-#include <cmath>
+//#include <cmath>
 
 namespace BydaoScript {
 
-BydaoInt::BydaoInt(int value, QObject* parent)
+BydaoInt::BydaoInt(qint64 value, QObject* parent)
     : BydaoNative(parent)
     , m_value(value)
 {
@@ -54,7 +54,7 @@ bool BydaoInt::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result
 
 bool BydaoInt::method_abs(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoInt(std::abs(m_value)));
+    result = BydaoValue(new BydaoInt(m_value >= 0 ? m_value : -m_value));
     return true;
 }
 
@@ -90,7 +90,7 @@ BydaoValue BydaoInt::add(const BydaoValue& other) {
     }
     case TYPE_STRING: {
         bool ok;
-        int val = other.toString().toInt(&ok);
+        qint64 val = other.toString().toLongLong(&ok);
         if (ok) return BydaoValue::fromInt(m_value + val);
         return BydaoValue();
     }
@@ -108,6 +108,12 @@ BydaoValue BydaoInt::sub(const BydaoValue& other) {
     case TYPE_REAL: {
         const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
         return BydaoValue::fromReal(m_value - otherReal->value());
+    }
+    case TYPE_STRING: {
+        bool ok;
+        qint64 val = other.toString().toLongLong(&ok);
+        if (ok) return BydaoValue::fromInt(m_value - val);
+        return BydaoValue();
     }
     default:
         return BydaoValue::fromInt(m_value - other.toInt());

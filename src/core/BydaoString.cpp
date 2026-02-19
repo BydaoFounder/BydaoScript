@@ -152,8 +152,8 @@ bool BydaoString::method_trim(const QVector<BydaoValue>& args, BydaoValue& resul
 bool BydaoString::method_substring(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() < 1 || args.size() > 2) return false;
 
-    int start = args[0].toInt();
-    int end = (args.size() == 2) ? args[1].toInt() : m_value.length();
+    qint64 start = args[0].toInt();
+    qint64 end = (args.size() == 2) ? args[1].toInt() : m_value.length();
 
     if (start < 0 || start > m_value.length() || end < start || end > m_value.length()) {
         return false;
@@ -167,9 +167,9 @@ bool BydaoString::method_indexOf(const QVector<BydaoValue>& args, BydaoValue& re
     if (args.size() < 1 || args.size() > 2) return false;
 
     QString sub = args[0].toString();
-    int from = (args.size() == 2) ? args[1].toInt() : 0;
+    qint64 from = (args.size() == 2) ? args[1].toInt() : 0;
 
-    int idx = m_value.indexOf(sub, from);
+    long idx = m_value.indexOf(sub, from);
     result = BydaoValue(new BydaoInt(idx));
     return true;
 }
@@ -226,7 +226,7 @@ bool BydaoString::method_replace(const QVector<BydaoValue>& args, BydaoValue& re
 bool BydaoString::method_toInt(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
     bool ok = false;
-    int val = m_value.toInt(&ok);
+    qint64 val = m_value.toLongLong(&ok);
     if (ok) {
         result = BydaoValue(new BydaoInt(val));
         return true;

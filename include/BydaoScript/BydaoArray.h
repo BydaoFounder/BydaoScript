@@ -19,12 +19,12 @@ public:
                     BydaoValue& result) override;
 
     int         size() const { return m_elements.size(); }
-    BydaoValue  at(int index) const;
-    void        set(int index, const BydaoValue& value);
+    BydaoValue  at(qint64 index) const;
+    void        set(qint64 index, const BydaoValue& value);
     BydaoValue  get(const BydaoValue& index);
     void        append(const BydaoValue& value);
-    void        insert(int index, const BydaoValue& value);
-    void        removeAt(int index);
+    void        insert(qint64 index, const BydaoValue& value);
+    void        removeAt(qint64 index);
     void        clear();
 
 private:

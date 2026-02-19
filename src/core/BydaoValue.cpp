@@ -46,7 +46,7 @@ void BydaoValue::updateTypeId() {
 }
 
 // Фабричные методы
-BydaoValue BydaoValue::fromInt(int value) {
+BydaoValue BydaoValue::fromInt(qint64 value) {
     return BydaoValue(new BydaoInt(value));
 }
 
@@ -155,7 +155,7 @@ bool BydaoValue::toBool() const {
     return true;
 }
 
-int BydaoValue::toInt() const {
+qint64 BydaoValue::toInt() const {
     if (!m_obj) return 0;
 
     // Прямое преобразование в зависимости от типа
@@ -166,7 +166,7 @@ int BydaoValue::toInt() const {
         }
         case TYPE_REAL: {
             const auto* r = static_cast<const BydaoReal*>(m_obj);
-            return (int)r->value();
+            return (qint64)r->value();
         }
         case TYPE_BOOL: {
             const auto* b = static_cast<const BydaoBool*>(m_obj);
@@ -174,7 +174,7 @@ int BydaoValue::toInt() const {
         }
         case TYPE_STRING: {
             const auto* s = static_cast<const BydaoString*>(m_obj);
-            return s->value().toInt();
+            return s->value().toLongLong();
         }
     }
 

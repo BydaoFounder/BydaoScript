@@ -130,7 +130,7 @@ bool BydaoFileModule::method_remove(const QVector<BydaoValue>& args, BydaoValue&
 bool BydaoFileModule::method_size(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
     qint64 size = QFileInfo(args[0].toString()).size();
-    result = BydaoValue(new BydaoInt((int)size));
+    result = BydaoValue(new BydaoInt(size));
     return true;
 }
 
@@ -447,7 +447,7 @@ bool BydaoFileObject::method_remove(const QVector<BydaoValue>& args, BydaoValue&
 
 bool BydaoFileObject::method_pos(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoInt((int)m_file.pos()));
+    result = BydaoValue(new BydaoInt(m_file.pos()));
     return true;
 }
 

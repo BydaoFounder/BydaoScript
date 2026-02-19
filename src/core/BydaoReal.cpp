@@ -41,7 +41,7 @@ bool BydaoReal::method_toString(const QVector<BydaoValue>& args, BydaoValue& res
 
 bool BydaoReal::method_toInt(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoInt((int)m_value));
+    result = BydaoValue(new BydaoInt((qint64)m_value));
     return true;
 }
 
@@ -70,7 +70,7 @@ bool BydaoReal::method_isNull(const QVector<BydaoValue>& args, BydaoValue& resul
 }
 
 bool BydaoReal::method_round(const QVector<BydaoValue>& args, BydaoValue& result) {
-    int decimals = args.size() > 0 ? args[0].toInt() : 0;
+    int decimals = args.size() > 0 ? (int)args[0].toInt() : 0;
     double multiplier = std::pow(10.0, decimals);
     double rounded = std::round(m_value * multiplier) / multiplier;
     result = BydaoValue(new BydaoReal(rounded));

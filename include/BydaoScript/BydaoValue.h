@@ -40,12 +40,12 @@ public:
     // Удобные методы
     QString toString() const;
     bool toBool() const;
-    int toInt() const;
+    qint64 toInt() const;
     double toReal() const;
     bool isNull() const;
 
     // Фабричные методы для быстрого создания без new
-    static BydaoValue fromInt(int value);
+    static BydaoValue fromInt(qint64 value);
     static BydaoValue fromReal(double value);
     static BydaoValue fromBool(bool value);
     static BydaoValue fromString(const QString& value);

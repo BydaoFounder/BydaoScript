@@ -45,14 +45,14 @@ bool BydaoArray::callMethod(const QString& name,
 
 // ========== Реализация методов массива ==========
 
-BydaoValue BydaoArray::at(int index) const {
+BydaoValue BydaoArray::at(qint64 index) const {
     if (index >= 0 && index < m_elements.size()) {
         return m_elements[index];
     }
     return BydaoValue(BydaoNull::instance());
 }
 
-void BydaoArray::set(int index, const BydaoValue& value) {
+void BydaoArray::set(qint64 index, const BydaoValue& value) {
     if (index >= 0) {
         if (index >= m_elements.size()) {
             m_elements.resize(index + 1);
@@ -73,13 +73,13 @@ void BydaoArray::append(const BydaoValue& value) {
     m_elements.append(value);
 }
 
-void BydaoArray::insert(int index, const BydaoValue& value) {
+void BydaoArray::insert(qint64 index, const BydaoValue& value) {
     if (index >= 0 && index <= m_elements.size()) {
         m_elements.insert(index, value);
     }
 }
 
-void BydaoArray::removeAt(int index) {
+void BydaoArray::removeAt(qint64 index) {
     if (index >= 0 && index < m_elements.size()) {
         m_elements.removeAt(index);
     }
@@ -116,8 +116,7 @@ bool BydaoArray::method_get(const QVector<BydaoValue>& args, BydaoValue& result)
 
 bool BydaoArray::method_set(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 2) return false;
-    int index = args[0].toInt();
-    set(index, args[1]);
+    set(args[0].toInt(), args[1]);
     result = BydaoValue(BydaoNull::instance());
     return true;
 }
@@ -159,8 +158,8 @@ bool BydaoArray::method_unshift(const QVector<BydaoValue>& args, BydaoValue& res
 bool BydaoArray::method_slice(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() < 1 || args.size() > 2) return false;
 
-    int start = args[0].toInt();
-    int end = (args.size() == 2) ? args[1].toInt() : m_elements.size();
+    qint64 start = args[0].toInt();
+    qint64 end = (args.size() == 2) ? args[1].toInt() : m_elements.size();
 
     if (start < 0) start = 0;
     if (end > m_elements.size()) end = m_elements.size();
@@ -170,7 +169,7 @@ bool BydaoArray::method_slice(const QVector<BydaoValue>& args, BydaoValue& resul
     }
 
     auto* newArray = new BydaoArray();
-    for (int i = start; i < end; i++) {
+    for (qint64 i = start; i < end; i++) {
         newArray->append(m_elements[i]);
     }
     result = BydaoValue(newArray);

@@ -142,7 +142,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
 
     case BydaoOpCode::PushInt:
-        m_stack.push(BydaoValue(new BydaoInt(instr.arg.toInt())));
+        m_stack.push(BydaoValue(new BydaoInt(instr.arg.toLongLong())));
         break;
 
     case BydaoOpCode::PushReal:
@@ -154,7 +154,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
 
     case BydaoOpCode::PushArray: {
-        int count = instr.arg.toInt();
+        int count = (int)instr.arg.toInt();
 
         // qDebug() << "Creating array with" << count << "elements";
 
