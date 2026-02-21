@@ -40,9 +40,10 @@ private:
     bool parseAssign();
     bool parseWhile();
     bool parseIf();
-    bool parseIterEnum(bool isIter);
+    bool parseIter();
+    bool parseEnum();
     bool parseBreakNext();
-    bool parseUse();           // ← здесь будет загрузка модуля
+    bool parseUse();
     bool parseExpression();
     bool parseLogicalOr();
     bool parseLogicalAnd();
@@ -74,6 +75,7 @@ private:
     void exitScope();
     void declareVariable(const QString& name, const BydaoToken& token);
     bool isVariableDeclared(const QString& name);
+    void undeclareVariable(const QString& name);
     
     // +++ НОВОЕ: РАБОТА С МОДУЛЯМИ +++
     bool isModule(const QString& name);
@@ -100,6 +102,8 @@ private:
     // +++ КЭШ МОДУЛЕЙ ДЛЯ ПАРСЕРА +++
     QHash<QString, BydaoModuleInfo*> m_moduleInfoCache;  // имя модуля → информация
     QStringList m_modulePaths;                           // пути поиска модулей
+
+    int m_iteratorCounter;  // счётчик для уникальных имён итераторов
 };
 
 } // namespace BydaoScript

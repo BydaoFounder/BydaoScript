@@ -91,10 +91,9 @@ BydaoValue BydaoInt::add(const BydaoValue& other) {
         return BydaoValue::fromReal(m_value + otherReal->value());
     }
     case TYPE_STRING: {
-        bool ok;
-        qint64 val = other.toString().toLongLong(&ok);
-        if (ok) return BydaoValue::fromInt(m_value + val);
-        return BydaoValue();
+        // Конкатенация: число + строка = строка
+        QString str = QString::number(m_value) + other.toString();
+        return BydaoValue::fromString(str);
     }
     default:
         return BydaoValue::fromInt(m_value + other.toInt());

@@ -14,6 +14,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Nop] = "NOP";
         names[BydaoOpCode::Halt] = "HALT";
         names[BydaoOpCode::VarDecl] = "VARDECL";
+        names[BydaoOpCode::Drop] = "DROP";
         names[BydaoOpCode::Load] = "LOAD";
         names[BydaoOpCode::Store] = "STORE";
         names[BydaoOpCode::PushNull] = "PUSHNULL";

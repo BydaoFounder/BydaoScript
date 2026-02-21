@@ -4,6 +4,7 @@
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoArray.h"
 #include "BydaoScript/BydaoNull.h"
+#include "BydaoScript/BydaoStringIterator.h"
 #ifdef QT_CRYPTOGRAPHICHASH_LIB
 #include <QCryptographicHash>
 #endif
@@ -35,6 +36,8 @@ BydaoString::BydaoString(const QString& value, QObject* parent)
     registerMethod("md5", &BydaoString::method_md5);
 #endif
 
+    registerMethod("iter", &BydaoString::method_iter);  // ← добавить
+
     // Свойства
     registerProperty("length",
                      [this]() { return BydaoValue::fromInt(m_value.length()); },
@@ -54,6 +57,10 @@ bool BydaoString::callMethod(const QString& name,
         return (this->*(it.value()))(args, result);
     }
     return false;
+}
+
+BydaoValue BydaoString::iter() {
+    return BydaoValue(new BydaoStringIterator(this));
 }
 
 BydaoValue BydaoString::add(const BydaoValue& other) {
@@ -114,6 +121,12 @@ BydaoValue BydaoString::ge(const BydaoValue& other) {
 }
 
 // ========== Реализации методов ==========
+
+bool BydaoString::method_iter(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue(new BydaoStringIterator(this));
+    return true;
+}
 
 bool BydaoString::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);

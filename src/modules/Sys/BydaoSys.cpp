@@ -147,10 +147,15 @@ bool BydaoSysModule::method_out(const QVector<BydaoValue>& args, BydaoValue& res
 }
 
 bool BydaoSysModule::method_outln(const QVector<BydaoValue>& args, BydaoValue& result) {
-    // Сначала выводим текст через out
-    if (!method_out(args, result)) return false;
+    if (args.size() > 1) return false;
 
-    // Затем добавляем перевод строки
+    if (args.size() == 1) {
+        // Выводим текст
+        QTextStream& out = *m_outStream;
+        out << args[0].toString();
+    }
+
+    // В любом случае добавляем перевод строки
     QTextStream& out = *m_outStream;
     out << Qt::endl;
     out.flush();

@@ -5,6 +5,7 @@ namespace BydaoScript {
 QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
     {"use", BydaoTokenType::Use},
     {"var", BydaoTokenType::Var},
+    {"drop", BydaoTokenType::Drop},
     {"while", BydaoTokenType::While},
     {"next", BydaoTokenType::Next},
     {"break", BydaoTokenType::Break},
@@ -77,17 +78,61 @@ BydaoToken BydaoLexer::readIdentifier() {
     return BydaoToken(type, text, m_line, startCol);
 }
 
-BydaoToken BydaoLexer::readString(QChar quote) {
-    int start = m_pos, startCol = m_column;
-    m_pos++; m_column++;
-    while (m_pos < m_source.length() && m_source[m_pos] != quote) {
-        if (m_source[m_pos] == '\n') { m_line++; m_column = 1; }
-        else m_column++;
+BydaoToken BydaoLexer::readString(QChar quote)
+{
+    int startLine = m_line;
+    int startCol = m_column;
+    QString text;
+
+    m_pos++; // пропускаем открывающую кавычку
+    m_column++;
+
+    bool escape = false;
+
+    while (m_pos < m_source.length()) {
+        QChar ch = m_source[m_pos];
+
+        if (escape) {
+            // Обработка escape-последовательностей
+            switch (ch.toLatin1()) {
+            case 'n': text += '\n'; break;
+            case 't': text += '\t'; break;
+            case 'r': text += '\r'; break;
+            case '\\': text += '\\'; break;
+            case '\'': text += '\''; break;
+            case '"': text += '"'; break;
+            default: text += ch; break;
+            }
+            escape = false;
+            m_pos++;
+            m_column++;
+            continue;
+        }
+
+        if (ch == '\\') {
+            escape = true;
+            m_pos++;
+            m_column++;
+            continue;
+        }
+
+        if (ch == quote) {
+            m_pos++; // пропускаем закрывающую кавычку
+            m_column++;
+            break;
+        }
+
+        if (ch == '\n') {
+            m_error = "Unclosed string at line " + QString::number(m_line);
+            break;
+        }
+
+        text += ch;
         m_pos++;
+        m_column++;
     }
-    if (m_pos < m_source.length()) { m_pos++; m_column++; }
-    QString text = m_source.mid(start, m_pos - start);
-    return BydaoToken(BydaoTokenType::String, text, m_line, startCol);
+
+    return BydaoToken(BydaoTokenType::String, text, startLine, startCol);
 }
 
 BydaoToken BydaoLexer::readOperator(QChar ch) {

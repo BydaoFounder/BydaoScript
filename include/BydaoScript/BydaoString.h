@@ -42,6 +42,8 @@ public:
                     const QVector<BydaoValue>& args,
                     BydaoValue& result) override;
 
+    BydaoValue iter();  // создаёт итератор для строки
+
     // Операции
     BydaoValue add(const BydaoValue& other) override;   // сложение (конкатенация) строк
     BydaoValue eq(const BydaoValue& other) override;   // сравнение на равенство
@@ -71,6 +73,8 @@ private:
 #ifdef QT_CRYPTOGRAPHICHASH_LIB
     bool method_md5(const QVector<BydaoValue>& args, BydaoValue& result);
 #endif
+
+    bool method_iter(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoString::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);

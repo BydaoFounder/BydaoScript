@@ -81,6 +81,21 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_globals[instr.arg] = BydaoValue(BydaoNull::instance());
         break;
 
+    case BydaoOpCode::Drop: {
+        QString varName = instr.arg;
+
+        if (m_traceMode) {
+            qDebug() << "  Dropping variable:" << varName;
+        }
+
+        // Удаляем переменную из текущей области видимости
+        // В нашей простой VM пока просто удаляем из глобалов
+        // В будущем нужно будет работать со стеком областей видимости
+        m_globals.remove(varName);
+
+        break;
+    }
+
     case BydaoOpCode::Load: {
         // qDebug() << "LOAD" << instr.arg;
         // qDebug() << "  globals contains:" << m_globals.contains(instr.arg);

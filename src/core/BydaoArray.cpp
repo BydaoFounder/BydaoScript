@@ -3,6 +3,7 @@
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoString.h"
 #include "BydaoScript/BydaoNull.h"
+#include "BydaoScript/BydaoArrayIterator.h"
 
 namespace BydaoScript {
 
@@ -20,6 +21,8 @@ BydaoArray::BydaoArray(QObject* parent)
     registerMethod("unshift", &BydaoArray::method_unshift);
     registerMethod("slice", &BydaoArray::method_slice);
     registerMethod("join", &BydaoArray::method_join);
+
+    registerMethod("iter", &BydaoArray::method_iter);  // ← добавить
 
     // Регистрация свойства length (ReadOnly)
     // Свойства
@@ -41,6 +44,10 @@ bool BydaoArray::callMethod(const QString& name,
         return (this->*(it.value()))(args, result);
     }
     return false;
+}
+
+BydaoValue BydaoArray::iter() {
+    return BydaoValue(new BydaoArrayIterator(this));
 }
 
 // ========== Реализация методов массива ==========
@@ -90,6 +97,12 @@ void BydaoArray::clear() {
 }
 
 // ========== Методы ==========
+
+bool BydaoArray::method_iter(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue(new BydaoArrayIterator(this));
+    return true;
+}
 
 bool BydaoArray::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);

@@ -27,6 +27,8 @@ public:
     void        removeAt(qint64 index);
     void        clear();
 
+    BydaoValue  iter();  // создаёт итератор для массива
+
 private:
 
     bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
@@ -39,6 +41,8 @@ private:
     bool method_unshift(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_slice(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_join(const QVector<BydaoValue>& args, BydaoValue& result);
+
+    bool method_iter(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoArray::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);

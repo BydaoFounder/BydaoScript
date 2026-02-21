@@ -5,24 +5,24 @@
 #include <QDir>
 #include <QTextStream>
 
-// +++ ПРАВИЛЬНЫЕ ЗАГОЛОВКИ +++
 #include "BydaoScript/BydaoLexer.h"
 #include "BydaoScript/BydaoParser.h"
 #include "BydaoScript/BydaoVM.h"
 #include "BydaoScript/BydaoBytecode.h"
-#include "BydaoScript/BydaoModule.h"
 #include "BydaoScript/BydaoDisassembler.h"
 
-// Модули
-//#include "BydaoScript/modules/BydaoDir.h"
-//#include "BydaoScript/modules/BydaoFile.h"
-//#include "BydaoScript/modules/BydaoSys.h"
+#ifdef Q_OS_WIN
+#include<windows.h>
+#endif
 
-// +++ ИСПОЛЬЗОВАТЬ ПРОСТРАНСТВО ИМЕН +++
 using namespace BydaoScript;
-//using namespace BydaoScript::Modules;
 
 int main(int argc, char *argv[]) {
+
+#ifdef Q_OS_WIN
+    // Устанавливаем UTF-8 для консоли Windows
+    SetConsoleOutputCP(65001/*CP_UTF8*/);
+#endif
 
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName("BydaoScript");
@@ -107,6 +107,7 @@ int main(int argc, char *argv[]) {
         out << "\n=== BYTECODE DISASSEMBLY ===\n";
         disasm.disassemble(bytecode, out);
         out << "============================\n\n";
+        return 0;
     }
 
     // Сохраняем байт-код если нужно +++ BydaoBytecode +++

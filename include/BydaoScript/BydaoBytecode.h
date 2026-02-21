@@ -9,7 +9,7 @@ namespace BydaoScript {
 //enum class BydaoOpCode : quint8 {
 enum BydaoOpCode : quint8 {
     Nop, Halt,
-    VarDecl, Load, Store,
+    VarDecl, Drop, Load, Store,
     PushNull, PushInt, PushReal, PushString, PushArray,
     Add, Sub, Neg,
     Mul, Div, Mod,
