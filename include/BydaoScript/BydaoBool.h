@@ -6,10 +6,33 @@ namespace BydaoScript {
 
 class BydaoBool : public BydaoNative {
     Q_OBJECT
-    // Q_PROPERTY(bool value READ value)
+
+    static QVector<BydaoBool*> s_cache;
+    static const int MAX_CACHE_SIZE = 1024;
+
+protected:
+
+    void release() override {
+        if (s_cache.size() < MAX_CACHE_SIZE) {
+            m_refCount = 0;  // сбрасываем для следующего использования
+            s_cache.append(this);
+        } else {
+            delete this;
+        }
+    }
+
+    explicit BydaoBool(bool value = false, QObject* parent = nullptr);
 
 public:
-    explicit BydaoBool(bool value = false, QObject* parent = nullptr);
+
+    static BydaoBool* create(bool value) {
+        if (!s_cache.isEmpty()) {
+            BydaoBool* obj = s_cache.takeLast();
+            obj->m_value = value;
+            return obj;
+        }
+        return new BydaoBool(value);
+    }
 
     QString typeName() const override { return "Bool"; }
     bool value() const { return m_value; }

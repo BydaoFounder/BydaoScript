@@ -7,6 +7,8 @@
 
 namespace BydaoScript {
 
+QVector<BydaoInt*> BydaoInt::s_cache;
+
 BydaoInt::BydaoInt(qint64 value, QObject* parent)
     : BydaoNative(parent)
     , m_value(value)
@@ -42,31 +44,31 @@ bool BydaoInt::method_toString(const QVector<BydaoValue>& args, BydaoValue& resu
 
 bool BydaoInt::method_toReal(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoReal((double)m_value));
+    result = BydaoValue::fromReal( (double)m_value );
     return true;
 }
 
 bool BydaoInt::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoBool(m_value != 0));
+    result = BydaoValue( BydaoBool::create(m_value != 0));
     return true;
 }
 
 bool BydaoInt::method_abs(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoInt(m_value >= 0 ? m_value : -m_value));
+    result = BydaoValue(BydaoInt::create(m_value >= 0 ? m_value : -m_value));
     return true;
 }
 
 bool BydaoInt::method_negate(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoInt(-m_value));
+    result = BydaoValue(BydaoInt::create(-m_value));
     return true;
 }
 
 bool BydaoInt::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoBool(false));
+    result = BydaoValue(BydaoBool::create(false));
     return true;
 }
 

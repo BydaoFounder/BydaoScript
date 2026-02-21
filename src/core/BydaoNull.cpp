@@ -7,6 +7,8 @@ namespace BydaoScript {
 BydaoNull* BydaoNull::s_instance = nullptr;
 
 BydaoNull::BydaoNull() {
+    // Увеличиваем счётчик, чтобы никогда не удалялся
+    ref();  // теперь никогда не станет 0
     registerMethod("toString", &BydaoNull::method_toString);
     registerMethod("toBool", &BydaoNull::method_toBool);
     registerMethod("isNull", &BydaoNull::method_isNull);
@@ -41,13 +43,13 @@ bool BydaoNull::method_toString(const QVector<BydaoValue>& args, BydaoValue& res
 
 bool BydaoNull::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoBool(false));
+    result = BydaoValue(BydaoBool::create(false));
     return true;
 }
 
 bool BydaoNull::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoBool(true));
+    result = BydaoValue(BydaoBool::create(true));
     return true;
 }
 

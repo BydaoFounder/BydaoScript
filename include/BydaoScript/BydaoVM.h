@@ -36,7 +36,6 @@ private:
 
     QStack<BydaoValue> m_stack;
     QHash<QString, BydaoValue> m_globals;
-//    QHash<QString, BydaoObject*> m_globalObjects;
 
     QString m_lastError;
     int m_errorLine;

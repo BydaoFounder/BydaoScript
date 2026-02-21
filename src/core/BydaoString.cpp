@@ -121,13 +121,13 @@ bool BydaoString::method_toString(const QVector<BydaoValue>& args, BydaoValue& r
 
 bool BydaoString::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoBool(m_value.isNull()));
+    result = BydaoValue(BydaoBool::create(m_value.isNull()));
     return true;
 }
 
 bool BydaoString::method_length(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoInt(m_value.length()));
+    result = BydaoValue(BydaoInt::create(m_value.length()));
     return true;
 }
 
@@ -170,7 +170,7 @@ bool BydaoString::method_indexOf(const QVector<BydaoValue>& args, BydaoValue& re
     qint64 from = (args.size() == 2) ? args[1].toInt() : 0;
 
     long idx = m_value.indexOf(sub, from);
-    result = BydaoValue(new BydaoInt(idx));
+    result = BydaoValue(BydaoInt::create(idx));
     return true;
 }
 
@@ -178,7 +178,7 @@ bool BydaoString::method_contains(const QVector<BydaoValue>& args, BydaoValue& r
     if (args.size() != 1) return false;
 
     QString sub = args[0].toString();
-    result = BydaoValue(new BydaoBool(m_value.contains(sub)));
+    result = BydaoValue( BydaoBool::create(m_value.contains(sub)) );
     return true;
 }
 
@@ -186,7 +186,7 @@ bool BydaoString::method_startsWith(const QVector<BydaoValue>& args, BydaoValue&
     if (args.size() != 1) return false;
 
     QString sub = args[0].toString();
-    result = BydaoValue(new BydaoBool(m_value.startsWith(sub)));
+    result = BydaoValue( BydaoBool::create(m_value.startsWith(sub)));
     return true;
 }
 
@@ -194,7 +194,7 @@ bool BydaoString::method_endsWith(const QVector<BydaoValue>& args, BydaoValue& r
     if (args.size() != 1) return false;
 
     QString sub = args[0].toString();
-    result = BydaoValue(new BydaoBool(m_value.endsWith(sub)));
+    result = BydaoValue(BydaoBool::create(m_value.endsWith(sub)));
     return true;
 }
 
@@ -228,7 +228,7 @@ bool BydaoString::method_toInt(const QVector<BydaoValue>& args, BydaoValue& resu
     bool ok = false;
     qint64 val = m_value.toLongLong(&ok);
     if (ok) {
-        result = BydaoValue(new BydaoInt(val));
+        result = BydaoValue(BydaoInt::create(val));
         return true;
     }
     return false;
@@ -239,7 +239,7 @@ bool BydaoString::method_toReal(const QVector<BydaoValue>& args, BydaoValue& res
     bool ok = false;
     double val = m_value.toDouble(&ok);
     if (ok) {
-        result = BydaoValue(new BydaoReal(val));
+        result = BydaoValue::fromReal( val );
         return true;
     }
     return false;

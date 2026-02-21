@@ -6,10 +6,33 @@ namespace BydaoScript {
 
 class BydaoInt : public BydaoNative {
     Q_OBJECT
-    // Q_PROPERTY(int value READ value)
+
+    static QVector<BydaoInt*> s_cache;
+    static const int MAX_CACHE_SIZE = 1024;
+
+protected:
+
+    void release() override {
+        if (s_cache.size() < MAX_CACHE_SIZE) {
+            m_refCount = 0;  // сбрасываем для следующего использования
+            s_cache.append(this);
+        } else {
+            delete this;
+        }
+    }
+    explicit BydaoInt(qint64 value = 0, QObject* parent = nullptr);
 
 public:
-    explicit BydaoInt(qint64 value = 0, QObject* parent = nullptr);
+
+    static BydaoInt* create(qint64 value) {
+        if (!s_cache.isEmpty()) {
+            BydaoInt* obj = s_cache.takeLast();
+            obj->m_value = value;
+            return obj;
+        }
+        return new BydaoInt(value);
+    }
+
     virtual ~BydaoInt() override = default;
 
     QString typeName() const override { return "Int"; }

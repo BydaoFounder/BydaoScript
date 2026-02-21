@@ -8,8 +8,12 @@
 namespace BydaoScript {
 
 class BydaoObject {
+
 public:
     virtual ~BydaoObject() = default;
+
+    void ref() { m_refCount++; }
+    void unref() { if (--m_refCount == 0) release(); }
 
     // Единственный метод вызова
     virtual bool callMethod(const QString& name,
@@ -99,6 +103,14 @@ public:
     virtual BydaoValue not_() {
         qWarning() << "not not supported for" << typeName();
         return BydaoValue();
+    }
+
+protected:
+
+    std::atomic<int> m_refCount{0};
+
+    virtual void release() {
+        delete this;
     }
 };
 

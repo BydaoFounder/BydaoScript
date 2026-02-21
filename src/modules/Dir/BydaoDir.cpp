@@ -88,7 +88,7 @@ bool BydaoDirModule::method_list(const QVector<BydaoValue>& args, BydaoValue& re
 bool BydaoDirModule::method_cd(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
     bool ok = QDir::setCurrent(args[0].toString());
-    result = BydaoValue(new BydaoBool(ok));
+    result = BydaoValue::fromBool( ok );
     return true;
 }
 
@@ -101,14 +101,14 @@ bool BydaoDirModule::method_current(const QVector<BydaoValue>& args, BydaoValue&
 bool BydaoDirModule::method_mkdir(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
     bool ok = QDir().mkpath(args[0].toString());
-    result = BydaoValue(new BydaoBool(ok));
+    result = BydaoValue::fromBool( ok );
     return true;
 }
 
 bool BydaoDirModule::method_rmdir(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
     bool ok = QDir().rmdir(args[0].toString());
-    result = BydaoValue(new BydaoBool(ok));
+    result = BydaoValue::fromBool( ok );
     return true;
 }
 
@@ -173,27 +173,27 @@ bool BydaoDirObject::method_list(const QVector<BydaoValue>& args, BydaoValue& re
 bool BydaoDirObject::method_cd(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
     bool ok = m_dir.cd(args[0].toString());
-    result = BydaoValue(new BydaoBool(ok));
+    result = BydaoValue::fromBool( ok );
     return true;
 }
 
 bool BydaoDirObject::method_mkdir(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
     bool ok = m_dir.mkdir(args[0].toString());
-    result = BydaoValue(new BydaoBool(ok));
+    result = BydaoValue::fromBool( ok );
     return true;
 }
 
 bool BydaoDirObject::method_rmdir(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
     bool ok = m_dir.rmdir(args[0].toString());
-    result = BydaoValue(new BydaoBool(ok));
+    result = BydaoValue::fromBool( ok );
     return true;
 }
 
 bool BydaoDirObject::method_exists(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoBool(m_dir.exists()));
+    result = BydaoValue::fromBool( m_dir.exists() );
     return true;
 }
 

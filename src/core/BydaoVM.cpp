@@ -142,11 +142,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
 
     case BydaoOpCode::PushInt:
-        m_stack.push(BydaoValue(new BydaoInt(instr.arg.toLongLong())));
+        m_stack.push(BydaoValue(BydaoInt::create(instr.arg.toLongLong())));
         break;
 
     case BydaoOpCode::PushReal:
-        m_stack.push(BydaoValue(new BydaoReal(instr.arg.toDouble())));
+        m_stack.push(BydaoValue(BydaoReal::create(instr.arg.toDouble())));
         break;
 
     case BydaoOpCode::PushString:

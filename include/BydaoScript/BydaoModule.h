@@ -73,6 +73,12 @@ public:
     // Жизненный цикл
     virtual bool initialize();
     virtual bool shutdown();
+
+protected:
+
+    virtual void release() {
+    }
+
 };
 
 // Менеджер модулей

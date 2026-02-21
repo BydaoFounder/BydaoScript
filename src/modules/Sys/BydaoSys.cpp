@@ -221,7 +221,7 @@ bool BydaoSysModule::method_run(const QVector<BydaoValue>& args, BydaoValue& res
     if (args.size() != 1) return false;
 
     int code = system(args[0].toString().toLocal8Bit().constData());
-    result = BydaoValue( new BydaoInt(code) );
+    result = BydaoValue( BydaoInt::create(code) );
     return true;
 }
 
@@ -248,7 +248,7 @@ bool BydaoSysModule::method_exec(const QVector<BydaoValue>& args, BydaoValue& re
     m_process->start(program, progArgs);
     m_process->waitForFinished(-1);
 
-    result = BydaoValue( new BydaoInt( m_process->exitCode() ) );
+    result = BydaoValue( BydaoInt::create( m_process->exitCode() ) );
     return true;
 }
 
@@ -289,7 +289,7 @@ bool BydaoSysModule::method_setenv(const QVector<BydaoValue>& args, BydaoValue& 
                   1) == 0;
 #endif
 
-    result = BydaoValue( new BydaoBool(ok) );
+    result = BydaoValue( BydaoBool::create(ok) );
     return true;
 }
 
@@ -304,7 +304,7 @@ bool BydaoSysModule::method_unsetenv(const QVector<BydaoValue>& args, BydaoValue
     bool ok = unsetenv(args[0].toString().toLatin1().constData()) == 0;
 #endif
 
-    result = BydaoValue( new BydaoBool(ok) );
+    result = BydaoValue( BydaoBool::create(ok) );
     return true;
 }
 
@@ -327,7 +327,7 @@ bool BydaoSysModule::method_sleep(const QVector<BydaoValue>& args, BydaoValue& r
 
 bool BydaoSysModule::method_time(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( new BydaoInt(QDateTime::currentMSecsSinceEpoch()));
+    result = BydaoValue( BydaoInt::create(QDateTime::currentMSecsSinceEpoch()));
     return true;
 }
 
@@ -368,7 +368,7 @@ bool BydaoSysModule::method_setCurrentDir(const QVector<BydaoValue>& args, Bydao
     if (args.size() != 1) return false;
 
     bool ok = QDir::setCurrent(args[0].toString());
-    result = BydaoValue( new BydaoBool(ok) );
+    result = BydaoValue( BydaoBool::create(ok) );
     return true;
 }
 
