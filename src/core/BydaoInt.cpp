@@ -38,7 +38,7 @@ bool BydaoInt::callMethod(const QString& name,
 
 bool BydaoInt::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoString(QString::number(m_value)));
+    result = BydaoValue(BydaoString::create(QString::number(m_value)));
     return true;
 }
 
@@ -74,7 +74,7 @@ bool BydaoInt::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result
 
 bool BydaoInt::method_toHex(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoString(QString::number(m_value, 16)));
+    result = BydaoValue(BydaoString::create(QString::number(m_value, 16)));
     return true;
 }
 

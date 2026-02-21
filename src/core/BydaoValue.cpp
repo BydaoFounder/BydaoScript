@@ -93,7 +93,7 @@ BydaoValue BydaoValue::fromBool(bool value) {
 }
 
 BydaoValue BydaoValue::fromString(const QString& value) {
-    return BydaoValue(new BydaoString(value));
+    return BydaoValue(BydaoString::create(value));
 }
 
 BydaoValue BydaoValue::fromObject(BydaoObject* obj) {

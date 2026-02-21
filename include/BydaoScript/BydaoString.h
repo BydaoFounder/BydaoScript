@@ -6,9 +6,34 @@
 namespace BydaoScript {
 
 class BydaoString : public BydaoNative {
-public:
+    Q_OBJECT
+
+    static QVector<BydaoString*> s_cache;
+    static const int MAX_CACHE_SIZE = 1024;
+
+protected:
+
+    void release() override {
+        if (s_cache.size() < MAX_CACHE_SIZE) {
+            m_refCount = 0;  // сбрасываем для следующего использования
+            s_cache.append(this);
+        } else {
+            delete this;
+        }
+    }
     explicit BydaoString(const QString& value = QString(), QObject* parent = nullptr);
-    
+
+public:
+
+    static BydaoString* create( const QString& value) {
+        if (!s_cache.isEmpty()) {
+            BydaoString* obj = s_cache.takeLast();
+            obj->m_value = value;
+            return obj;
+        }
+        return new BydaoString(value);
+    }
+
     QString typeName() const override { return "String"; }
     const QString& value() const { return m_value; }
     int length() const { return m_value.length(); }

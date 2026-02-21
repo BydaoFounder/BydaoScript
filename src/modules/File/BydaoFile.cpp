@@ -141,7 +141,7 @@ bool BydaoFileModule::method_readAll(const QVector<BydaoValue>& args, BydaoValue
         QTextStream in(&file);
         QString content = in.readAll();
         file.close();
-        result = BydaoValue(new BydaoString(content));
+        result = BydaoValue(BydaoString::create(content));
         return true;
     }
     result = BydaoValue(BydaoNull::instance());
@@ -309,9 +309,9 @@ bool BydaoFileObject::method_read(const QVector<BydaoValue>& args, BydaoValue& r
     qint64 maxlen = args.size() > 0 ? args[0].toInt() : -1;
 
     if (maxlen < 0) {
-        result = BydaoValue(new BydaoString(m_stream->readAll()));
+        result = BydaoValue(BydaoString::create(m_stream->readAll()));
     } else {
-        result = BydaoValue(new BydaoString(m_stream->read(maxlen)));
+        result = BydaoValue(BydaoString::create(m_stream->read(maxlen)));
     }
     return true;
 }
@@ -324,7 +324,7 @@ bool BydaoFileObject::method_readLine(const QVector<BydaoValue>& args, BydaoValu
         return false;
     }
 
-    result = BydaoValue(new BydaoString(m_stream->readLine()));
+    result = BydaoValue(BydaoString::create(m_stream->readLine()));
     return true;
 }
 
@@ -339,7 +339,7 @@ bool BydaoFileObject::method_readLines(const QVector<BydaoValue>& args, BydaoVal
     auto* array = new BydaoArray();
     while (!m_stream->atEnd()) {
         QString line = m_stream->readLine();
-        array->append(BydaoValue(new BydaoString(line)));
+        array->append(BydaoValue(BydaoString::create(line)));
     }
 
     result = BydaoValue(array);

@@ -36,7 +36,7 @@ bool BydaoBool::callMethod(const QString& name,
 
 bool BydaoBool::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoString(m_value ? "true" : "false"));
+    result = BydaoValue(BydaoString::create(m_value ? "true" : "false"));
     return true;
 }
 

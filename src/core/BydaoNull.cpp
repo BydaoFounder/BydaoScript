@@ -37,7 +37,7 @@ BydaoNull* BydaoNull::instance() {
 
 bool BydaoNull::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoString("null"));
+    result = BydaoValue(BydaoString::create("null"));
     return true;
 }
 

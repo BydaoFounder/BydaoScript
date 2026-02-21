@@ -79,7 +79,7 @@ bool BydaoDirModule::method_list(const QVector<BydaoValue>& args, BydaoValue& re
     auto entries = dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
     auto* array = new BydaoArray();
     for (const QString& entry : entries) {
-        array->append(BydaoValue(new BydaoString(entry)));
+        array->append(BydaoValue(BydaoString::create(entry)));
     }
     result = BydaoValue(array);
     return true;
@@ -94,7 +94,7 @@ bool BydaoDirModule::method_cd(const QVector<BydaoValue>& args, BydaoValue& resu
 
 bool BydaoDirModule::method_current(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoString(QDir::currentPath()));
+    result = BydaoValue(BydaoString::create(QDir::currentPath()));
     return true;
 }
 
@@ -164,7 +164,7 @@ bool BydaoDirObject::method_list(const QVector<BydaoValue>& args, BydaoValue& re
     auto entries = m_dir.entryList(nameFilters, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
     auto* array = new BydaoArray();
     for (const QString& entry : entries) {
-        array->append(BydaoValue(new BydaoString(entry)));
+        array->append(BydaoValue(BydaoString::create(entry)));
     }
     result = BydaoValue(array);
     return true;
@@ -199,7 +199,7 @@ bool BydaoDirObject::method_exists(const QVector<BydaoValue>& args, BydaoValue& 
 
 bool BydaoDirObject::method_current(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoString(m_dir.absolutePath()));
+    result = BydaoValue(BydaoString::create(m_dir.absolutePath()));
     return true;
 }
 

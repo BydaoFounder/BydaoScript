@@ -41,13 +41,13 @@ bool BydaoReal::callMethod(const QString& name,
 
 bool BydaoReal::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoString(QString::number(m_value)));
+    result = BydaoValue(BydaoString::create(QString::number(m_value)));
     return true;
 }
 
 bool BydaoReal::method_toFixed(const QVector<BydaoValue>& args, BydaoValue& result) {
     int decimals = args.size() > 0 ? (int)args[0].toInt() : 0;
-    result = BydaoValue(new BydaoString(QString::number(m_value,'f',decimals)));
+    result = BydaoValue(BydaoString::create(QString::number(m_value,'f',decimals)));
     return true;
 }
 

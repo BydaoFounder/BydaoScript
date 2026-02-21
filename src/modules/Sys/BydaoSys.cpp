@@ -186,7 +186,7 @@ bool BydaoSysModule::method_in(const QVector<BydaoValue>& args, BydaoValue& resu
     QTextStream in(stdin);
     QString line = in.readLine();
 
-    result = BydaoValue( new BydaoString(line) );
+    result = BydaoValue( BydaoString::create(line) );
     return true;
 }
 
@@ -263,7 +263,7 @@ bool BydaoSysModule::method_shell(const QVector<BydaoValue>& args, BydaoValue& r
     m_process->waitForFinished(-1);
 
     QString output = QString::fromLocal8Bit(m_process->readAllStandardOutput());
-    result = BydaoValue( new BydaoString( output ) );
+    result = BydaoValue( BydaoString::create( output ) );
     return true;
 }
 
@@ -271,7 +271,7 @@ bool BydaoSysModule::method_getenv(const QVector<BydaoValue>& args, BydaoValue& 
     if (args.size() != 1) return false;
 
     QString value = qgetenv(args[0].toString().toLatin1().constData());
-    result = BydaoValue( new BydaoString( value ) );
+    result = BydaoValue( BydaoString::create( value ) );
     return true;
 }
 
@@ -333,13 +333,13 @@ bool BydaoSysModule::method_time(const QVector<BydaoValue>& args, BydaoValue& re
 
 bool BydaoSysModule::method_date(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( new BydaoString( QDate::currentDate().toString(Qt::ISODate)) );
+    result = BydaoValue( BydaoString::create( QDate::currentDate().toString(Qt::ISODate)) );
     return true;
 }
 
 bool BydaoSysModule::method_datetime(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( new BydaoString( QDateTime::currentDateTime().toString(Qt::ISODate)) );
+    result = BydaoValue( BydaoString::create( QDateTime::currentDateTime().toString(Qt::ISODate)) );
     return true;
 }
 
@@ -347,20 +347,20 @@ bool BydaoSysModule::method_platform(const QVector<BydaoValue>& args, BydaoValue
     Q_UNUSED(args);
 
 #ifdef Q_OS_WIN
-    result = BydaoValue( new BydaoString("windows") );
+    result = BydaoValue( BydaoString::create("windows") );
 #elif Q_OS_MAC
-    result = BydaoValue("macos");
+    result = BydaoValue( BydaoString::create("macos") );
 #elif Q_OS_LINUX
-    result = BydaoValue("linux");
+    result = BydaoValue( BydaoString::create("linux") );
 #else
-    result = BydaoValue("unknown");
+    result = BydaoValue( BydaoString::create("unknown") );
 #endif
     return true;
 }
 
 bool BydaoSysModule::method_currentDir(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( new BydaoString(QDir::currentPath()) );
+    result = BydaoValue( BydaoString::create(QDir::currentPath()) );
     return true;
 }
 
@@ -374,13 +374,13 @@ bool BydaoSysModule::method_setCurrentDir(const QVector<BydaoValue>& args, Bydao
 
 bool BydaoSysModule::method_tempDir(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( new BydaoString(QDir::tempPath()));
+    result = BydaoValue( BydaoString::create(QDir::tempPath()));
     return true;
 }
 
 bool BydaoSysModule::method_homeDir(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( new BydaoString(QDir::homePath()) );
+    result = BydaoValue( BydaoString::create(QDir::homePath()) );
     return true;
 }
 

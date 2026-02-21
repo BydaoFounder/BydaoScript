@@ -150,7 +150,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
 
     case BydaoOpCode::PushString:
-        m_stack.push(BydaoValue(new BydaoString(instr.arg)));
+        m_stack.push(BydaoValue(BydaoString::create(instr.arg)));
         break;
 
     case BydaoOpCode::PushArray: {
