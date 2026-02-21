@@ -224,6 +224,13 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
+    case BydaoOpCode::Neq: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = m_stack.pop();
+        m_stack.push(a.toObject()->neq(b));
+        break;
+    }
+
     case BydaoOpCode::Lt: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();

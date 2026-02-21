@@ -214,6 +214,21 @@ BydaoValue BydaoReal::eq(const BydaoValue& other) {
     }
 }
 
+BydaoValue BydaoReal::neq(const BydaoValue& other) {
+    switch (other.typeId()) {
+    case TYPE_INT: {
+        const auto* otherInt = static_cast<const BydaoInt*>(other.toObject());
+        return BydaoValue::fromBool(m_value != otherInt->value());
+    }
+    case TYPE_REAL: {
+        const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
+        return BydaoValue::fromBool(m_value != otherReal->m_value);
+    }
+    default:
+        return BydaoValue::fromBool(m_value != other.toInt());
+    }
+}
+
 BydaoValue BydaoReal::lt(const BydaoValue& other) {
     switch (other.typeId()) {
     case TYPE_INT: {

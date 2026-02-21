@@ -56,11 +56,13 @@ public:
 
     virtual BydaoValue eq(const BydaoValue& other) {
         Q_UNUSED( other );
+        qWarning() << "eq not supported for" << typeName();
         return BydaoValue();
     }
 
-    virtual BydaoValue ne(const BydaoValue& other) {
+    virtual BydaoValue neq(const BydaoValue& other) {
         Q_UNUSED( other );
+        qWarning() << "neq not supported for" << typeName();
         return BydaoValue();
     }
 

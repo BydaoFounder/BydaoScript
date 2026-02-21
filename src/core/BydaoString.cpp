@@ -73,7 +73,7 @@ BydaoValue BydaoString::eq(const BydaoValue& other) {
     return BydaoValue::fromBool(m_value == other.toString());
 }
 
-BydaoValue BydaoString::ne(const BydaoValue& other) {
+BydaoValue BydaoString::neq(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
         const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
         return BydaoValue::fromBool( m_value != otherStr->m_value );

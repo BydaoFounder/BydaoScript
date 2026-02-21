@@ -45,7 +45,7 @@ public:
     // Операции
     BydaoValue add(const BydaoValue& other) override;   // сложение (конкатенация) строк
     BydaoValue eq(const BydaoValue& other) override;   // сравнение на равенство
-    BydaoValue ne(const BydaoValue& other) override;   // сравнение на равенство
+    BydaoValue neq(const BydaoValue& other) override;   // сравнение на неравенство
     BydaoValue lt(const BydaoValue& other) override;   // лексикографическое сравнение
     BydaoValue le(const BydaoValue& other) override;   // лексикографическое сравнение
     BydaoValue gt(const BydaoValue& other) override;   // лексикографическое сравнение

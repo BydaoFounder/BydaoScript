@@ -50,6 +50,7 @@ public:
     BydaoValue neg() override;
 
     BydaoValue eq(const BydaoValue& other) override;
+    BydaoValue neq(const BydaoValue& other) override;
     BydaoValue lt(const BydaoValue& other) override;
     BydaoValue le(const BydaoValue& other) override;
     BydaoValue gt(const BydaoValue& other) override;
