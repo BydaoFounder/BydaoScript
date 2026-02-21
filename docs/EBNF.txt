@@ -1,0 +1,88 @@
+(*
+   BydaoScript 1.0
+   Синтаксис: РБНФ (расширенная БНФ)
+   - "=" — определение правила
+   - "|" — альтернатива
+   - "[ ... ]" — опционально (0 или 1 раз)
+   - "{ ... }" — повторение (0 или более раз)
+   - Пробел — конкатенация
+   - НЕТ запятых, НЕТ точек с запятой в метасинтаксисе
+   - Терминалы в кавычках: "use", "as", ":", "/"
+   - Комментарии: (* ... *)
+*)
+
+(* ========== Программа ========== *)
+program         = { statement | comment }
+
+(* ========== Операторы ========== *)
+statement       = var_decl | assign_stmt | while_stmt
+                | if_stmt | for_in_stmt | expr_stmt
+                | "{" block "}"
+
+block           = { statement }
+
+(* Переменные *)
+var_decl        = "var" identifier "=" expression
+assign_stmt     = ( identifier | member_expr ) "=" expression
+
+(* Циклы *)
+while_stmt      = "while" expression [ "next" statement ] "{" block "}"
+
+for_in_stmt     = "iter" expression "as" identifier "{" block "}"
+
+(* Условия *)
+if_stmt         = "if" expression "{" block "}"
+                  { "else" "if" expression "{" block "}" }
+                  [ "else" "{" block "}" ]
+
+(* Выражение как оператор *)
+expr_stmt       = ( call_expr | "(" expression ")" )
+
+(* ========== Выражения ========== *)
+(* Приоритет: от низшего к высшему *)
+
+expression      = logical_or
+
+logical_or      = logical_and { "||" logical_and }
+logical_and     = equality { "&&" equality }
+equality        = comparison { ("==" | "!=") comparison }
+comparison      = addition { ("<" | ">" | "<=" | ">=") addition }
+addition        = term { ("+" | "-") term }
+term            = unary { ("*" | "/") unary }
+
+unary           = ( "!" | "-" ) unary | primary
+
+primary         = identifier | number | string | array_literal
+                | member_expr | call_expr | "(" expression ")"
+
+(* ========== Объекты/Члены ========== *)
+member_expr     = primary { "." identifier } [ "[" expression "]" ]
+call_expr       = member_expr "(" [ argument_list ] ")"
+
+argument_list   = expression { "," expression }
+
+(* ========== Литералы ========== *)
+array_literal   = "[" [ array_elements ] "]"
+array_elements  = expression { "," expression } [ "," ]
+
+string          = "'" { character | interpolation } "'"
+                | '"' { character | interpolation } '"'
+
+interpolation   = "#{" expression "}"
+
+number          = integer | float
+integer         = digit { digit }
+float           = digit { digit } "." digit { digit }
+                | "." digit { digit }
+
+identifier      = letter { letter | digit | "_" }
+
+(* ========== Комментарии ========== *)
+comment         = "//" { character } newline
+                | "/*" { character } "*/"
+
+(* ========== Лексемы ========== *)
+letter          = "A" | ... | "Z" | "a" | ... | "z"
+digit           = "0" | ... | "9"
+character       = ? все символы кроме управляющих ?
+newline         = ? \n ?
