@@ -45,8 +45,8 @@ int main(int argc, char *argv[]) {
     QCommandLineOption outputOption("o", "Output bytecode file", "file");
     parser.addOption(outputOption);
 
-    QCommandLineOption debugOption( QStringList() << "t" << "trace", "Show execution trace");
-    parser.addOption(debugOption);
+    QCommandLineOption traceOption( QStringList() << "t" << "trace", "Show execution trace");
+    parser.addOption(traceOption);
 
     QCommandLineOption listingOption( QStringList() << "l" << "list", "Show bytecode listing");
     parser.addOption(listingOption);
@@ -129,8 +129,7 @@ int main(int argc, char *argv[]) {
     // 3. Выполнение +++ BydaoVM +++
     BydaoVM vm;
     
-    bool debugMode = parser.isSet(debugOption);
-    vm.setDebugMode(debugMode);
+    vm.setTraceMode( parser.isSet(traceOption) );
 
     if (!vm.load(bytecode)) {
         cout << "Cannot load bytecode" << eol;

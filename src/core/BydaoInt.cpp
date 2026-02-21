@@ -144,17 +144,41 @@ BydaoValue BydaoInt::div(const BydaoValue& other) {
         if (otherInt->m_value == 0) {
             return BydaoValue();  // null
         }
-        return BydaoValue::fromReal(static_cast<double>(m_value) / otherInt->m_value);
+        return BydaoValue::fromInt(m_value / otherInt->m_value );
     }
     case TYPE_REAL: {
         const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
         if (otherReal->value() == 0.0) {
             return BydaoValue();
         }
-        return BydaoValue::fromReal(m_value / otherReal->value());
+        return BydaoValue::fromReal( static_cast<double>(m_value) / otherReal->value() );
     }
     default:
-        return BydaoValue::fromReal(m_value / other.toReal());
+        if (other.toInt() == 0) {
+            return BydaoValue();
+        }
+        return BydaoValue::fromInt(m_value / other.toInt());
+    }
+}
+
+BydaoValue BydaoInt::mod(const BydaoValue& other) {
+    switch (other.typeId()) {
+    case TYPE_INT: {
+        const auto* otherInt = static_cast<const BydaoInt*>(other.toObject());
+        if (otherInt->m_value == 0) {
+            return BydaoValue();  // null
+        }
+        return BydaoValue::fromInt(m_value % otherInt->m_value );
+    }
+    case TYPE_REAL: {
+        const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
+        if (otherReal->value() == 0.0) {
+            return BydaoValue();
+        }
+        return BydaoValue::fromInt(m_value % static_cast<qint64>(otherReal->value()) );
+    }
+    default:
+        return BydaoValue::fromInt(m_value % other.toInt());
     }
 }
 

@@ -20,13 +20,11 @@ public:
 
     void registerGlobal(const QString& name, BydaoObject* obj);
 
-    void setDebugMode(bool enable);
+    void setTraceMode(bool enable);
 
 private:
     bool execute(const BydaoInstruction& instr);
     void error(const QString& msg, const BydaoInstruction& instr);
-
-    QString opcodeToString(BydaoOpCode op);
 
     bool callMethod(BydaoValue& obj, const QString& method, const QVector<BydaoValue>& args);
 
@@ -40,7 +38,7 @@ private:
     QString m_lastError;
     int m_errorLine;
 
-    bool m_debugMode = false;
+    bool m_traceMode = false;
 };
 
 } // namespace BydaoScript

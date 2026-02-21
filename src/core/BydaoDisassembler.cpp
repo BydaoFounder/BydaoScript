@@ -14,50 +14,6 @@ const QString BydaoDisassembler::CYAN = "\033[36m";
 
 BydaoDisassembler::BydaoDisassembler() {}
 
-QString BydaoDisassembler::opcodeToString(BydaoOpCode op) {
-    static QHash<BydaoOpCode, QString> names;
-    if (names.isEmpty()) {
-        names[BydaoOpCode::Nop] = "NOP";
-        names[BydaoOpCode::Halt] = "HALT";
-        names[BydaoOpCode::VarDecl] = "VARDECL";
-        names[BydaoOpCode::Load] = "LOAD";
-        names[BydaoOpCode::Store] = "STORE";
-        names[BydaoOpCode::PushNull] = "PUSHNULL";
-        names[BydaoOpCode::PushInt] = "PUSHINT";
-        names[BydaoOpCode::PushReal] = "PUSHREAL";
-//        names[BydaoOpCode::PushBool] = "PUSHBOOL";
-        names[BydaoOpCode::PushString] = "PUSHSTRING";
-        names[BydaoOpCode::PushArray] = "PUSHARRAY";
-        names[BydaoOpCode::Add] = "ADD";
-        names[BydaoOpCode::Sub] = "SUB";
-        names[BydaoOpCode::Mul] = "MUL";
-        names[BydaoOpCode::Div] = "DIV";
-        names[BydaoOpCode::Neg] = "NEG";
-        names[BydaoOpCode::Eq] = "EQ";
-        names[BydaoOpCode::Neq] = "NEQ";
-        names[BydaoOpCode::Lt] = "LT";
-        names[BydaoOpCode::Gt] = "GT";
-        names[BydaoOpCode::Le] = "LE";
-        names[BydaoOpCode::Ge] = "GE";
-        names[BydaoOpCode::And] = "AND";
-        names[BydaoOpCode::Or] = "OR";
-        names[BydaoOpCode::Not] = "NOT";
-        names[BydaoOpCode::Member] = "MEMBER";
-        names[BydaoOpCode::Index] = "INDEX";
-        names[BydaoOpCode::Call] = "CALL";
-        names[BydaoOpCode::Jump] = "JUMP";
-        names[BydaoOpCode::JumpIfFalse] = "JMPF";
-        names[BydaoOpCode::JumpIfTrue] = "JMPT";
-        names[BydaoOpCode::Break] = "BREAK";
-        names[BydaoOpCode::Next] = "NEXT";
-        names[BydaoOpCode::Label] = "LABEL";
-        names[BydaoOpCode::ScopeBegin] = "SCOPEBEG";
-        names[BydaoOpCode::ScopeEnd] = "SCOPEEND";
-        names[BydaoOpCode::UseModule] = "USE";
-    }
-    return names.value(op, "???");
-}
-
 QString BydaoDisassembler::formatArg(const BydaoInstruction& instr) {
     if (instr.arg.isEmpty()) return QString();
     
@@ -90,9 +46,9 @@ QString BydaoDisassembler::formatInstruction(int index, const BydaoInstruction& 
     
     // Имя инструкции
     if (m_colorOutput)
-        result += GREEN + opcodeToString(instr.op) + RESET;
+        result += GREEN + BydaoBytecode::opcodeToString(instr.op) + RESET;
     else
-        result += opcodeToString(instr.op);
+        result += BydaoBytecode::opcodeToString(instr.op);
     
     // Аргумент
     QString arg = formatArg(instr);

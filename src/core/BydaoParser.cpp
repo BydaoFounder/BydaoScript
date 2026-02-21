@@ -578,12 +578,21 @@ bool BydaoParser::parseAddition() {
 bool BydaoParser::parseTerm() {
     if (!parseUnary()) return false;
     
-    while (match(BydaoTokenType::Mul) || match(BydaoTokenType::Div)) {
+    while (match(BydaoTokenType::Mul) || match(BydaoTokenType::Div) || match(BydaoTokenType::Mod) ) {
         bool isMul = match(BydaoTokenType::Mul);
+        bool isDiv = match(BydaoTokenType::Mul);
         BydaoToken op = m_current;
         nextToken();
         if (!parseUnary()) return false;
-        emitCode(isMul ? BydaoOpCode::Mul : BydaoOpCode::Div, "", op);
+        if ( isMul ) {
+            emitCode(BydaoOpCode::Mul, "", op);
+        }
+        else if ( isDiv ) {
+            emitCode(BydaoOpCode::Div, "", op);
+        }
+        else {
+            emitCode(BydaoOpCode::Mod, "", op);
+        }
     }
     
     return true;

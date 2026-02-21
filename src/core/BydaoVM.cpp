@@ -13,7 +13,7 @@ namespace BydaoScript {
 
 // ========== BydaoVM ==========
 
-BydaoVM::BydaoVM() : m_pc(0), m_running(false), m_debugMode(false) {}
+BydaoVM::BydaoVM() : m_pc(0), m_running(false), m_traceMode(false) {}
 
 BydaoVM::~BydaoVM() {
 //    qDebug() << "~BydaoVM()";
@@ -30,8 +30,8 @@ bool BydaoVM::load(const QVector<BydaoInstruction>& code) {
     return true;
 }
 
-void BydaoVM::setDebugMode(bool enable) {
-    m_debugMode = enable;
+void BydaoVM::setTraceMode(bool enable) {
+    m_traceMode = enable;
 }
 
 bool BydaoVM::run() {
@@ -42,8 +42,13 @@ bool BydaoVM::run() {
     while (m_running && m_pc >= 0 && m_pc < m_code.size()) {
         const BydaoInstruction& instr = m_code[m_pc++];
 
-        if (m_debugMode) {
-            qDebug() << "EXEC:" << m_pc-1 << opcodeToString(instr.op) << instr.arg;
+        if (m_traceMode) {
+            if ( instr.arg.isEmpty() ) {
+                qDebug().noquote() << QString("EXEC: %1 %2").arg( m_pc-1 ).arg( BydaoBytecode::opcodeToString(instr.op) );
+            }
+            else {
+                qDebug().noquote() << QString("EXEC: %1 %2 '%3'").arg( m_pc-1 ).arg( BydaoBytecode::opcodeToString(instr.op), instr.arg);
+            }
         }
 
         if (!execute(instr)) {
@@ -56,53 +61,6 @@ bool BydaoVM::run() {
 
 void BydaoVM::stop() {
     m_running = false;
-}
-
-QString BydaoVM::opcodeToString(BydaoOpCode op) {
-    static QHash<BydaoOpCode, QString> names;
-    if (names.isEmpty()) {
-        names[BydaoOpCode::Nop] = "NOP";
-        names[BydaoOpCode::Halt] = "HALT";
-        names[BydaoOpCode::VarDecl] = "VarDecl";
-        names[BydaoOpCode::Load] = "LOAD";
-        names[BydaoOpCode::Store] = "STORE";
-        names[BydaoOpCode::PushNull] = "PushNull";
-        names[BydaoOpCode::PushInt] = "PushInt";
-        names[BydaoOpCode::PushReal] = "PushReal";
-        names[BydaoOpCode::PushString] = "PushString";
-        names[BydaoOpCode::PushArray] = "PushArray";
-
-        names[BydaoOpCode::Add] = "Add";
-        names[BydaoOpCode::Sub] = "Sub";
-        names[BydaoOpCode::Mul] = "Mul";
-        names[BydaoOpCode::Div] = "Div";
-        names[BydaoOpCode::Neg] = "Neg";
-        names[BydaoOpCode::Eq] = "Eq";
-        names[BydaoOpCode::Neq] = "Neq";
-        names[BydaoOpCode::Lt] = "Lt";
-        names[BydaoOpCode::Gt] = "Gt";
-        names[BydaoOpCode::Le] = "Le";
-        names[BydaoOpCode::Ge] = "Ge";
-        names[BydaoOpCode::And] = "And";
-        names[BydaoOpCode::Or] = "Or";
-        names[BydaoOpCode::Not] = "Not";
-
-        names[BydaoOpCode::Call] = "CALL";
-        names[BydaoOpCode::Member] = "MEMBER";
-        names[BydaoOpCode::Index] = "Index";
-
-        names[BydaoOpCode::Jump] = "JUMP";
-        names[BydaoOpCode::JumpIfFalse] = "JMPF";
-        names[BydaoOpCode::JumpIfTrue] = "JMPT";
-
-        names[BydaoOpCode::Break] = "Break";
-        names[BydaoOpCode::Next] = "Next";
-
-        names[BydaoOpCode::UseModule] = "USE";
-        names[BydaoOpCode::ScopeBegin] = "SCOPEBEG";
-        names[BydaoOpCode::ScopeEnd] = "SCOPEEND";
-    }
-    return names.value(op, "???");
 }
 
 bool BydaoVM::execute(const BydaoInstruction& instr) {
@@ -208,6 +166,13 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         m_stack.push(a.toObject()->div(b));
+        break;
+    }
+
+    case BydaoOpCode::Mod: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = m_stack.pop();
+        m_stack.push(a.toObject()->mod(b));
         break;
     }
 
@@ -429,7 +394,7 @@ void BydaoVM::error(const QString& msg, const BydaoInstruction& instr) {
     m_errorLine = instr.line;
     m_running = false;
 
-    if (m_debugMode) {
+    if (m_traceMode) {
         qDebug() << "❌ ERROR:" << m_lastError;
     }
 }

@@ -22,7 +22,6 @@ public:
     void setColorOutput(bool enable) { m_colorOutput = enable; }
 
 private:
-    QString opcodeToString(BydaoOpCode op);
     QString formatInstruction(int index, const BydaoInstruction& instr);
     QString formatArg(const BydaoInstruction& instr);
     

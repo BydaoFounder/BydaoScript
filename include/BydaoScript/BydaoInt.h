@@ -47,6 +47,7 @@ public:
     BydaoValue sub(const BydaoValue& other) override;
     BydaoValue mul(const BydaoValue& other) override;
     BydaoValue div(const BydaoValue& other) override;
+    BydaoValue mod(const BydaoValue& other) override;
     BydaoValue neg() override;
 
     BydaoValue eq(const BydaoValue& other) override;

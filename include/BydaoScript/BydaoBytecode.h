@@ -11,7 +11,8 @@ enum BydaoOpCode : quint8 {
     Nop, Halt,
     VarDecl, Load, Store,
     PushNull, PushInt, PushReal, PushString, PushArray,
-    Add, Sub, Mul, Div, Neg,
+    Add, Sub, Neg,
+    Mul, Div, Mod,
     Eq, Neq, Lt, Gt, Le, Ge,
     And, Or, Not,
     Member, Index, Call,
@@ -34,6 +35,9 @@ struct BydaoInstruction {
 
 class BydaoBytecode {
 public:
+
+    static QString opcodeToString(BydaoOpCode op);
+
     static bool save(const QVector<BydaoInstruction>& code, const QString& filename);
     static QVector<BydaoInstruction> load(const QString& filename, QString* error = nullptr);
 };

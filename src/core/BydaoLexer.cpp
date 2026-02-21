@@ -3,16 +3,16 @@
 namespace BydaoScript {
 
 QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
+    {"use", BydaoTokenType::Use},
     {"var", BydaoTokenType::Var},
     {"while", BydaoTokenType::While},
     {"next", BydaoTokenType::Next},
+    {"break", BydaoTokenType::Break},
     {"if", BydaoTokenType::If},
     {"else", BydaoTokenType::Else},
     {"iter", BydaoTokenType::Iter},
     {"enum", BydaoTokenType::Enum},
-    {"as", BydaoTokenType::As},
-    {"break", BydaoTokenType::Break},
-    {"use", BydaoTokenType::Use}
+    {"as", BydaoTokenType::As}
 };
 
 BydaoLexer::BydaoLexer(const QString& source)
@@ -110,6 +110,7 @@ BydaoToken BydaoLexer::readOperator(QChar ch) {
         case '-': return BydaoToken(BydaoTokenType::Minus, "-", m_line, startCol);
         case '*': return BydaoToken(BydaoTokenType::Mul, "*", m_line, startCol);
         case '/': return BydaoToken(BydaoTokenType::Div, "/", m_line, startCol);
+        case '%': return BydaoToken(BydaoTokenType::Mod, "%", m_line, startCol);
         case '!': return BydaoToken(BydaoTokenType::Not, "!", m_line, startCol);
         case '<': return BydaoToken(BydaoTokenType::Less, "<", m_line, startCol);
         case '>': return BydaoToken(BydaoTokenType::Greater, ">", m_line, startCol);

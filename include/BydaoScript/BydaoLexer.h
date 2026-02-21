@@ -11,7 +11,8 @@ enum class BydaoTokenType {
     Var, While, Next, If, Else, Iter, Enum, As, Break, Use,
 
     // Операторы
-    Assign, Plus, Minus, Mul, Div,
+    Assign, Plus, Minus,
+    Mul, Div, Mod,
     And, Or, Not,
 
     // Сравнение

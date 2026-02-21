@@ -49,6 +49,12 @@ public:
         return BydaoValue();
     }
 
+    virtual BydaoValue mod(const BydaoValue& other) {
+        Q_UNUSED( other );
+        qWarning() << "mod not supported for" << typeName();
+        return BydaoValue();
+    }
+
     virtual BydaoValue neg() {
         qWarning() << "neg not supported for" << typeName();
         return BydaoValue();
