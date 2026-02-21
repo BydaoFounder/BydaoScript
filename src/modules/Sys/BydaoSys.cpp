@@ -1,9 +1,9 @@
 #include "BydaoSys.h"
 #include "../include/BydaoScript/BydaoString.h"
 #include "../include/BydaoScript/BydaoInt.h"
-#include "../include/BydaoScript/BydaoReal.h"
 #include "../include/BydaoScript/BydaoBool.h"
 #include "../include/BydaoScript/BydaoNull.h"
+#include "../include/BydaoScript/BydaoArray.h"
 #include <QTextStream>
 #include <QDateTime>
 #include <QDir>
@@ -147,24 +147,12 @@ bool BydaoSysModule::method_out(const QVector<BydaoValue>& args, BydaoValue& res
 }
 
 bool BydaoSysModule::method_outln(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() != 1) return false;
+    // Сначала выводим текст через out
+    if (!method_out(args, result)) return false;
 
-    // Получаем строковое представление аргумента
-    QString text;
-    if (args[0].isObject()) {
-        BydaoObject* obj = args[0].toObject();
-        BydaoValue strResult;
-        if (obj->callMethod("toString", {}, strResult)) {
-            text = strResult.toString();
-        } else {
-            text = "???";
-        }
-    } else {
-        text = "???";
-    }
-
+    // Затем добавляем перевод строки
     QTextStream& out = *m_outStream;
-    out << text << Qt::endl;
+    out << Qt::endl;
     out.flush();
 
     result = BydaoValue(BydaoNull::instance());
@@ -233,11 +221,20 @@ bool BydaoSysModule::method_exec(const QVector<BydaoValue>& args, BydaoValue& re
     }
 
     QString program = args[0].toString();
-    QStringList progArgs;
+    QStringList arguments;
 
+    // Если есть второй аргумент - это должен быть массив аргументов
     if (args.size() == 2) {
-        // TODO: извлечь массив аргументов из args[1]
-        // Пока заглушка
+        if (args[1].typeId() != TYPE_ARRAY) {
+            return false;
+        }
+
+        auto* array = dynamic_cast<BydaoArray*>(args[1].toObject());
+        if (!array) return false;
+
+        for (int i = 0; i < array->size(); i++) {
+            arguments << array->at(i).toString();
+        }
     }
 
     if (m_process->state() != QProcess::NotRunning) {
@@ -245,10 +242,10 @@ bool BydaoSysModule::method_exec(const QVector<BydaoValue>& args, BydaoValue& re
         m_process->waitForFinished(1000);
     }
 
-    m_process->start(program, progArgs);
+    m_process->start(program, arguments);
     m_process->waitForFinished(-1);
 
-    result = BydaoValue( BydaoInt::create( m_process->exitCode() ) );
+    result = BydaoValue(BydaoInt::create(m_process->exitCode()));
     return true;
 }
 
@@ -312,8 +309,16 @@ bool BydaoSysModule::method_env(const QVector<BydaoValue>& args, BydaoValue& res
     Q_UNUSED(args);
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    // TODO: создать массив строк "KEY=value"
-    result = BydaoValue();
+    QStringList keys = env.keys();
+
+    auto* array = new BydaoArray();
+
+    for (const QString& key : keys) {
+        QString entry = key + "=" + env.value(key);
+        array->append(BydaoValue(BydaoString::create(entry)));
+    }
+
+    result = BydaoValue(array);
     return true;
 }
 
@@ -387,8 +392,24 @@ bool BydaoSysModule::method_homeDir(const QVector<BydaoValue>& args, BydaoValue&
 bool BydaoSysModule::method_drives(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
 
-    // TODO: создать массив дисков (только Windows)
-    result = BydaoValue();
+    auto* array = new BydaoArray();
+
+#ifdef Q_OS_WIN
+    // Получаем список логических дисков в Windows
+    DWORD drives = GetLogicalDrives();
+    for (char c = 'A'; c <= 'Z'; c++) {
+        if (drives & 1) {
+            QString drive = QString(c) + ":";
+            array->append(BydaoValue(BydaoString::create(drive)));
+        }
+        drives >>= 1;
+    }
+#else
+    // На Unix-like системах корневая директория
+    array->append(BydaoValue(BydaoString::create("/")));
+#endif
+
+    result = BydaoValue(array);
     return true;
 }
 

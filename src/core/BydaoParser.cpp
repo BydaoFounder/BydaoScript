@@ -580,7 +580,7 @@ bool BydaoParser::parseTerm() {
     
     while (match(BydaoTokenType::Mul) || match(BydaoTokenType::Div) || match(BydaoTokenType::Mod) ) {
         bool isMul = match(BydaoTokenType::Mul);
-        bool isDiv = match(BydaoTokenType::Mul);
+        bool isDiv = match(BydaoTokenType::Div);
         BydaoToken op = m_current;
         nextToken();
         if (!parseUnary()) return false;

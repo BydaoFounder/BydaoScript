@@ -16,7 +16,7 @@ program         = { statement | comment }
 
 (* ========== Операторы ========== *)
 statement       = var_decl | assign_stmt | while_stmt
-                | if_stmt | for_in_stmt | expr_stmt
+                | iter_stmt | enum_stmt | if_stmt  | expr_stmt
                 | "{" block "}"
 
 block           = { statement }
@@ -28,7 +28,9 @@ assign_stmt     = ( identifier | member_expr ) "=" expression
 (* Циклы *)
 while_stmt      = "while" expression [ "next" statement ] "{" block "}"
 
-for_in_stmt     = "iter" expression "as" identifier "{" block "}"
+iter_stmt       = "iter" expression "as" identifier "{" block "}"
+
+enum_stmt       = "enum" expression "as" identifier "{" block "}"
 
 (* Условия *)
 if_stmt         = "if" expression "{" block "}"
