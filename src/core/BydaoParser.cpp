@@ -310,34 +310,66 @@ bool BydaoParser::parseVarDecl() {
 }
 
 bool BydaoParser::parseIf() {
+    BydaoToken ifToken = m_current;
     nextToken(); // if
-    
-    if (!parseExpression()) return false;
-    
-    int elseJump = emitCode(BydaoOpCode::JumpIfFalse, "?");
-    
-    if (!parseBlock(true)) return false;
-    
-    int endJump = emitCode(BydaoOpCode::Jump, "?");
-    
+
+    // Парсим условие
+    if (!parseExpression()) {
+        error("Expected condition after 'if'");
+        return false;
+    }
+
+    // Генерируем условный переход на else/elsif/end (пока с временным "?")
+    int elseJump = emitCode(BydaoOpCode::JumpIfFalse, "?", ifToken);
+
+    // Парсим блок if
+    if (!parseBlock(true)) {
+        return false;
+    }
+
+    // Генерируем переход в конец всей конструкции
+    int endJump = emitCode(BydaoOpCode::Jump, "?", ifToken);
+
+    // ========== ПАТЧИМ ПЕРВЫЙ УСЛОВНЫЙ ПЕРЕХОД ==========
+    // Теперь он ведёт на текущую позицию (начало elsif/else)
+    m_bytecode[elseJump].arg = QString::number(m_bytecode.size());
+
+    // Обрабатываем цепочку elsif
+    while (match(BydaoTokenType::Elsif)) {
+        BydaoToken elsifToken = m_current;
+        nextToken(); // elsif
+
+        if (!parseExpression()) {
+            error("Expected condition after 'elsif'");
+            return false;
+        }
+
+        // Условный переход для этого elsif
+        int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", elsifToken);
+
+        // Блок elsif
+        if (!parseBlock(true)) {
+            return false;
+        }
+
+        // После блока elsif — переход в конец
+        emitCode(BydaoOpCode::Jump, QString::number(endJump));
+
+        // ========== ПАТЧИМ УСЛОВНЫЙ ПЕРЕХОД ЭТОГО ELSIF ==========
+        m_bytecode[condJump].arg = QString::number(m_bytecode.size());
+    }
+
+    // Опциональный else
     if (match(BydaoTokenType::Else)) {
-        nextToken();
-        m_bytecode[elseJump].arg = QString::number(m_bytecode.size());
-        if ( match(BydaoTokenType::LBrace)) {
-            if (!parseBlock(true)) return false;
-        }
-        else if (match(BydaoTokenType::If)) {
-            if (!parseIf()) return false;
-        }
-        else {
-            expect( BydaoTokenType::LBrace );
+        nextToken(); // else
+
+        // Блок else
+        if (!parseBlock(true)) {
             return false;
         }
     }
-    else {
-        m_bytecode[elseJump].arg = QString::number(m_bytecode.size());
-    }
 
+    // ========== ПАТЧИМ ПЕРЕХОД ИЗ IF/CONSTRUCTION ==========
     m_bytecode[endJump].arg = QString::number(m_bytecode.size());
 
     return true;

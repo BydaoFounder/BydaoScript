@@ -34,7 +34,7 @@ enum_stmt       = "enum" expression "as" identifier "{" block "}"
 
 (* Условия *)
 if_stmt         = "if" expression "{" block "}"
-                  { "else" "if" expression "{" block "}" }
+                  { "elseif" expression "{" block "}" }
                   [ "else" "{" block "}" ]
 
 (* Выражение как оператор *)

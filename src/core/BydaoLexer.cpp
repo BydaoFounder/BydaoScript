@@ -10,6 +10,7 @@ QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
     {"next", BydaoTokenType::Next},
     {"break", BydaoTokenType::Break},
     {"if", BydaoTokenType::If},
+    {"elsif", BydaoTokenType::Elsif},
     {"else", BydaoTokenType::Else},
     {"iter", BydaoTokenType::Iter},
     {"enum", BydaoTokenType::Enum},

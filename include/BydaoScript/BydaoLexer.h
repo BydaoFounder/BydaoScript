@@ -8,7 +8,7 @@ namespace BydaoScript {
 
 enum class BydaoTokenType {
     // Ключевые слова
-    Var, Drop, While, Next, If, Else, Iter, Enum,
+    Var, Drop, While, Next, If, Elsif, Else, Iter, Enum,
     As, Break, Use, False, True, Null,
 
     // Операторы
