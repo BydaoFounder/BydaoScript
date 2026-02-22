@@ -1,0 +1,32 @@
+pick <expression> [as val]
+    when <expr> {, <expr} {
+        <block>
+    }
+    when <expr> {, <expr} {
+        <block>
+    }
+    else {
+        <block>
+    }
+
+Пример:
+
+pick data['type'] as type
+    when Obj.type1 {
+    }
+    when Obj.type1 {
+    }
+    else {
+    }
+
+pick Int.range(1,10) % 2
+    when 0 {
+    }
+    when 1 {
+    }
+
+var rest = Int.range(1,10) % 2
+if rest == 0 {
+}
+elseif rest == 1 {
+}

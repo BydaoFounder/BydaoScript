@@ -22,7 +22,7 @@ statement       = var_decl | assign_stmt | while_stmt
 block           = { statement }
 
 (* Переменные *)
-var_decl        = "var" identifier "=" expression
+var_decl        = "var" identifier [ "=" expression ]
 assign_stmt     = ( identifier | member_expr ) "=" expression
 
 (* Циклы *)
@@ -50,7 +50,7 @@ logical_and     = equality { "&&" equality }
 equality        = comparison { ("==" | "!=") comparison }
 comparison      = addition { ("<" | ">" | "<=" | ">=") addition }
 addition        = term { ("+" | "-") term }
-term            = unary { ("*" | "/") unary }
+term            = unary { ("*" | "/" | "%" ) unary }
 
 unary           = ( "!" | "-" ) unary | primary
 
