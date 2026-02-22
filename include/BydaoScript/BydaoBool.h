@@ -41,6 +41,9 @@ public:
                     const QVector<BydaoValue>& args,
                     BydaoValue& result) override;
 
+    BydaoValue eq(const BydaoValue& other) override;
+    BydaoValue neq(const BydaoValue& other) override;
+
 private:
 
     bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);

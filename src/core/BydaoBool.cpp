@@ -70,4 +70,12 @@ bool BydaoBool::method_isNull(const QVector<BydaoValue>& args, BydaoValue& resul
     return true;
 }
 
+BydaoValue BydaoBool::eq(const BydaoValue& other) {
+    return BydaoValue::fromBool( m_value == other.toBool() );
+}
+
+BydaoValue BydaoBool::neq(const BydaoValue& other) {
+    return BydaoValue::fromBool( m_value != other.toBool() );
+}
+
 } // namespace BydaoScript

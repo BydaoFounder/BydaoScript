@@ -49,6 +49,7 @@ bool BydaoParser::expect(BydaoTokenType type) {
         nextToken();
         return true;
     }
+    // TODO: Вывести ожидаемый текст вместо числа
     error(QString("Expected %1, got %2")
           .arg(static_cast<int>(type))
           .arg(m_current.text));
@@ -318,19 +319,27 @@ bool BydaoParser::parseIf() {
     if (!parseBlock(true)) return false;
     
     int endJump = emitCode(BydaoOpCode::Jump, "?");
-    patchJump(elseJump);
     
     if (match(BydaoTokenType::Else)) {
         nextToken();
-        if (match(BydaoTokenType::If)) {
-            if (!parseIf()) return false;
-        } else {
+        m_bytecode[elseJump].arg = QString::number(m_bytecode.size());
+        if ( match(BydaoTokenType::LBrace)) {
             if (!parseBlock(true)) return false;
         }
+        else if (match(BydaoTokenType::If)) {
+            if (!parseIf()) return false;
+        }
+        else {
+            expect( BydaoTokenType::LBrace );
+            return false;
+        }
     }
-    
-    patchJump(endJump);
-    
+    else {
+        m_bytecode[elseJump].arg = QString::number(m_bytecode.size());
+    }
+
+    m_bytecode[endJump].arg = QString::number(m_bytecode.size());
+
     return true;
 }
 
@@ -795,7 +804,25 @@ bool BydaoParser::parsePrimary() {
         if (!parseExpression()) return false;
         return expect(BydaoTokenType::RParen);
     }
-    
+
+    if (match(BydaoTokenType::False)) {
+        emitCode(BydaoOpCode::PushFalse, "", m_current);
+        nextToken();
+        return true;
+    }
+
+    if (match(BydaoTokenType::True)) {
+        emitCode(BydaoOpCode::PushTrue, "", m_current);
+        nextToken();
+        return true;
+    }
+
+    if (match(BydaoTokenType::Null)) {
+        emitCode(BydaoOpCode::PushNull, "", m_current);
+        nextToken();
+        return true;
+    }
+
     return false;
 }
 

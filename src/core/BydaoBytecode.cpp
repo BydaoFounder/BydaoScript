@@ -18,9 +18,10 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Load] = "LOAD";
         names[BydaoOpCode::Store] = "STORE";
         names[BydaoOpCode::PushNull] = "PUSHNULL";
+        names[BydaoOpCode::PushTrue] = "PUSHTRUE";
+        names[BydaoOpCode::PushFalse] = "PUSHFALSE";
         names[BydaoOpCode::PushInt] = "PUSHINT";
         names[BydaoOpCode::PushReal] = "PUSHREAL";
-//        names[BydaoOpCode::PushBool] = "PUSHBOOL";
         names[BydaoOpCode::PushString] = "PUSHSTRING";
         names[BydaoOpCode::PushArray] = "PUSHARRAY";
         names[BydaoOpCode::Add] = "ADD";

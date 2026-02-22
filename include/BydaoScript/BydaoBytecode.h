@@ -11,6 +11,7 @@ enum BydaoOpCode : quint8 {
     Nop, Halt,
     VarDecl, Drop, Load, Store,
     PushNull, PushInt, PushReal, PushString, PushArray,
+    PushFalse, PushTrue,
     Add, Sub, Neg,
     Mul, Div, Mod,
     Eq, Neq, Lt, Gt, Le, Ge,

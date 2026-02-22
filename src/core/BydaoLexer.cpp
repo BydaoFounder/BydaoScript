@@ -13,7 +13,10 @@ QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
     {"else", BydaoTokenType::Else},
     {"iter", BydaoTokenType::Iter},
     {"enum", BydaoTokenType::Enum},
-    {"as", BydaoTokenType::As}
+    {"as", BydaoTokenType::As},
+    {"false", BydaoTokenType::False},
+    {"true", BydaoTokenType::True},
+    {"null", BydaoTokenType::Null},
 };
 
 BydaoLexer::BydaoLexer(const QString& source)

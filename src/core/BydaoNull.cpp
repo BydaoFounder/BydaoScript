@@ -53,4 +53,12 @@ bool BydaoNull::method_isNull(const QVector<BydaoValue>& args, BydaoValue& resul
     return true;
 }
 
+BydaoValue BydaoNull::eq(const BydaoValue& other) {
+    return BydaoValue::fromBool( other.typeId() == TYPE_NULL );
+}
+
+BydaoValue BydaoNull::neq(const BydaoValue& other) {
+    return BydaoValue::fromBool( other.typeId() != TYPE_NULL );
+}
+
 } // namespace BydaoScript

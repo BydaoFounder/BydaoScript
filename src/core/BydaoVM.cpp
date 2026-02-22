@@ -110,10 +110,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_globals[instr.arg] = m_stack.pop();
         break;
 
-    case BydaoOpCode::PushNull:
-        m_stack.push(BydaoValue(BydaoNull::instance()));
-        break;
-
     case BydaoOpCode::PushInt:
         m_stack.push(BydaoValue(BydaoInt::create(instr.arg.toLongLong())));
         break;
@@ -124,6 +120,18 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::PushString:
         m_stack.push(BydaoValue(BydaoString::create(instr.arg)));
+        break;
+
+    case BydaoOpCode::PushNull:
+        m_stack.push(BydaoValue(BydaoNull::instance()));
+        break;
+
+    case BydaoOpCode::PushFalse:
+        m_stack.push(BydaoValue(BydaoBool::create(false)));
+        break;
+
+    case BydaoOpCode::PushTrue:
+        m_stack.push(BydaoValue(BydaoBool::create(true)));
         break;
 
     case BydaoOpCode::PushArray: {
@@ -200,14 +208,30 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     case BydaoOpCode::Eq: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(a.toObject()->eq(b));
+        if ( a.isNull() && b.isNull() ) {
+            m_stack.push( BydaoValue::fromBool( true ) );
+        }
+        else if ( b.isNull() ) {
+            m_stack.push( BydaoValue::fromBool( false ) );
+        }
+        else {
+            m_stack.push(a.toObject()->eq(b));
+        }
         break;
     }
 
     case BydaoOpCode::Neq: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        m_stack.push(a.toObject()->neq(b));
+        if ( a.isNull() && b.isNull() ) {
+            m_stack.push( BydaoValue::fromBool( false ) );
+        }
+        else if ( b.isNull() ) {
+            m_stack.push( BydaoValue::fromBool( true ) );
+        }
+        else {
+            m_stack.push(a.toObject()->neq(b));
+        }
         break;
     }
 
