@@ -18,15 +18,15 @@ BydaoVM::BydaoVM() : m_pc(0), m_running(false), m_traceMode(false) {}
 BydaoVM::~BydaoVM() {
 //    qDebug() << "~BydaoVM()";
     // Очищаем ссылки на модули, но не удаляем их
-    m_globals.clear();
 //    m_globalObjects.clear();
+    m_scopeStack.clear();
 }
 
 bool BydaoVM::load(const QVector<BydaoInstruction>& code) {
     m_code = code;
     m_pc = 0;
     m_stack.clear();
-    m_globals.clear();
+    m_scopeStack.clear();
     return true;
 }
 
@@ -70,45 +70,97 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
 
     case BydaoOpCode::ScopeBegin:
-        // Начало области видимости - можно игнорировать или использовать для отладки
+        m_scopeStack.push(Scope());  // новая область видимости
         break;
 
     case BydaoOpCode::ScopeEnd:
-        // Конец области видимости
+        if (!m_scopeStack.isEmpty()) {
+            m_scopeStack.pop();     // выходим из области, все переменные уничтожаются
+        }
         break;
 
-    case BydaoOpCode::VarDecl:
-        m_globals[instr.arg] = BydaoValue(BydaoNull::instance());
-        break;
+    case BydaoOpCode::VarDecl: {
+        QString name = instr.arg;
 
-    case BydaoOpCode::Drop: {
-        QString varName = instr.arg;
-
-        if (m_traceMode) {
-            qDebug() << "  Dropping variable:" << varName;
+        if (m_scopeStack.isEmpty()) {
+            error("No active scope for variable declaration: " + name, instr);
+            return false;
         }
 
-        // Удаляем переменную из текущей области видимости
-        // В нашей простой VM пока просто удаляем из глобалов
-        // В будущем нужно будет работать со стеком областей видимости
-        m_globals.remove(varName);
+        // Проверяем, не объявлена ли уже в этой области
+        if (m_scopeStack.top().vars.contains(name)) {
+            error("Variable already declared in this scope: " + name, instr);
+            return false;
+        }
 
+        m_scopeStack.top().vars[name] = BydaoValue(BydaoNull::instance());
+        break;
+    }
+
+    case BydaoOpCode::Drop: {
+        QString name = instr.arg;
+
+        if (m_scopeStack.isEmpty()) {
+            error("No active scope for drop: " + name, instr);
+            return false;
+        }
+
+        if (!m_scopeStack.top().vars.contains(name)) {
+            error("Cannot drop undeclared variable: " + name, instr);
+            return false;
+        }
+
+        m_scopeStack.top().vars.remove(name);
         break;
     }
 
     case BydaoOpCode::Load: {
-        // qDebug() << "LOAD" << instr.arg;
-        // qDebug() << "  globals contains:" << m_globals.contains(instr.arg);
-        // if (m_globals.contains(instr.arg)) {
-        //     qDebug() << "  value type:" << m_globals[instr.arg].typeId();
-        // }
-        m_stack.push(m_globals.value(instr.arg));
+        QString name = instr.arg;
+        BydaoValue value;
+
+        // Ищем в текущей области видимости (снизу вверх по стеку)
+        bool found = false;
+        for (int i = m_scopeStack.size() - 1; i >= 0; i--) {
+            if (m_scopeStack[i].vars.contains(name)) {
+                found = true;
+                value = m_scopeStack[i].vars[name];
+                break;
+            }
+        }
+
+        if ( ! found ) {
+            error("Undefined variable: " + name, instr);
+            return false;
+        }
+
+        m_stack.push(value);
         break;
     }
 
-    case BydaoOpCode::Store:
-        m_globals[instr.arg] = m_stack.pop();
+    case BydaoOpCode::Store: {
+        QString name = instr.arg;
+        BydaoValue value = m_stack.pop();
+
+        // Ищем переменную в текущих областях
+        bool found = false;
+        for (int i = m_scopeStack.size() - 1; i >= 0; i--) {
+            if (m_scopeStack[i].vars.contains(name)) {
+                m_scopeStack[i].vars[name] = value;
+                found = true;
+                break;
+            }
+        }
+
+        // Если не нашли, создаём в текущей области
+        if (!found) {
+            if (m_scopeStack.isEmpty()) {
+                error("No active scope for variable: " + name, instr);
+                return false;
+            }
+            m_scopeStack.top().vars[name] = value;
+        }
         break;
+    }
 
     case BydaoOpCode::PushInt:
         m_stack.push(BydaoValue(BydaoInt::create(instr.arg.toLongLong())));
@@ -380,6 +432,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::UseModule: {
+        // Модули можно загружать только в корневой области
+        if (m_scopeStack.size() != 1) {
+            error("Cannot load module in nested scope", instr);
+            return false;
+        }
+
         QString arg = instr.arg;
         QString moduleName, alias;
 
@@ -392,7 +450,9 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             alias = arg;
         }
 
-        if (m_globals.contains(alias)) {
+        // Проверяем, не загружен ли уже модуль в корневой области
+        if (m_scopeStack.top().vars.contains(alias)) {
+            // Уже загружен — просто игнорируем
             break;
         }
 
@@ -404,7 +464,8 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             return false;
         }
 
-        m_globals[alias] = BydaoValue(module);
+        // Сохраняем модуль в корневой области
+        m_scopeStack.top().vars[alias] = BydaoValue(module);
         break;
     }
 

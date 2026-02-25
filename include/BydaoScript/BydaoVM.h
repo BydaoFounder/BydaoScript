@@ -33,7 +33,11 @@ private:
     bool m_running;
 
     QStack<BydaoValue> m_stack;
-    QHash<QString, BydaoValue> m_globals;
+
+    struct Scope {                          // область видимости
+        QHash<QString, BydaoValue> vars;    // переменные в этой области
+    };
+    QStack<Scope> m_scopeStack;             // стек областей видимости
 
     QString m_lastError;
     int m_errorLine;
