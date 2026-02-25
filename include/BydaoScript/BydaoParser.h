@@ -97,6 +97,15 @@ private:
 
     QStack<BydaoScope> m_scopes;
     int m_labelCounter;
+
+    struct LoopInfo {
+        int conditionAddr;          // адрес начала условия
+        int nextAddr;               // адрес next-оператора (станет известен позже)
+        int exitAddr;               // адрес выхода (станет известен позже)
+        QVector<int> breaks;        // индексы инструкций JUMP для break
+        QVector<int> nexts;         // индексы инструкций JUMP для next
+    };
+    QStack<LoopInfo> m_loopStack;   // стек для вложенных циклов
     bool m_inLoop;
     
     // +++ КЭШ МОДУЛЕЙ ДЛЯ ПАРСЕРА +++

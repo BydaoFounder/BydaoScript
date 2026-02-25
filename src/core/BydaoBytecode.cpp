@@ -45,8 +45,6 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Jump] = "JUMP";
         names[BydaoOpCode::JumpIfFalse] = "JMPF";
         names[BydaoOpCode::JumpIfTrue] = "JMPT";
-        names[BydaoOpCode::Break] = "BREAK";
-        names[BydaoOpCode::Next] = "NEXT";
         names[BydaoOpCode::Label] = "LABEL";
         names[BydaoOpCode::ScopeBegin] = "SCOPEBEG";
         names[BydaoOpCode::ScopeEnd] = "SCOPEEND";

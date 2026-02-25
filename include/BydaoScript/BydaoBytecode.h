@@ -18,7 +18,6 @@ enum BydaoOpCode : quint8 {
     And, Or, Not,
     Member, Index, Call,
     Jump, JumpIfFalse, JumpIfTrue,
-    Break, Next,
     Label,
     ScopeBegin, ScopeEnd,
     UseModule

@@ -379,14 +379,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
-    case BydaoOpCode::Break:
-        // TODO: реализовать break
-        break;
-
-    case BydaoOpCode::Next:
-        // TODO: реализовать next (continue)
-        break;
-
     case BydaoOpCode::UseModule: {
         QString arg = instr.arg;
         QString moduleName, alias;

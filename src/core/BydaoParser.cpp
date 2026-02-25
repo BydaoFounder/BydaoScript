@@ -379,52 +379,79 @@ bool BydaoParser::parseWhile() {
     BydaoToken token = m_current;
     nextToken(); // while
 
-    int loopStart = m_bytecode.size();  // запоминаем позицию перед условием цикла
+    LoopInfo loop;
+    loop.conditionAddr = m_bytecode.size();  // адрес условия известен сразу
+
+    // Парсим условие
     if (!parseExpression()) {
         error("Expected condition");
         return false;
     }
 
-    QVector<BydaoInstruction> nextCode;
+    // Парсим next-оператор (если есть)
     bool hasNext = match(BydaoTokenType::Next);
+    QVector<BydaoInstruction> nextCode;
+
     if (hasNext) {
         nextToken(); // next
-        int savedPos = m_bytecode.size();
 
+        int savedPos = m_bytecode.size();
         if (!parseStatement()) {
             error("Expected statement after next");
             return false;
         }
 
+        // Сохраняем код next-оператора
         for (int i = savedPos; i < m_bytecode.size(); i++) {
             nextCode.append(m_bytecode[i]);
         }
+        // Удаляем из основного потока
         m_bytecode.resize(savedPos);
     }
 
+    // Условный переход (адрес пока неизвестен)
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", token);
 
-    m_inLoop = true;
+    // --- тело цикла ---
+    // Кладём loop в стек, чтобы parseBreakNext() мог добавлять в списки
+    m_loopStack.push(loop);
 
+    m_inLoop = true;
     if (!parseBlock(true)) {
         m_inLoop = false;
+        m_loopStack.pop();
         return false;
     }
-
     m_inLoop = false;
 
-    // Вставляем next-код
-    if (hasNext) {
-        for (const auto& instr : nextCode) {
-            m_bytecode.append(instr);
-        }
+    // Забираем loop из стека с накопленными break/next
+    loop = m_loopStack.pop();
+
+    // ТЕПЕРЬ МЫ ЗНАЕМ ВСЕ АДРЕСА
+    loop.nextAddr = m_bytecode.size();      // адрес для next
+
+    // Вставляем next-оператор
+    for (const auto& instr : nextCode) {
+        m_bytecode.append(instr);
     }
 
-    // Прыгаем назад
-    emitCode(BydaoOpCode::Jump, QString::number(loopStart));
+    // Возврат к условию
+    emitCode(BydaoOpCode::Jump, QString::number(loop.conditionAddr));
+
+    loop.exitAddr = m_bytecode.size();      // адрес выхода
 
     // Патчим условный переход
-    m_bytecode[condJump].arg = QString::number(m_bytecode.size());
+    m_bytecode[condJump].arg = QString::number(loop.exitAddr);
+
+    // Патчим все накопленные break
+    for (int breakInstr : loop.breaks) {
+        m_bytecode[breakInstr].arg = QString::number(loop.exitAddr);
+    }
+
+    // Патчим все накопленные next
+    for (int nextInstr : loop.nexts) {
+        m_bytecode[nextInstr].arg = QString::number(loop.nextAddr);
+    }
 
     return true;
 }
@@ -587,20 +614,26 @@ bool BydaoParser::parseEnum() {
 }
 
 bool BydaoParser::parseBreakNext() {
-    if (!m_inLoop) {
+    if (m_loopStack.isEmpty()) {
         error("break/next outside loop");
         return false;
     }
-    
+
+    LoopInfo &loop = m_loopStack.top();  // ссылка на текущий цикл
+
     if (match(BydaoTokenType::Break)) {
-        emitCode(BydaoOpCode::Break);
+        int jumpInstr = emitCode(BydaoOpCode::Jump, "?", m_current);
+        loop.breaks.append(jumpInstr);  // запоминаем для патча
         nextToken();
+        return true;
     } else if (match(BydaoTokenType::Next)) {
-        emitCode(BydaoOpCode::Next);
+        int jumpInstr = emitCode(BydaoOpCode::Jump, "?", m_current);
+        loop.nexts.append(jumpInstr);   // запоминаем для патча
         nextToken();
+        return true;
     }
-    
-    return true;
+
+    return false;
 }
 
 bool BydaoParser::parseUse() {
