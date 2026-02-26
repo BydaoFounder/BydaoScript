@@ -10,13 +10,7 @@
 
 namespace BydaoScript {
 
-struct BydaoScope {
-    QSet<QString> variables;
-    bool isLoop;
-    
-    BydaoScope() : isLoop(false) {}
-    BydaoScope(const QSet<QString>& vars, bool loop) : variables(vars), isLoop(loop) {}
-};
+using BydaoScope = QSet<QString>;
 
 class BydaoParser {
 public:
@@ -71,7 +65,7 @@ private:
     void patchJump(int instrIndex);
 
     // Semantic analysis
-    void enterScope(bool isLoop = false);
+    void enterScope();
     void exitScope();
     void declareVariable(const QString& name, const BydaoToken& token);
     bool isVariableDeclared(const QString& name);
@@ -95,7 +89,14 @@ private:
 
     QMap<int, int> m_labels;
 
-    QStack<BydaoScope> m_scopes;
+    struct ScopeInfo {
+        int beginInstrIndex;      // индекс инструкции SCOPEBEG
+        bool hasVariables;        // были ли переменные в этой области
+    };
+    QStack<ScopeInfo> m_scopeStack;
+
+    QStack<QSet<QString>> m_scopes;
+
     int m_labelCounter;
 
     struct LoopInfo {

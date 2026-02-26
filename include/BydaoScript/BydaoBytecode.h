@@ -20,6 +20,7 @@ enum BydaoOpCode : quint8 {
     Jump, JumpIfFalse, JumpIfTrue,
     Label,
     ScopeBegin, ScopeEnd,
+    ScopePush, ScopePop,
     UseModule
 };
 

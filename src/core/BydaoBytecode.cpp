@@ -48,6 +48,8 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Label] = "LABEL";
         names[BydaoOpCode::ScopeBegin] = "SCOPEBEG";
         names[BydaoOpCode::ScopeEnd] = "SCOPEEND";
+        names[BydaoOpCode::ScopePush] = "SCOPEPUSH";
+        names[BydaoOpCode::ScopePop] = "SCOPEPOP";
         names[BydaoOpCode::UseModule] = "USE";
     }
     return names.value(op, "???");

@@ -104,47 +104,57 @@ void BydaoParser::patchJump(int instrIndex) {
 // СЕМАНТИЧЕСКИЙ АНАЛИЗ - ОБЛАСТИ ВИДИМОСТИ
 // ============================================================
 
-void BydaoParser::enterScope(bool isLoop) {
-    m_scopes.push(BydaoScope(QSet<QString>(), isLoop));
-    emitCode(BydaoOpCode::ScopeBegin);
+void BydaoParser::enterScope() {
+    int scopeBegAddr = emitCode(BydaoOpCode::ScopeBegin);
+    m_scopeStack.push({scopeBegAddr, false});
 }
 
 void BydaoParser::exitScope() {
-    m_scopes.pop();
-    emitCode(BydaoOpCode::ScopeEnd);
+    auto scope = m_scopeStack.pop();
+    if (scope.hasVariables) {
+        // Были переменные — заменяем SCOPEBEG на SCOPEPUSH
+        m_scopes.pop();
+        emitCode(BydaoOpCode::ScopePop, "");
+    } else {
+        // Не было переменных — оставляем SCOPEBEG/SCOPEEND
+        emitCode(BydaoOpCode::ScopeEnd, "");
+    }
 }
 
 void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) {
     Q_UNUSED(token)
-    
-    if (m_scopes.isEmpty()) {
-        error("Internal error: no active scope");
-        return;
+
+    auto scope = m_scopeStack.top();
+    if ( ! scope.hasVariables ) {
+        scope.hasVariables = true;
+        m_bytecode[scope.beginInstrIndex].op = BydaoOpCode::ScopePush;
+        m_scopes.push( QSet<QString>() );
     }
     
-    if (m_scopes.top().variables.contains(name)) {
+    if (m_scopes.top().contains(name)) {
         error("Variable '" + name + "' already declared in this scope");
         return;
     }
     
-    m_scopes.top().variables.insert(name);
+    m_scopes.top().insert(name);
 }
 
 bool BydaoParser::isVariableDeclared(const QString& name) {
     for (int i = m_scopes.size() - 1; i >= 0; --i) {
-        if (m_scopes[i].variables.contains(name))
+        if (m_scopes[i].contains(name))
             return true;
     }
     return false;
 }
 
 void BydaoParser::undeclareVariable(const QString& name) {
-    if (m_scopes.isEmpty()) return;
+    auto scope = m_scopeStack.top();
+    if ( ! scope.hasVariables || ! m_scopes.top().contains(name) ) {
+        error("Variable '" + name + "' not declared in this scope");
+    }
 
     // Удаляем из текущей области видимости
-    if (m_scopes.top().variables.contains(name)) {
-        m_scopes.top().variables.remove(name);
-    }
+    m_scopes.top().remove(name);
 }
 
 // ============================================================
@@ -211,7 +221,7 @@ bool BydaoParser::loadModuleInfo(const QString& name) {
 // ============================================================
 
 bool BydaoParser::parse() {
-    enterScope(false);
+    enterScope();
     bool ok = parseProgram();
     exitScope();
     emitCode(BydaoOpCode::Halt);
@@ -259,7 +269,7 @@ bool BydaoParser::parseBlock(bool requireBraces) {
             return false;
     }
     
-    enterScope(false);
+    enterScope();
     
     while (!match(BydaoTokenType::RBrace) && !match(BydaoTokenType::EndOfFile)) {
         if (!parseStatement()) {
@@ -502,7 +512,7 @@ bool BydaoParser::parseIter() {
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", token);
 
     // Тело цикла
-    enterScope(false);
+    enterScope();
     bool oldInLoop = m_inLoop;
     m_inLoop = true;
 
@@ -585,7 +595,7 @@ bool BydaoParser::parseEnum() {
     emitCode(BydaoOpCode::Store, varName, varToken);    // сохраняем значение
 
     // Тело цикла
-    enterScope(false);
+    enterScope();
     bool oldInLoop = m_inLoop;
     m_inLoop = true;
 

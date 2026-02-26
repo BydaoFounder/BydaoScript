@@ -65,18 +65,18 @@ void BydaoVM::stop() {
 
 bool BydaoVM::execute(const BydaoInstruction& instr) {
     switch (instr.op) {
-    case BydaoOpCode::Halt:
-        m_running = false;
-        break;
 
     case BydaoOpCode::ScopeBegin:
-        m_scopeStack.push(Scope());  // новая область видимости
+    case BydaoOpCode::ScopeEnd:
+        // Ничего не делаем — быстрый случай
         break;
 
-    case BydaoOpCode::ScopeEnd:
-        if (!m_scopeStack.isEmpty()) {
-            m_scopeStack.pop();     // выходим из области, все переменные уничтожаются
-        }
+    case BydaoOpCode::ScopePush:
+        m_scopeStack.push(Scope());
+        break;
+
+    case BydaoOpCode::ScopePop:
+        m_scopeStack.pop();
         break;
 
     case BydaoOpCode::VarDecl: {
@@ -468,6 +468,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_scopeStack.top().vars[alias] = BydaoValue(module);
         break;
     }
+
+    case BydaoOpCode::Halt:
+        m_running = false;
+        break;
 
     default:
         qDebug() << "Unknown opcode:" << (int)instr.op;

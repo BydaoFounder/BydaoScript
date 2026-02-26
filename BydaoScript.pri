@@ -5,7 +5,7 @@ QT += core
 CONFIG += c++17
 CONFIG += debug_and_release
 CONFIG += strict_c++
-CONFIG += precompile_header
+#CONFIG += precompile_header
 
 # Общие макросы
 DEFINES += BYDAOSCRIPT_LIBRARY
