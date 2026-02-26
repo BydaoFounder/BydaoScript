@@ -1,15 +1,17 @@
 TARGET = Sys
 TEMPLATE = lib
 CONFIG += shared
+CONFIG += c++17
+CONFIG += debug_and_release
+CONFIG += strict_c++
 
-include(../../../BydaoScript.pri)
+DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
 
 INCLUDEPATH += ../../../include
 
 LIBS += -L../../../bin -lBydaoCore
 
 HEADERS += \
-    ../../../include/BydaoScript/modules/BydaoSys.h \
     BydaoSys.h \
     BydaoSys_global.h
 
@@ -17,5 +19,7 @@ SOURCES += \
     BydaoSys.cpp
 
 DEFINES += BYDAOSYS_LIBRARY
+
+#QMAKE_LFLAGS += /VERBOSE
 
 DESTDIR = ../../../bin/modules
