@@ -20,3 +20,6 @@ QMAKE_CXXFLAGS_DEBUG += -O0 -g
 
 # Предкомпилированные заголовки (опционально)
 # PRECOMPILED_HEADER = $$PWD/include/BydaoScript/stable.h
+
+HEADERS += \
+    $$PWD/include/BydaoScript/BydaoIntRange.h

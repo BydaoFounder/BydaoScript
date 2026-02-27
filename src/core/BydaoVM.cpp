@@ -1,12 +1,14 @@
 #include "BydaoScript/BydaoVM.h"
 #include "BydaoScript/BydaoNative.h"
 #include "BydaoScript/BydaoModule.h"
-#include "BydaoScript/BydaoString.h"    // +++
-#include "BydaoScript/BydaoInt.h"       // +++
-#include "BydaoScript/BydaoBool.h"      // +++
-#include "BydaoScript/BydaoReal.h"      // +++
-#include "BydaoScript/BydaoArray.h"      // +++
-#include "BydaoScript/BydaoNull.h"       // +++
+#include "BydaoScript/BydaoString.h"
+#include "BydaoScript/BydaoInt.h"
+#include "BydaoScript/BydaoBool.h"
+#include "BydaoScript/BydaoReal.h"
+#include "BydaoScript/BydaoArray.h"
+#include "BydaoScript/BydaoNull.h"
+#include "BydaoScript/BydaoTypeRegistry.h"
+#include "BydaoScript/BydaoIterator.h"
 #include <QDebug>
 
 namespace BydaoScript {
@@ -162,6 +164,19 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
+    case BydaoOpCode::TypeClass: {
+        QString typeName = instr.arg;
+        BydaoValue typeClass = BydaoTypeRegistry::getClass(typeName);
+
+        if (typeClass.isNull()) {
+            error("Unknown type class: " + typeName, instr);
+            return false;
+        }
+
+        m_stack.push(typeClass);
+        break;
+    }
+
     case BydaoOpCode::PushInt:
         m_stack.push(BydaoValue(BydaoInt::create(instr.arg.toLongLong())));
         break;
@@ -207,6 +222,45 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         m_stack.push(BydaoValue(array));
+        break;
+    }
+
+    case BydaoOpCode::Next: {
+        BydaoValue obj = m_stack.pop();
+
+        auto* iter = dynamic_cast<BydaoIterator*>(obj.toObject());
+        if (!iter) {
+            error("NEXT on non-iterator", instr);
+            return false;
+        }
+
+        m_stack.push(BydaoValue::fromBool(iter->next()));
+        break;
+    }
+
+    case BydaoOpCode::Value: {
+        BydaoValue obj = m_stack.pop();
+
+        auto* iter = dynamic_cast<BydaoIterator*>(obj.toObject());
+        if (!iter) {
+            error("VALUE on non-iterator", instr);
+            return false;
+        }
+
+        m_stack.push(iter->value());
+        break;
+    }
+
+    case BydaoOpCode::Key: {
+        BydaoValue obj = m_stack.pop();
+
+        auto* iter = dynamic_cast<BydaoIterator*>(obj.toObject());
+        if (!iter) {
+            error("KEY on non-iterator", instr);
+            return false;
+        }
+
+        m_stack.push(iter->key());
         break;
     }
 

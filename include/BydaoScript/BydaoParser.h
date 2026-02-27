@@ -79,6 +79,15 @@ private:
     BydaoModuleInfo* getModuleInfo(const QString& name);
     void clearModuleCache();  // для сброса при повторном парсинге
 
+    // Поддержка встроенных типов
+    struct BuiltinTypeInfo {
+        QString name;
+        QHash<QString, int> methods;  // имя метода -> количество аргументов (для проверки)
+    };
+    QHash<QString, BuiltinTypeInfo> m_builtinTypes;
+    void initBuiltinTypes();
+    bool isBuiltinTypeName(const QString& name) const;
+
     // Данные
     QVector<BydaoToken> m_tokens;
     int m_pos;

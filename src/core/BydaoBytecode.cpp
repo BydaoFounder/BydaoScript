@@ -39,6 +39,9 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::And] = "AND";
         names[BydaoOpCode::Or] = "OR";
         names[BydaoOpCode::Not] = "NOT";
+        names[BydaoOpCode::Next] = "NEXT";
+        names[BydaoOpCode::Key] = "KEY";
+        names[BydaoOpCode::Value] = "VALUE";
         names[BydaoOpCode::Member] = "MEMBER";
         names[BydaoOpCode::Index] = "INDEX";
         names[BydaoOpCode::Call] = "CALL";
@@ -51,6 +54,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::ScopePush] = "SCOPEPUSH";
         names[BydaoOpCode::ScopePop] = "SCOPEPOP";
         names[BydaoOpCode::UseModule] = "USE";
+        names[BydaoOpCode::TypeClass] = "TYPECLASS";
     }
     return names.value(op, "???");
 }

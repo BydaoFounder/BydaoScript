@@ -10,12 +10,15 @@ HEADERS += \
     ../../include/BydaoScript/BydaoBool.h \
     ../../include/BydaoScript/BydaoDisassembler.h \
     ../../include/BydaoScript/BydaoInt.h \
+    ../../include/BydaoScript/BydaoIntClass.h \
+    ../../include/BydaoScript/BydaoIntRange.h \
     ../../include/BydaoScript/BydaoIterator.h \
     ../../include/BydaoScript/BydaoNull.h \
     ../../include/BydaoScript/BydaoObject.h \
     ../../include/BydaoScript/BydaoReal.h \
     ../../include/BydaoScript/BydaoString.h \
     ../../include/BydaoScript/BydaoStringIterator.h \
+    ../../include/BydaoScript/BydaoTypeRegistry.h \
     ../../include/BydaoScript/BydaoValue.h \
     ../../include/BydaoScript/BydaoArray.h \
     ../../include/BydaoScript/BydaoNative.h \
@@ -30,12 +33,15 @@ SOURCES += \
     BydaoBool.cpp \
     BydaoDisassembler.cpp \
     BydaoInt.cpp \
+    BydaoIntClass.cpp \
+    BydaoIntRange.cpp \
     BydaoIterator.cpp \
     BydaoNull.cpp \
     BydaoObject.cpp \
     BydaoReal.cpp \
     BydaoString.cpp \
     BydaoStringIterator.cpp \
+    BydaoTypeRegistry.cpp \
     BydaoValue.cpp \
     BydaoArray.cpp \
     BydaoNative.cpp \

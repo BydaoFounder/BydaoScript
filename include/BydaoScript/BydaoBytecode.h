@@ -16,12 +16,16 @@ enum BydaoOpCode : quint8 {
     Mul, Div, Mod,
     Eq, Neq, Lt, Gt, Le, Ge,
     And, Or, Not,
+    Next,        // iter.next() -> bool
+    Value,       // iter.value() -> значение
+    Key,         // iter.key() -> ключ
     Member, Index, Call,
     Jump, JumpIfFalse, JumpIfTrue,
     Label,
     ScopeBegin, ScopeEnd,
     ScopePush, ScopePop,
-    UseModule
+    UseModule,
+    TypeClass
 };
 
 struct BydaoInstruction {

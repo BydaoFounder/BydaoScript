@@ -1,4 +1,5 @@
 #include "BydaoScript/BydaoInt.h"
+#include "BydaoScript/BydaoIntRange.h"
 #include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoString.h"

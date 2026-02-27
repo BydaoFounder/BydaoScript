@@ -24,10 +24,32 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     m_modulePaths << "./modules";
     m_modulePaths << QCoreApplication::applicationDirPath();
     m_modulePaths << QCoreApplication::applicationDirPath() + "/modules";
+
+    initBuiltinTypes();
 }
 
 BydaoParser::~BydaoParser() {
     clearModuleCache();
+}
+void BydaoParser::initBuiltinTypes() {
+    BuiltinTypeInfo intInfo;
+    intInfo.name = "Int";
+    intInfo.methods["range"] = 2;
+    intInfo.methods["parse"] = 1;
+    intInfo.methods["max"] = 2;
+    intInfo.methods["min"] = 2;
+    intInfo.methods["random"] = -1;  // -1 означает переменное число аргументов
+    m_builtinTypes["Int"] = intInfo;
+
+    // m_builtinTypeNames.insert("String");
+    // m_builtinTypeNames.insert("Real");
+    // m_builtinTypeNames.insert("Array");
+    // m_builtinTypeNames.insert("Bool");
+    // m_builtinTypeNames.insert("Null");
+}
+
+bool BydaoParser::isBuiltinTypeName(const QString& name) const {
+    return m_builtinTypes.contains(name);
 }
 
 // ============================================================
@@ -126,7 +148,7 @@ void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) 
 
     auto scope = m_scopeStack.top();
     if ( ! scope.hasVariables ) {
-        scope.hasVariables = true;
+        m_scopeStack.top().hasVariables = true;
         m_bytecode[scope.beginInstrIndex].op = BydaoOpCode::ScopePush;
         m_scopes.push( QSet<QString>() );
     }
@@ -505,14 +527,12 @@ bool BydaoParser::parseIter() {
 
     // ПРОВЕРЯЕМ УСЛОВИЕ: iter.next()
     emitCode(BydaoOpCode::Load, iterName, iterToken);        // загружаем итератор
-    emitCode(BydaoOpCode::PushString, "next", token);        // имя метода
-    emitCode(BydaoOpCode::Call, "0", token);                 // вызываем next()
+    emitCode(BydaoOpCode::Next, "", token);        // имя метода
 
     // Условный прыжок на exitLabel (НЕ на "?")
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", token);
 
     // Тело цикла
-    enterScope();
     bool oldInLoop = m_inLoop;
     m_inLoop = true;
 
@@ -523,7 +543,6 @@ bool BydaoParser::parseIter() {
     }
 
     m_inLoop = oldInLoop;
-    exitScope();
 
     // Возврат к началу цикла
     emitCode(BydaoOpCode::Jump, QString::number(loopStart));
@@ -582,20 +601,17 @@ bool BydaoParser::parseEnum() {
 
     // ПРОВЕРЯЕМ УСЛОВИЕ: tmpIter.next()
     emitCode(BydaoOpCode::Load, tmpIter, token);        // загружаем итератор
-    emitCode(BydaoOpCode::PushString, "next", token);   // имя метода
-    emitCode(BydaoOpCode::Call, "0", token);            // вызываем next()
+    emitCode(BydaoOpCode::Next, "", token);             // имя метода
 
     // Условный прыжок на выход (ставим "?" для последующего патча)
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", token);
 
     // ПОЛУЧАЕМ ЗНАЧЕНИЕ: tmpIter.value()
     emitCode(BydaoOpCode::Load, tmpIter, token);        // загружаем итератор
-    emitCode(BydaoOpCode::PushString, "value", token);  // имя метода
-    emitCode(BydaoOpCode::Call, "0", token);            // вызываем value()
+    emitCode(BydaoOpCode::Value, "", token);  // имя метода
     emitCode(BydaoOpCode::Store, varName, varToken);    // сохраняем значение
 
     // Тело цикла
-    enterScope();
     bool oldInLoop = m_inLoop;
     m_inLoop = true;
 
@@ -606,7 +622,6 @@ bool BydaoParser::parseEnum() {
     }
 
     m_inLoop = oldInLoop;
-    exitScope();
 
     // Возврат к началу цикла
     emitCode(BydaoOpCode::Jump, QString::number(loopStart));
@@ -825,10 +840,28 @@ bool BydaoParser::parsePrimary() {
         // qDebug() << "isVariableDeclared:" << isVariableDeclared(name);
         // qDebug() << "isModule:" << isModule(name);
 
+        if (isBuiltinTypeName(name)) {
+            BydaoToken nameToken = m_current;
+            nextToken();
+
+            // Если после имени типа идёт точка — это статический метод
+            if (match(BydaoTokenType::Dot)) {
+                // Откатываем позицию и вызываем parseTypeMember
+                m_pos--;
+                m_current = m_tokens[m_pos];
+                return parseMember(true);
+            }
+
+            // Иначе просто загружаем тип
+            emitCode(BydaoOpCode::TypeClass, name, nameToken);
+            return true;
+        }
+
         BydaoToken nameToken = m_current;
         
         if (!isVariableDeclared(name) && !isModule(name)) {
             error("Undeclared variable or unknown module: " + name);
+            return false;
         }
         
         nextToken();
@@ -924,25 +957,16 @@ bool BydaoParser::parseMember(bool canAssign) {
         error("Expected object name");
         return false;
     }
-    
+
     QString object = m_current.text;
     BydaoToken objToken = m_current;
 
-    // qDebug() << "=== MEMBER DEBUG ===";
-    // qDebug() << "  object:" << object;
-    // qDebug() << "  current token:" << m_current.text << "type:" << (int)m_current.type;
-    // qDebug() << "  next token:" << (m_pos+1 < m_tokens.size() ? m_tokens[m_pos+1].text : "none");
-
     nextToken();
-    
-    while (match(BydaoTokenType::Dot) || match(BydaoTokenType::LBracket)) {
 
-        // qDebug() << "  found dot or bracket";
+    while (match(BydaoTokenType::Dot) || match(BydaoTokenType::LBracket)) {
 
         if (match(BydaoTokenType::Dot)) {
             nextToken();
-
-//            qDebug() << "  after dot, token:" << m_current.text;
 
             if (!match(BydaoTokenType::Identifier) &&
                 !match(BydaoTokenType::Iter) &&
@@ -955,91 +979,109 @@ bool BydaoParser::parseMember(bool canAssign) {
             QString member = m_current.text;
             BydaoToken memberToken = m_current;
 
-            // qDebug() << "  member name:" << member;
-            // qDebug() << "  next after member:" << (m_pos+1 < m_tokens.size() ? m_tokens[m_pos+1].text : "none");
-
             nextToken();
 
-            // qDebug() << "  after nextToken, current token:" << m_current.text << "type:" << (int)m_current.type;
+            // === ПРОВЕРКА ДЛЯ ВСТРОЕННЫХ ТИПОВ ===
+            if (isBuiltinTypeName(object)) {
+                auto it = m_builtinTypes.find(object);
+                if (it == m_builtinTypes.end()) {
+                    error("Unknown builtin type: " + object);
+                    return false;
+                }
 
-            // Проверка для модулей
-            if (isModule(object)) {
+                if (!it.value().methods.contains(member)) {
+                    error(QString("Type '%1' has no static method '%2'")
+                              .arg(object).arg(member));
+                    return false;
+                }
+
+                // Для методов с переменным числом аргументов проверку пропускаем
+                int expectedArgs = it.value().methods[member];
+                if (expectedArgs >= 0) {
+                    // TODO: можно проверить количество аргументов, заглянув вперёд
+                }
+            }
+            // === ПРОВЕРКА ДЛЯ МОДУЛЕЙ ===
+            else if (isModule(object)) {
                 auto* info = getModuleInfo(object);
-
-                // === ДИАГНОСТИКА ===
                 if (!info) {
-                    qDebug() << "❌ CRITICAL: info is NULL for module" << object;
                     error("Internal error: module info is null");
                     return false;
                 }
 
-                // ======= Проверяем валидность указателя
-                // qDebug() << "Module info pointer:" << info;
-                // qDebug() << "Module name:" << info->name();
-                // qDebug() << "Module version:" << info->version();
-                // ======================================
-
                 if (!info->hasMember(member)) {
                     error(QString("Module '%1' has no member '%2'")
-                         .arg(object).arg(member));
+                              .arg(object).arg(member));
                     return false;
                 }
-                
+
                 if (info->isMethod(member) && !match(BydaoTokenType::LParen)) {
                     error(QString("Method '%1' requires parentheses").arg(member));
                     return false;
                 }
             }
-            
+
+            // === ГЕНЕРАЦИЯ КОДА ===
             if (match(BydaoTokenType::LParen)) {
                 // Это вызов метода
-                // qDebug() << "  it's a method call";
 
                 // Кладём объект на стек
-                if ( object != "_acc" ) {
+                if (isBuiltinTypeName(object)) {
+                    // Для встроенных типов - специальная инструкция
+                    emitCode(BydaoOpCode::TypeClass, object, objToken);
+                } else if (object != "_acc" && object != "_result") {
+                    // Для обычных переменных - LOAD
                     emitCode(BydaoOpCode::Load, object, objToken);
                 }
 
                 // Кладём имя метода на стек
                 emitCode(BydaoOpCode::PushString, member, memberToken);
 
-                // Вызываем parseCall для обработки аргументов и генерации CALL
+                // Вызываем parseCall для обработки аргументов
                 if (!parseCall(object)) {
                     return false;
                 }
 
-                // Результат вызова будет на стеке, объект для дальнейших обращений не нужен
+                // Результат вызова будет на стеке
                 object = "_result";
             } else {
-                // qDebug() << "  property access (no parentheses)";
-                emitCode(BydaoOpCode::Load, object, objToken);
-                emitCode(BydaoOpCode::Member, member, memberToken);
-                object = "_acc";
+                // Доступ к свойству (не метод)
+                if (isBuiltinTypeName(object)) {
+                    // У встроенных типов пока нет свойств, только методы
+                    error("Type '" + object + "' has no property '" + member + "'");
+                    return false;
+                } else {
+                    emitCode(BydaoOpCode::Load, object, objToken);
+                    emitCode(BydaoOpCode::Member, member, memberToken);
+                    object = "_acc";
+                }
             }
         }
         else if (match(BydaoTokenType::LBracket)) {
+            // Индексный доступ (пока только для массивов)
             nextToken();
             if (!parseExpression()) return false;
             if (!expect(BydaoTokenType::RBracket)) return false;
-            
+
             emitCode(BydaoOpCode::Load, object, objToken);
             emitCode(BydaoOpCode::Index, "", objToken);
             object = "_acc";
         }
     }
-    
+
+    // Обработка присваивания (a.b.c = value)
     if (canAssign && match(BydaoTokenType::Assign)) {
-        if (isModule(object)) {
-            error("Cannot assign to module");
+        if (isModule(object) || isBuiltinTypeName(object)) {
+            error("Cannot assign to module or type");
             return false;
         }
-        
+
         BydaoToken assignToken = m_current;
         nextToken();
         if (!parseExpression()) return false;
         emitCode(BydaoOpCode::Store, object, assignToken);
     }
-    
+
     return true;
 }
 
