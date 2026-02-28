@@ -62,11 +62,21 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     
-    QString fileName = args.first();
-    QFile file(fileName);
-    
+    QString usedFileName;
+    QString originFileName = args.first();
+    if ( QFile::exists( originFileName ) ) {
+        usedFileName = originFileName;
+    }
+    else {
+        usedFileName = originFileName + ".bds";
+        if ( ! QFile::exists( usedFileName ) ) {
+            cout << "File " << originFileName << "not found" << eol;
+            return 1;
+        }
+    }
+    QFile file(usedFileName);
     if (!file.open(QIODevice::ReadOnly)) {
-        cout << "Cannot open file:" << fileName << eol;
+        cout << "Cannot open file:" << usedFileName << eol;
         return 1;
     }
     
@@ -93,11 +103,6 @@ int main(int argc, char *argv[]) {
     
     auto bytecode = parserCore.takeBytecode();
     
-    // qDebug() << "=== BYTECODE ===";
-    // for (int i = 0; i < bytecode.size(); i++) {
-    //     qDebug() << i << ":" << (int)bytecode[i].op << bytecode[i].arg;
-    // }
-
     // Дизассемблировать если нужно
     if (parser.isSet(listingOption)) {
         BydaoDisassembler disasm;
