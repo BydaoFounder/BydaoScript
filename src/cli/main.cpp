@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     QCommandLineOption bytecodeOption("c", "Compile to bytecode only");
     parser.addOption(bytecodeOption);
     
-    QCommandLineOption outputOption("o", "Output bytecode file", "file");
+    QCommandLineOption outputOption( QStringList() << "o" << "out", "Output bytecode file", "file");
     parser.addOption(outputOption);
 
     QCommandLineOption traceOption( QStringList() << "t" << "trace", "Show execution trace");
