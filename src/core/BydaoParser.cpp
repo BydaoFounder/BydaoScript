@@ -1,7 +1,6 @@
 #include "BydaoScript/BydaoParser.h"
 #include <QCoreApplication>
-#include <QRegularExpression>
-#include <QtCore/QtCore>
+#include <QDir>
 
 namespace BydaoScript {
 
@@ -12,44 +11,103 @@ namespace BydaoScript {
 BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     : m_tokens(tokens)
     , m_pos(0)
-    , m_labelCounter(0)
+    , m_currentScopeDepth(0)
     , m_inLoop(false)
-    , m_iteratorCounter(0)  // инициализируем
+    , m_iteratorCounter(0)
 {
     if (!m_tokens.isEmpty())
         m_current = m_tokens[0];
-    
-    // Добавляем пути поиска модулей по умолчанию
+
+    // Добавляем пути поиска модулей
     m_modulePaths << ".";
     m_modulePaths << "./modules";
     m_modulePaths << QCoreApplication::applicationDirPath();
     m_modulePaths << QCoreApplication::applicationDirPath() + "/modules";
 
+    // Добавляем пустую строку под индексом 0
+    addString("");
+
     initBuiltinTypes();
 }
 
 BydaoParser::~BydaoParser() {
-    clearModuleCache();
-}
-void BydaoParser::initBuiltinTypes() {
-    BuiltinTypeInfo intInfo;
-    intInfo.name = "Int";
-    intInfo.methods["range"] = 2;
-    intInfo.methods["parse"] = 1;
-    intInfo.methods["max"] = 2;
-    intInfo.methods["min"] = 2;
-    intInfo.methods["random"] = -1;  // -1 означает переменное число аргументов
-    m_builtinTypes["Int"] = intInfo;
-
-    // m_builtinTypeNames.insert("String");
-    // m_builtinTypeNames.insert("Real");
-    // m_builtinTypeNames.insert("Array");
-    // m_builtinTypeNames.insert("Bool");
-    // m_builtinTypeNames.insert("Null");
+    qDeleteAll(m_moduleInfoCache);
 }
 
-bool BydaoParser::isBuiltinTypeName(const QString& name) const {
-    return m_builtinTypes.contains(name);
+// ============================================================
+// РАБОТА С ТАБЛИЦАМИ
+// ============================================================
+
+qint16 BydaoParser::addString(const QString& str) {
+    if (str.isEmpty()) return 0;  // индекс 0 зарезервирован для пустой строки
+
+    auto it = m_stringIndex.find(str);
+    if (it != m_stringIndex.end())
+        return it.value();
+
+    if (m_stringTable.size() >= 65536) {
+        error("String table overflow (max 65536 strings)");
+        return 0;
+    }
+
+    qint16 index = m_stringTable.size();
+    m_stringTable.append(str);
+    m_stringIndex[str] = index;
+    return index;
+}
+
+qint16 BydaoParser::addConstant(const BydaoConstant& c) {
+    // Для строк используем специальный ключ
+    QString key;
+    if (c.type == CONST_STRING) {
+        key = "s:" + QString::number(c.stringIndex);
+    } else {
+        switch (c.type) {
+        case CONST_INT: key = "i:" + QString::number(c.intValue); break;
+        case CONST_REAL: key = "r:" + QString::number(c.realValue); break;
+        case CONST_BOOL: key = "b:" + QString::number(c.boolValue); break;
+        case CONST_NULL: key = "null"; break;
+        default: break;
+        }
+    }
+
+    if (!key.isEmpty()) {
+        auto it = m_constantIndex.find(key);
+        if (it != m_constantIndex.end())
+            return it.value();
+    }
+
+    if (m_constants.size() >= 65536) {
+        error("Constant table overflow (max 65536 constants)");
+        return 0;
+    }
+
+    qint16 index = m_constants.size();
+    m_constants.append(c);
+    if (!key.isEmpty())
+        m_constantIndex[key] = index;
+    return index;
+}
+
+qint16 BydaoParser::addConstant(qint64 value) {
+    return addConstant(BydaoConstant(value));
+}
+
+qint16 BydaoParser::addConstant(double value) {
+    return addConstant(BydaoConstant(value));
+}
+
+qint16 BydaoParser::addConstant(bool value) {
+    return addConstant(BydaoConstant(value));
+}
+
+qint16 BydaoParser::addConstant(const QString& strValue) {
+    qint16 strIndex = addString(strValue);
+    return addConstant(BydaoConstant(quint32(strIndex)));
+}
+
+qint16 BydaoParser::addNullConstant() {
+    return addConstant(BydaoConstant());
 }
 
 // ============================================================
@@ -71,8 +129,7 @@ bool BydaoParser::expect(BydaoTokenType type) {
         nextToken();
         return true;
     }
-    // TODO: Вывести ожидаемый текст вместо числа
-    error(QString("Expected %1, got %2")
+    error(QString("Expected %1, got '%2'")
           .arg(static_cast<int>(type))
           .arg(m_current.text));
     return false;
@@ -97,90 +154,174 @@ void BydaoParser::error(const QString& msg) {
 // ГЕНЕРАЦИЯ КОДА
 // ============================================================
 
-int BydaoParser::emitCode(BydaoOpCode op, QString arg, const BydaoToken& token) {
+qint16 BydaoParser::emitCode(BydaoOpCode op, qint16 arg1, qint16 arg2) {
     m_bytecode.append(BydaoInstruction(
-        op, arg,
-        token.line ? token.line : m_current.line,
-        token.column ? token.column : m_current.column
+        op, arg1, arg2,
+        (qint16)m_current.line,
+        (qint16)m_current.column
     ));
     return m_bytecode.size() - 1;
 }
 
-int BydaoParser::newLabel() {
-    return ++m_labelCounter;
-}
-
-void BydaoParser::emitLabel(int label) {
-    // Ничего не генерируем, просто запоминаем позицию
-    m_labels[label] = m_bytecode.size();
+qint16 BydaoParser::emitCode(BydaoOpCode op, qint16 arg1, qint16 arg2, const BydaoToken& token) {
+    m_bytecode.append(BydaoInstruction(
+        op, arg1, arg2,
+        (qint16)token.line,
+        (qint16)token.column
+    ));
+    return m_bytecode.size() - 1;
 }
 
 void BydaoParser::patchJump(int instrIndex) {
     if (instrIndex >= 0 && instrIndex < m_bytecode.size()) {
-        int target = m_labels[m_bytecode[instrIndex].arg.toInt()];
-        m_bytecode[instrIndex].arg = QString::number(target);
+        int target = m_labels[m_bytecode[instrIndex].arg1];
+        m_bytecode[instrIndex].arg1 = target;
+    }
+}
+
+void BydaoParser::patchJumps(const QVector<int>& jumps, int targetAddr) {
+    for (int instrIndex : jumps) {
+        if (instrIndex >= 0 && instrIndex < m_bytecode.size()) {
+            m_bytecode[instrIndex].arg1 = targetAddr;
+        }
     }
 }
 
 // ============================================================
-// СЕМАНТИЧЕСКИЙ АНАЛИЗ - ОБЛАСТИ ВИДИМОСТИ
+// ОБЛАСТИ ВИДИМОСТИ
 // ============================================================
 
 void BydaoParser::enterScope() {
-    int scopeBegAddr = emitCode(BydaoOpCode::ScopeBegin);
-    m_scopeStack.push({scopeBegAddr, false});
+    // Генерируем SCOPEBEG и запоминаем его индекс
+    int begIdx = emitCode(BydaoOpCode::ScopeBegin, 0, 0);
+
+    ScopeInfo info;
+    info.beginInstrIndex = begIdx;
+    info.hasVariables = false;
+    info.scopeDepth = m_scopeStack.size();  // текущая глубина
+
+    m_scopeStack.push(info);
+    m_varScopes.push(QSet<QString>());  // пустой набор переменных
 }
 
 void BydaoParser::exitScope() {
-    auto scope = m_scopeStack.pop();
-    if (scope.hasVariables) {
-        // Были переменные — заменяем SCOPEBEG на SCOPEPUSH
-        m_scopes.pop();
-        emitCode(BydaoOpCode::ScopePop, "");
+    if (m_scopeStack.isEmpty()) {
+        error("No scope to exit");
+        return;
+    }
+
+    ScopeInfo info = m_scopeStack.pop();
+    QSet<QString> vars = m_varScopes.pop();
+
+    // Удаляем переменные из глобальной карты
+    for (const QString& name : vars) {
+        m_varMap.remove(name);
+    }
+
+    if (info.hasVariables) {
+        // В области были переменные - генерируем SCOPEPOP
+        emitCode(BydaoOpCode::ScopePop, 0, 0);
     } else {
-        // Не было переменных — оставляем SCOPEBEG/SCOPEEND
-        emitCode(BydaoOpCode::ScopeEnd, "");
+        // В области не было переменных - генерируем SCOPEEND
+        emitCode(BydaoOpCode::ScopeEnd, 0, 0);
     }
 }
 
 void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) {
-    Q_UNUSED(token)
-
-    auto scope = m_scopeStack.top();
-    if ( ! scope.hasVariables ) {
-        m_scopeStack.top().hasVariables = true;
-        m_bytecode[scope.beginInstrIndex].op = BydaoOpCode::ScopePush;
-        m_scopes.push( QSet<QString>() );
+    if (m_scopeStack.isEmpty()) {
+        error("No active scope for variable declaration: " + name);
+        return;
     }
-    
-    if (m_scopes.top().contains(name)) {
+
+    // Проверяем, не объявлена ли уже в этой области
+    if (m_varScopes.top().contains(name)) {
         error("Variable '" + name + "' already declared in this scope");
         return;
     }
-    
-    m_scopes.top().insert(name);
+
+    // Отмечаем, что в текущей области есть переменные
+    if (!m_scopeStack.top().hasVariables) {
+        // Первая переменная в этой области - меняем SCOPEBEG на SCOPEPUSH
+        m_scopeStack.top().hasVariables = true;
+        m_bytecode[m_scopeStack.top().beginInstrIndex].op = BydaoOpCode::ScopePush;
+    }
+
+    // Добавляем переменную в текущую область
+    m_varScopes.top().insert(name);
+
+    // Вычисляем индекс переменной (порядковый номер в области)
+    int varIndex = m_varScopes.top().size() - 1;
+
+    // Сохраняем в глобальной карте для быстрого поиска
+    VariableInfo info;
+    info.name = name;
+    info.scopeDepth = m_scopeStack.top().scopeDepth;
+    info.varIndex = varIndex;
+    m_varMap[name] = info;
+
+    // Генерируем VARDECL (имя переменной нужно только для отладки)
+    qint16 nameIndex = addString(name);
+    emitCode(BydaoOpCode::VarDecl, nameIndex, 0, token);
+}
+
+VariableInfo BydaoParser::resolveVariable(const QString& name) {
+    auto it = m_varMap.find(name);
+    if (it == m_varMap.end()) {
+        error("Undeclared variable: " + name);
+        return VariableInfo();
+    }
+
+    VariableInfo info = it.value();
+
+    // Проверяем, что переменная всё ещё существует
+    // (не была удалена при выходе из области)
+    if (info.scopeDepth >= m_scopeStack.size()) {
+        error("Variable '" + name + "' is out of scope");
+        return VariableInfo();
+    }
+
+    return info;
 }
 
 bool BydaoParser::isVariableDeclared(const QString& name) {
-    for (int i = m_scopes.size() - 1; i >= 0; --i) {
-        if (m_scopes[i].contains(name))
-            return true;
-    }
-    return false;
-}
-
-void BydaoParser::undeclareVariable(const QString& name) {
-    auto scope = m_scopeStack.top();
-    if ( ! scope.hasVariables || ! m_scopes.top().contains(name) ) {
-        error("Variable '" + name + "' not declared in this scope");
-    }
-
-    // Удаляем из текущей области видимости
-    m_scopes.top().remove(name);
+    return m_varMap.contains(name);
 }
 
 // ============================================================
-// РАБОТА С МОДУЛЯМИ
+// ВСТРОЕННЫЕ ТИПЫ
+// ============================================================
+
+void BydaoParser::initBuiltinTypes() {
+    BuiltinTypeInfo intInfo;
+    intInfo.name = "Int";
+    intInfo.methods["range"] = 2;
+    intInfo.methods["parse"] = 1;
+    intInfo.methods["max"] = 2;
+    intInfo.methods["min"] = 2;
+    intInfo.methods["random"] = -1;
+    m_builtinTypes["Int"] = intInfo;
+
+    BuiltinTypeInfo stringInfo;
+    stringInfo.name = "String";
+    stringInfo.methods["length"] = 0;
+    stringInfo.methods["upper"] = 0;
+    stringInfo.methods["lower"] = 0;
+    m_builtinTypes["String"] = stringInfo;
+
+    BuiltinTypeInfo arrayInfo;
+    arrayInfo.name = "Array";
+    arrayInfo.methods["length"] = 0;
+    arrayInfo.methods["push"] = 1;
+    arrayInfo.methods["pop"] = 0;
+    m_builtinTypes["Array"] = arrayInfo;
+}
+
+bool BydaoParser::isBuiltinTypeName(const QString& name) const {
+    return m_builtinTypes.contains(name);
+}
+
+// ============================================================
+// МОДУЛИ
 // ============================================================
 
 void BydaoParser::addModulePath(const QString& path) {
@@ -188,11 +329,6 @@ void BydaoParser::addModulePath(const QString& path) {
     if (!m_modulePaths.contains(normalized)) {
         m_modulePaths.prepend(normalized);
     }
-}
-
-void BydaoParser::clearModuleCache() {
-    qDeleteAll(m_moduleInfoCache);
-    m_moduleInfoCache.clear();
 }
 
 BydaoModuleInfo* BydaoParser::getModuleInfo(const QString& name) {
@@ -203,34 +339,15 @@ bool BydaoParser::isModule(const QString& name) {
     return m_moduleInfoCache.contains(name);
 }
 
-bool BydaoParser::isModuleMember(const QString& moduleName, const QString& member) {
-    auto* info = m_moduleInfoCache.value(moduleName);
-    return info && info->hasMember(member);
-}
-
-int BydaoParser::methodArgCount(const QString& moduleName, const QString& method) {
-    auto* info = m_moduleInfoCache.value(moduleName);
-    return info ? info->methodArgCount(method) : -1;
-}
-
-QStringList BydaoParser::getMethodArgs(const QString& moduleName, const QString& method) {
-    auto* info = m_moduleInfoCache.value(moduleName);
-    if (!info) return QStringList();
-    return info->methodArgs(method);
-}
-
 bool BydaoParser::loadModuleInfo(const QString& name) {
-    // Уже загружен?
     if (m_moduleInfoCache.contains(name)) {
         return true;
     }
-    
-    // Загружаем через ModuleManager
+
     QString errorMsg;
     BydaoModuleInfo* info = BydaoModuleManager::instance().loadModuleInfo(name, &errorMsg);
     if (info) {
         m_moduleInfoCache[name] = info;
-        // qDebug() << "📦 Module info loaded:" << name << "v" << info->version();
         return true;
     }
 
@@ -243,10 +360,14 @@ bool BydaoParser::loadModuleInfo(const QString& name) {
 // ============================================================
 
 bool BydaoParser::parse() {
+    // Глобальная область (без создания, только SCOPEBEG)
     enterScope();
+
     bool ok = parseProgram();
+
     exitScope();
     emitCode(BydaoOpCode::Halt);
+
     return ok && m_errors.isEmpty();
 }
 
@@ -254,8 +375,8 @@ bool BydaoParser::parseProgram() {
     while (!match(BydaoTokenType::EndOfFile)) {
         if (!parseStatement()) {
             // Восстановление после ошибки
-            while (!match(BydaoTokenType::EndOfFile) && 
-                   !match(BydaoTokenType::RBrace) && 
+            while (!match(BydaoTokenType::EndOfFile) &&
+                   !match(BydaoTokenType::RBrace) &&
                    !match(BydaoTokenType::Semicolon)) {
                 nextToken();
             }
@@ -290,23 +411,23 @@ bool BydaoParser::parseBlock(bool requireBraces) {
         if (!expect(BydaoTokenType::LBrace))
             return false;
     }
-    
-    enterScope();
-    
+
+    enterScope();  // новая область для блока
+
     while (!match(BydaoTokenType::RBrace) && !match(BydaoTokenType::EndOfFile)) {
         if (!parseStatement()) {
             exitScope();
             return false;
         }
     }
-    
+
     exitScope();
-    
+
     if (requireBraces) {
         if (!expect(BydaoTokenType::RBrace))
             return false;
     }
-    
+
     return true;
 }
 
@@ -315,29 +436,56 @@ bool BydaoParser::parseBlock(bool requireBraces) {
 // ============================================================
 
 bool BydaoParser::parseVarDecl() {
+    BydaoToken token = m_current;
     nextToken(); // var
-    
+
     if (!match(BydaoTokenType::Identifier)) {
         error("Expected variable name");
         return false;
     }
-    
+
     QString name = m_current.text;
     BydaoToken nameToken = m_current;
     declareVariable(name, nameToken);
     nextToken();
-    
-    emitCode(BydaoOpCode::VarDecl, name, nameToken);
-    
+
     if (match(BydaoTokenType::Assign)) {
         nextToken();
         if (!parseExpression()) return false;
-        emitCode(BydaoOpCode::Store, name, nameToken);
+
+        VariableInfo info = resolveVariable(name);
+        emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
     } else {
-        emitCode(BydaoOpCode::PushNull);
-        emitCode(BydaoOpCode::Store, name, nameToken);
+        qint16 nullConst = addNullConstant();
+        emitCode(BydaoOpCode::PushConst, nullConst, 0, token);
+
+        VariableInfo info = resolveVariable(name);
+        emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
     }
-    
+
+    return true;
+}
+
+bool BydaoParser::parseAssign() {
+    QString name = m_current.text;
+    BydaoToken nameToken = m_current;
+
+    if (!isVariableDeclared(name)) {
+        error("Undeclared variable: " + name);
+        return false;
+    }
+
+    nextToken(); // identifier
+    expect(BydaoTokenType::Assign); // =
+
+    if (!parseExpression()) {
+        error("Expected expression after =");
+        return false;
+    }
+
+    VariableInfo info = resolveVariable(name);
+    emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
+
     return true;
 }
 
@@ -345,28 +493,24 @@ bool BydaoParser::parseIf() {
     BydaoToken ifToken = m_current;
     nextToken(); // if
 
-    // Парсим условие
     if (!parseExpression()) {
         error("Expected condition after 'if'");
         return false;
     }
 
-    // Генерируем условный переход на else/elsif/end (пока с временным "?")
-    int elseJump = emitCode(BydaoOpCode::JumpIfFalse, "?", ifToken);
+    // Условный переход на else/elsif
+    int elseJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, ifToken);
 
-    // Парсим блок if
     if (!parseBlock(true)) {
         return false;
     }
 
-    // Генерируем переход в конец всей конструкции
-    int endJump = emitCode(BydaoOpCode::Jump, "?", ifToken);
+    int endJump = emitCode(BydaoOpCode::Jump, 0, 0, ifToken);
 
-    // ========== ПАТЧИМ ПЕРВЫЙ УСЛОВНЫЙ ПЕРЕХОД ==========
-    // Теперь он ведёт на текущую позицию (начало elsif/else)
-    m_bytecode[elseJump].arg = QString::number(m_bytecode.size());
+    // Патчим условный переход на текущую позицию
+    m_bytecode[elseJump].arg1 = m_bytecode.size();
 
-    // Обрабатываем цепочку elsif
+    // Обрабатываем elsif
     while (match(BydaoTokenType::Elsif)) {
         BydaoToken elsifToken = m_current;
         nextToken(); // elsif
@@ -376,33 +520,28 @@ bool BydaoParser::parseIf() {
             return false;
         }
 
-        // Условный переход для этого elsif
-        int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", elsifToken);
+        int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, elsifToken);
 
-        // Блок elsif
         if (!parseBlock(true)) {
             return false;
         }
 
-        // После блока elsif — переход в конец
-        emitCode(BydaoOpCode::Jump, QString::number(endJump));
+        emitCode(BydaoOpCode::Jump, endJump, 0);
 
-        // ========== ПАТЧИМ УСЛОВНЫЙ ПЕРЕХОД ЭТОГО ELSIF ==========
-        m_bytecode[condJump].arg = QString::number(m_bytecode.size());
+        m_bytecode[condJump].arg1 = m_bytecode.size();
     }
 
     // Опциональный else
     if (match(BydaoTokenType::Else)) {
         nextToken(); // else
 
-        // Блок else
         if (!parseBlock(true)) {
             return false;
         }
     }
 
-    // ========== ПАТЧИМ ПЕРЕХОД ИЗ IF/CONSTRUCTION ==========
-    m_bytecode[endJump].arg = QString::number(m_bytecode.size());
+    // Патчим переход из if
+    m_bytecode[endJump].arg1 = m_bytecode.size();
 
     return true;
 }
@@ -412,15 +551,14 @@ bool BydaoParser::parseWhile() {
     nextToken(); // while
 
     LoopInfo loop;
-    loop.conditionAddr = m_bytecode.size();  // адрес условия известен сразу
+    loop.conditionAddr = m_bytecode.size();
 
-    // Парсим условие
     if (!parseExpression()) {
         error("Expected condition");
         return false;
     }
 
-    // Парсим next-оператор (если есть)
+    // Парсим next-оператор
     bool hasNext = match(BydaoTokenType::Next);
     QVector<BydaoInstruction> nextCode;
 
@@ -437,53 +575,37 @@ bool BydaoParser::parseWhile() {
         for (int i = savedPos; i < m_bytecode.size(); i++) {
             nextCode.append(m_bytecode[i]);
         }
-        // Удаляем из основного потока
         m_bytecode.resize(savedPos);
     }
 
-    // Условный переход (адрес пока неизвестен)
-    int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", token);
+    int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 
-    // --- тело цикла ---
-    // Кладём loop в стек, чтобы parseBreakNext() мог добавлять в списки
     m_loopStack.push(loop);
-
     m_inLoop = true;
+
     if (!parseBlock(true)) {
         m_inLoop = false;
         m_loopStack.pop();
         return false;
     }
-    m_inLoop = false;
 
-    // Забираем loop из стека с накопленными break/next
+    m_inLoop = false;
     loop = m_loopStack.pop();
 
-    // ТЕПЕРЬ МЫ ЗНАЕМ ВСЕ АДРЕСА
-    loop.nextAddr = m_bytecode.size();      // адрес для next
+    loop.nextAddr = m_bytecode.size();
 
     // Вставляем next-оператор
     for (const auto& instr : nextCode) {
         m_bytecode.append(instr);
     }
 
-    // Возврат к условию
-    emitCode(BydaoOpCode::Jump, QString::number(loop.conditionAddr));
+    emitCode(BydaoOpCode::Jump, loop.conditionAddr, 0);
 
-    loop.exitAddr = m_bytecode.size();      // адрес выхода
+    loop.exitAddr = m_bytecode.size();
 
-    // Патчим условный переход
-    m_bytecode[condJump].arg = QString::number(loop.exitAddr);
-
-    // Патчим все накопленные break
-    for (int breakInstr : loop.breaks) {
-        m_bytecode[breakInstr].arg = QString::number(loop.exitAddr);
-    }
-
-    // Патчим все накопленные next
-    for (int nextInstr : loop.nexts) {
-        m_bytecode[nextInstr].arg = QString::number(loop.nextAddr);
-    }
+    m_bytecode[condJump].arg1 = loop.exitAddr;
+    patchJumps(loop.breaks, loop.exitAddr);
+    patchJumps(loop.nexts, loop.nextAddr);
 
     return true;
 }
@@ -492,7 +614,6 @@ bool BydaoParser::parseIter() {
     BydaoToken token = m_current;
     nextToken(); // iter
 
-    // Сохраняем выражение (коллекцию) на стеке
     if (!parseExpression()) {
         error("Expected collection");
         return false;
@@ -507,61 +628,54 @@ bool BydaoParser::parseIter() {
 
     QString iterName = m_current.text;
     BydaoToken iterToken = m_current;
-
-    if (isVariableDeclared(iterName)) {
-        error("Variable '" + iterName + "' already declared in this scope");
-        return false;
-    }
-
-    declareVariable(iterName, iterToken);
     nextToken();
 
-    // ПОЛУЧАЕМ ИТЕРАТОР
-    // Объект уже на стеке после parseExpression()
-    emitCode(BydaoOpCode::PushString, "iter", token);   // имя метода
-    emitCode(BydaoOpCode::Call, "0", token);            // вызов iter()
-    emitCode(BydaoOpCode::Store, iterName, iterToken);  // сохраняем в переменную
+    // Получаем итератор: collection.iter()
+    qint16 iterMethodIdx = addString("iter");
+    emitCode(BydaoOpCode::Member, iterMethodIdx, 0, token);
+    emitCode(BydaoOpCode::Call, 0, 0, token);
 
-    // Метка НАЧАЛА цикла
+    // Сохраняем итератор во временную переменную
+    declareVariable(iterName, iterToken);  // объявляем в текущей области
+    VariableInfo iterInfo = resolveVariable(iterName);
+    emitCode(BydaoOpCode::Store, iterInfo.scopeDepth, iterInfo.varIndex, iterToken);
+
     int loopStart = m_bytecode.size();
 
-    // ПРОВЕРЯЕМ УСЛОВИЕ: iter.next()
-    emitCode(BydaoOpCode::Load, iterName, iterToken);        // загружаем итератор
-    emitCode(BydaoOpCode::Next, "", token);        // имя метода
+    // iter.next()
+    emitCode(BydaoOpCode::Load, iterInfo.scopeDepth, iterInfo.varIndex, iterToken);
+    emitCode(BydaoOpCode::Next, 0, 0, token);
 
-    // Условный прыжок на exitLabel (НЕ на "?")
-    int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", token);
+    int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 
-    // Тело цикла
-    bool oldInLoop = m_inLoop;
-    m_inLoop = true;
-
+    // Тело цикла - parseBlock сам создаст область видимости
     if (!parseBlock(true)) {
-        m_inLoop = oldInLoop;
-        exitScope();
         return false;
     }
 
-    m_inLoop = oldInLoop;
-
-    // Возврат к началу цикла
-    emitCode(BydaoOpCode::Jump, QString::number(loopStart));
+    emitCode(BydaoOpCode::Jump, loopStart, 0);
 
     // Патчим условный переход
-    m_bytecode[condJump].arg = QString::number(m_bytecode.size());
+    m_bytecode[condJump].arg1 = m_bytecode.size();
 
-    // Очистка
-    emitCode(BydaoOpCode::Drop, iterName, iterToken);
-    undeclareVariable(iterName);
+    // Очистка - удаляем переменную итератора
+    emitCode(BydaoOpCode::Drop, iterInfo.scopeDepth, iterInfo.varIndex, iterToken);
+    m_varMap.remove(iterName);  // удаляем из глобальной карты
 
     return true;
 }
 
+/*
+ * enum = "enum" expr "as" var_name "{" block "}"
+ *
+ * expr
+ * var _enum_iter_n = expr.iter()
+ *
+ */
 bool BydaoParser::parseEnum() {
     BydaoToken token = m_current;
     nextToken(); // enum
 
-    // Сохраняем выражение (коллекцию) на стеке
     if (!parseExpression()) {
         error("Expected collection");
         return false;
@@ -574,66 +688,55 @@ bool BydaoParser::parseEnum() {
         return false;
     }
 
-    QString varName = m_current.text;      // переменная для значений
+    QString varName = m_current.text;
     BydaoToken varToken = m_current;
-
-    if (isVariableDeclared(varName)) {
-        error("Variable '" + varName + "' already declared in this scope");
-        return false;
-    }
-
-    declareVariable(varName, varToken);
     nextToken();
 
+    // Объявляем переменную для значения
+    declareVariable(varName, varToken);  // объявляем в текущей области
+    VariableInfo varInfo = resolveVariable(varName);
+
+    // Получаем итератор: collection.iter()
+    qint16 iterMethodIdx = addString("iter");
+    emitCode(BydaoOpCode::Member, iterMethodIdx, 0, token);
+    emitCode(BydaoOpCode::Call, 0, 0, token);
+
     // Создаём временный итератор
-    int iterId = m_iteratorCounter++;
-    QString tmpIter = QString("__enum_iter_%1").arg(iterId);
-    declareVariable(tmpIter, token);
+    QString tmpIterName = QString("__enum_iter_%1").arg(m_iteratorCounter++);
+    declareVariable(tmpIterName, token);  // объявляем в текущей области
+    VariableInfo iterInfo = resolveVariable(tmpIterName);
+    emitCode(BydaoOpCode::Store, iterInfo.scopeDepth, iterInfo.varIndex, token);
 
-    // ПОЛУЧАЕМ ИТЕРАТОР
-    // Объект уже на стеке после parseExpression()
-    emitCode(BydaoOpCode::PushString, "iter", token);   // имя метода
-    emitCode(BydaoOpCode::Call, "0", token);            // вызов iter()
-    emitCode(BydaoOpCode::Store, tmpIter, token);       // сохраняем итератор
-
-    // Метка НАЧАЛА цикла
     int loopStart = m_bytecode.size();
 
-    // ПРОВЕРЯЕМ УСЛОВИЕ: tmpIter.next()
-    emitCode(BydaoOpCode::Load, tmpIter, token);        // загружаем итератор
-    emitCode(BydaoOpCode::Next, "", token);             // имя метода
+    // iter.next()
+    emitCode(BydaoOpCode::Load, iterInfo.scopeDepth, iterInfo.varIndex, token);
+    emitCode(BydaoOpCode::Next, 0, 0, token);
 
-    // Условный прыжок на выход (ставим "?" для последующего патча)
-    int condJump = emitCode(BydaoOpCode::JumpIfFalse, "?", token);
+    int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 
-    // ПОЛУЧАЕМ ЗНАЧЕНИЕ: tmpIter.value()
-    emitCode(BydaoOpCode::Load, tmpIter, token);        // загружаем итератор
-    emitCode(BydaoOpCode::Value, "", token);  // имя метода
-    emitCode(BydaoOpCode::Store, varName, varToken);    // сохраняем значение
+    // Получаем значение и сохраняем в переменную
+    emitCode(BydaoOpCode::Load, iterInfo.scopeDepth, iterInfo.varIndex, token);
+    emitCode(BydaoOpCode::Value, 0, 0, token);
+    emitCode(BydaoOpCode::Store, varInfo.scopeDepth, varInfo.varIndex, varToken);
 
-    // Тело цикла
-    bool oldInLoop = m_inLoop;
-    m_inLoop = true;
-
+    // Тело цикла - parseBlock сам создаст область видимости
     if (!parseBlock(true)) {
-        m_inLoop = oldInLoop;
-        exitScope();
         return false;
     }
 
-    m_inLoop = oldInLoop;
-
-    // Возврат к началу цикла
-    emitCode(BydaoOpCode::Jump, QString::number(loopStart));
+    emitCode(BydaoOpCode::Jump, loopStart, 0);
 
     // Патчим условный переход
-    m_bytecode[condJump].arg = QString::number(m_bytecode.size());
+    m_bytecode[condJump].arg1 = m_bytecode.size();
 
-    // Очистка
-    emitCode(BydaoOpCode::Drop, tmpIter, token);
-    emitCode(BydaoOpCode::Drop, varName, varToken);
-    undeclareVariable(tmpIter);
-    undeclareVariable(varName);
+    // Очистка - удаляем временный итератор
+    emitCode(BydaoOpCode::Drop, iterInfo.scopeDepth, iterInfo.varIndex, token);
+    m_varMap.remove(tmpIterName);
+
+    // Удаляем переменную цикла
+    emitCode(BydaoOpCode::Drop, varInfo.scopeDepth, varInfo.varIndex, varToken);
+    m_varMap.remove(varName);
 
     return true;
 }
@@ -644,16 +747,16 @@ bool BydaoParser::parseBreakNext() {
         return false;
     }
 
-    LoopInfo &loop = m_loopStack.top();  // ссылка на текущий цикл
+    LoopInfo& loop = m_loopStack.top();
 
     if (match(BydaoTokenType::Break)) {
-        int jumpInstr = emitCode(BydaoOpCode::Jump, "?", m_current);
-        loop.breaks.append(jumpInstr);  // запоминаем для патча
+        int jumpInstr = emitCode(BydaoOpCode::Jump, 0, 0, m_current);
+        loop.breaks.append(jumpInstr);
         nextToken();
         return true;
     } else if (match(BydaoTokenType::Next)) {
-        int jumpInstr = emitCode(BydaoOpCode::Jump, "?", m_current);
-        loop.nexts.append(jumpInstr);   // запоминаем для патча
+        int jumpInstr = emitCode(BydaoOpCode::Jump, 0, 0, m_current);
+        loop.nexts.append(jumpInstr);
         nextToken();
         return true;
     }
@@ -684,31 +787,30 @@ bool BydaoParser::parseUse() {
         nextToken();
     }
 
-    // Загружаем информацию о модуле
     if (!loadModuleInfo(moduleName)) {
         return false;
     }
 
-    // ПОЛУЧАЕМ ИНФОРМАЦИЮ МОДУЛЯ
-    BydaoModuleInfo* info = m_moduleInfoCache.value(moduleName);
-    if (!info) {
-        error("Internal error: module info lost");
-        return false;
-    }
+    // Сохраняем алиас в карту модулей
+    m_moduleInfoCache[alias] = getModuleInfo(moduleName);
 
-    // Сохраняем ТОЛЬКО ПОД АЛИАСОМ
-    // Если alias совпадает с moduleName, это просто перезапись тем же значением
-    m_moduleInfoCache[alias] = info;
+    // Добавляем переменную в текущую область
+    m_varScopes.top().insert(alias);
 
-    // Оригинальное имя можно удалить из кэша (или не добавлять вообще)
-    if (alias != moduleName) {
-        m_moduleInfoCache.remove(moduleName);  // оригинальное имя больше не доступно
-    }
+    // Вычисляем индекс переменной (порядковый номер в области)
+    int varIndex = m_varScopes.top().size() - 1;
 
-    // Генерируем код для VM
-    emitCode(BydaoOpCode::UseModule,
-             alias == moduleName ? moduleName : moduleName + " as " + alias,
-             token);
+    // Сохраняем в глобальной карте для быстрого поиска
+    VariableInfo info;
+    info.name = alias;
+    info.scopeDepth = m_scopeStack.top().scopeDepth;
+    info.varIndex = varIndex;
+    m_varMap[alias] = info;
+
+    // Генерируем код
+    qint16 moduleNameIdx = addString(moduleName);
+    qint16 aliasIdx = addString(alias);
+    emitCode(BydaoOpCode::UseModule, moduleNameIdx, aliasIdx, token);
 
     return true;
 }
@@ -723,99 +825,99 @@ bool BydaoParser::parseExpression() {
 
 bool BydaoParser::parseLogicalOr() {
     if (!parseLogicalAnd()) return false;
-    
+
     while (match(BydaoTokenType::Or)) {
         BydaoToken op = m_current;
         nextToken();
         if (!parseLogicalAnd()) return false;
-        emitCode(BydaoOpCode::Or, "", op);
+        emitCode(BydaoOpCode::Or, 0, 0, op);
     }
-    
+
     return true;
 }
 
 bool BydaoParser::parseLogicalAnd() {
     if (!parseEquality()) return false;
-    
+
     while (match(BydaoTokenType::And)) {
         BydaoToken op = m_current;
         nextToken();
         if (!parseEquality()) return false;
-        emitCode(BydaoOpCode::And, "", op);
+        emitCode(BydaoOpCode::And, 0, 0, op);
     }
-    
+
     return true;
 }
 
 bool BydaoParser::parseEquality() {
     if (!parseComparison()) return false;
-    
+
     while (match(BydaoTokenType::Equal) || match(BydaoTokenType::NotEqual)) {
         bool isEq = match(BydaoTokenType::Equal);
         BydaoToken op = m_current;
         nextToken();
         if (!parseComparison()) return false;
-        emitCode(isEq ? BydaoOpCode::Eq : BydaoOpCode::Neq, "", op);
+        emitCode(isEq ? BydaoOpCode::Eq : BydaoOpCode::Neq, 0, 0, op);
     }
-    
+
     return true;
 }
 
 bool BydaoParser::parseComparison() {
     if (!parseAddition()) return false;
-    
+
     while (match(BydaoTokenType::Less) || match(BydaoTokenType::Greater) ||
            match(BydaoTokenType::LessEqual) || match(BydaoTokenType::GreaterEqual)) {
+        BydaoOpCode opCode;
+        switch (m_current.type) {
+        case BydaoTokenType::Less: opCode = BydaoOpCode::Lt; break;
+        case BydaoTokenType::Greater: opCode = BydaoOpCode::Gt; break;
+        case BydaoTokenType::LessEqual: opCode = BydaoOpCode::Le; break;
+        case BydaoTokenType::GreaterEqual: opCode = BydaoOpCode::Ge; break;
+        default: return false;
+        }
+
         BydaoToken op = m_current;
         nextToken();
         if (!parseAddition()) return false;
-        
-        switch (op.type) {
-            case BydaoTokenType::Less: emitCode(BydaoOpCode::Lt, "", op); break;
-            case BydaoTokenType::Greater: emitCode(BydaoOpCode::Gt, "", op); break;
-            case BydaoTokenType::LessEqual: emitCode(BydaoOpCode::Le, "", op); break;
-            case BydaoTokenType::GreaterEqual: emitCode(BydaoOpCode::Ge, "", op); break;
-            default: break;
-        }
+        emitCode(opCode, 0, 0, op);
     }
-    
+
     return true;
 }
 
 bool BydaoParser::parseAddition() {
     if (!parseTerm()) return false;
-    
+
     while (match(BydaoTokenType::Plus) || match(BydaoTokenType::Minus)) {
         bool isPlus = match(BydaoTokenType::Plus);
         BydaoToken op = m_current;
         nextToken();
         if (!parseTerm()) return false;
-        emitCode(isPlus ? BydaoOpCode::Add : BydaoOpCode::Sub, "", op);
+        emitCode(isPlus ? BydaoOpCode::Add : BydaoOpCode::Sub, 0, 0, op);
     }
-    
+
     return true;
 }
 
 bool BydaoParser::parseTerm() {
     if (!parseUnary()) return false;
-    
-    while (match(BydaoTokenType::Mul) || match(BydaoTokenType::Div) || match(BydaoTokenType::Mod) ) {
-        bool isMul = match(BydaoTokenType::Mul);
-        bool isDiv = match(BydaoTokenType::Div);
+
+    while (match(BydaoTokenType::Mul) || match(BydaoTokenType::Div) || match(BydaoTokenType::Mod)) {
+        BydaoOpCode opCode;
+        switch (m_current.type) {
+        case BydaoTokenType::Mul: opCode = BydaoOpCode::Mul; break;
+        case BydaoTokenType::Div: opCode = BydaoOpCode::Div; break;
+        case BydaoTokenType::Mod: opCode = BydaoOpCode::Mod; break;
+        default: return false;
+        }
+
         BydaoToken op = m_current;
         nextToken();
         if (!parseUnary()) return false;
-        if ( isMul ) {
-            emitCode(BydaoOpCode::Mul, "", op);
-        }
-        else if ( isDiv ) {
-            emitCode(BydaoOpCode::Div, "", op);
-        }
-        else {
-            emitCode(BydaoOpCode::Mod, "", op);
-        }
+        emitCode(opCode, 0, 0, op);
     }
-    
+
     return true;
 }
 
@@ -825,7 +927,7 @@ bool BydaoParser::parseUnary() {
         BydaoToken op = m_current;
         nextToken();
         if (!parseUnary()) return false;
-        emitCode(isNot ? BydaoOpCode::Not : BydaoOpCode::Neg, "", op);
+        emitCode(isNot ? BydaoOpCode::Not : BydaoOpCode::Neg, 0, 0, op);
         return true;
     }
     return parsePrimary();
@@ -834,71 +936,76 @@ bool BydaoParser::parseUnary() {
 bool BydaoParser::parsePrimary() {
     if (match(BydaoTokenType::Identifier)) {
         QString name = m_current.text;
-
-        // qDebug() << "=== Identifier ===";
-        // qDebug() << "Name:" << name;
-        // qDebug() << "isVariableDeclared:" << isVariableDeclared(name);
-        // qDebug() << "isModule:" << isModule(name);
+        BydaoToken nameToken = m_current;
 
         if (isBuiltinTypeName(name)) {
-            BydaoToken nameToken = m_current;
             nextToken();
-
-            // Если после имени типа идёт точка — это статический метод
             if (match(BydaoTokenType::Dot)) {
-                // Откатываем позицию и вызываем parseTypeMember
+                m_pos--;
+                m_current = m_tokens[m_pos];
+                return parseMember(true);
+            }
+            qint16 typeIdx = addString(name);
+            emitCode(BydaoOpCode::TypeClass, typeIdx, 0, nameToken);
+            return true;
+        }
+
+        if (isModule(name)) {
+            nextToken();
+            if (match(BydaoTokenType::Dot)) {
+                m_pos--;
+                m_current = m_tokens[m_pos];
+                return parseMember(true);
+            }
+            // Используем модуль как значение
+            VariableInfo info = resolveVariable(name);
+            if (info.scopeDepth >= 0) {
+                emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
+                return true;
+            }
+            error("Module not loaded: " + name);
+            return false;
+        }
+
+        if (isVariableDeclared(name)) {
+            nextToken();
+            if (match(BydaoTokenType::Dot) || match(BydaoTokenType::LBracket)) {
                 m_pos--;
                 m_current = m_tokens[m_pos];
                 return parseMember(true);
             }
 
-            // Иначе просто загружаем тип
-            emitCode(BydaoOpCode::TypeClass, name, nameToken);
+            VariableInfo info = resolveVariable(name);
+            emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
             return true;
         }
 
-        BydaoToken nameToken = m_current;
-        
-        if (!isVariableDeclared(name) && !isModule(name)) {
-            error("Undeclared variable or unknown module: " + name);
-            return false;
-        }
-        
-        nextToken();
-        
-        if (match(BydaoTokenType::Dot) || match(BydaoTokenType::LBracket)) {
-            m_pos--;
-            m_current = m_tokens[m_pos];
-            return parseMember(true);
-        }
-        
-        emitCode(BydaoOpCode::Load, name, nameToken);
-        return true;
+        error("Undeclared variable: " + name);
+        return false;
     }
-    
+
     if (match(BydaoTokenType::Number)) {
         QString text = m_current.text;
+        qint16 constIndex;
 
-        // Определяем тип числа
         if (text.contains('.') || text.contains('e') || text.contains('E')) {
-            // Вещественное число
-            emitCode(BydaoOpCode::PushReal, text, m_current);
+            constIndex = addConstant(text.toDouble());
         } else {
-            // Целое число
-            emitCode(BydaoOpCode::PushInt, text, m_current);
+            constIndex = addConstant(text.toLongLong());
         }
 
+        emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
         nextToken();
         return true;
     }
-    
+
     if (match(BydaoTokenType::String)) {
         QString text = m_current.text;
-        // Убираем внешние кавычки
         if (text.length() >= 2 && (text.startsWith('\'') || text.startsWith('"'))) {
             text = text.mid(1, text.length() - 2);
         }
-        emitCode(BydaoOpCode::PushString, text, m_current);
+        qint16 constIndex = addConstant(text);
+        emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
         nextToken();
         return true;
     }
@@ -906,7 +1013,7 @@ bool BydaoParser::parsePrimary() {
     if (match(BydaoTokenType::LBracket)) {
         return parseArrayLiteral();
     }
-    
+
     if (match(BydaoTokenType::LParen)) {
         nextToken();
         if (!parseExpression()) return false;
@@ -914,42 +1021,27 @@ bool BydaoParser::parsePrimary() {
     }
 
     if (match(BydaoTokenType::False)) {
-        emitCode(BydaoOpCode::PushFalse, "", m_current);
+        qint16 constIndex = addConstant(false);
+        emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
         nextToken();
         return true;
     }
 
     if (match(BydaoTokenType::True)) {
-        emitCode(BydaoOpCode::PushTrue, "", m_current);
+        qint16 constIndex = addConstant(true);
+        emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
         nextToken();
         return true;
     }
 
     if (match(BydaoTokenType::Null)) {
-        emitCode(BydaoOpCode::PushNull, "", m_current);
+        qint16 constIndex = addNullConstant();
+        emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
         nextToken();
         return true;
     }
 
     return false;
-}
-
-bool BydaoParser::parseAssign() {
-    QString name = m_current.text;
-    BydaoToken nameToken = m_current;
-    nextToken(); // identifier
-
-    expect(BydaoTokenType::Assign); // =
-
-    if (!parseExpression()) {
-        error("Expected expression after =");
-        return false;
-    }
-
-    // Генерируем код: выражение уже на стеке, теперь сохраняем
-    emitCode(BydaoOpCode::Store, name, nameToken);
-
-    return true;
 }
 
 bool BydaoParser::parseMember(bool canAssign) {
@@ -964,112 +1056,67 @@ bool BydaoParser::parseMember(bool canAssign) {
     nextToken();
 
     while (match(BydaoTokenType::Dot) || match(BydaoTokenType::LBracket)) {
-
         if (match(BydaoTokenType::Dot)) {
             nextToken();
 
-            if (!match(BydaoTokenType::Identifier) &&
-                !match(BydaoTokenType::Iter) &&
-                !match(BydaoTokenType::Enum) &&
-                !match(BydaoTokenType::Next) ) {
+            if (!match(BydaoTokenType::Identifier)) {
                 error("Expected member name");
                 return false;
             }
 
             QString member = m_current.text;
             BydaoToken memberToken = m_current;
+            qint16 memberIdx = addString(member);
 
             nextToken();
 
-            // === ПРОВЕРКА ДЛЯ ВСТРОЕННЫХ ТИПОВ ===
-            if (isBuiltinTypeName(object)) {
-                auto it = m_builtinTypes.find(object);
-                if (it == m_builtinTypes.end()) {
-                    error("Unknown builtin type: " + object);
-                    return false;
-                }
-
-                if (!it.value().methods.contains(member)) {
-                    error(QString("Type '%1' has no static method '%2'")
-                              .arg(object).arg(member));
-                    return false;
-                }
-
-                // Для методов с переменным числом аргументов проверку пропускаем
-                int expectedArgs = it.value().methods[member];
-                if (expectedArgs >= 0) {
-                    // TODO: можно проверить количество аргументов, заглянув вперёд
-                }
-            }
-            // === ПРОВЕРКА ДЛЯ МОДУЛЕЙ ===
-            else if (isModule(object)) {
-                auto* info = getModuleInfo(object);
-                if (!info) {
-                    error("Internal error: module info is null");
-                    return false;
-                }
-
-                if (!info->hasMember(member)) {
-                    error(QString("Module '%1' has no member '%2'")
-                              .arg(object).arg(member));
-                    return false;
-                }
-
-                if (info->isMethod(member) && !match(BydaoTokenType::LParen)) {
-                    error(QString("Method '%1' requires parentheses").arg(member));
-                    return false;
-                }
-            }
-
-            // === ГЕНЕРАЦИЯ КОДА ===
             if (match(BydaoTokenType::LParen)) {
-                // Это вызов метода
-
-                // Кладём объект на стек
+                // Вызов метода
                 if (isBuiltinTypeName(object)) {
-                    // Для встроенных типов - специальная инструкция
-                    emitCode(BydaoOpCode::TypeClass, object, objToken);
-                } else if (object != "_acc" && object != "_result") {
-                    // Для обычных переменных - LOAD
-                    emitCode(BydaoOpCode::Load, object, objToken);
+                    qint16 typeIdx = addString(object);
+                    emitCode(BydaoOpCode::TypeClass, typeIdx, 0, objToken);
+                }
+                // else if (isModule(object)) {
+                //     qint16 typeIdx = addString(object);
+                //     emitCode(BydaoOpCode::TypeClass, typeIdx, 0, objToken);
+                // }
+                else {
+                    VariableInfo info = resolveVariable(object);
+                    emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, objToken);
                 }
 
-                // Кладём имя метода на стек
-                emitCode(BydaoOpCode::PushString, member, memberToken);
+                emitCode(BydaoOpCode::Member, memberIdx, 0, memberToken);
 
-                // Вызываем parseCall для обработки аргументов
-                if (!parseCall(object)) {
+                if (!parseCall()) {
                     return false;
                 }
-
-                // Результат вызова будет на стеке
-                object = "_result";
             } else {
-                // Доступ к свойству (не метод)
+                // Доступ к свойству
                 if (isBuiltinTypeName(object)) {
-                    // У встроенных типов пока нет свойств, только методы
                     error("Type '" + object + "' has no property '" + member + "'");
                     return false;
                 } else {
-                    emitCode(BydaoOpCode::Load, object, objToken);
-                    emitCode(BydaoOpCode::Member, member, memberToken);
-                    object = "_acc";
+                    VariableInfo info = resolveVariable(object);
+                    emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, objToken);
+                    emitCode(BydaoOpCode::Member, memberIdx, 0, memberToken);
                 }
             }
+
+            object = "_acc";
         }
         else if (match(BydaoTokenType::LBracket)) {
-            // Индексный доступ (пока только для массивов)
             nextToken();
             if (!parseExpression()) return false;
             if (!expect(BydaoTokenType::RBracket)) return false;
 
-            emitCode(BydaoOpCode::Load, object, objToken);
-            emitCode(BydaoOpCode::Index, "", objToken);
+            VariableInfo info = resolveVariable(object);
+            emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, objToken);
+            emitCode(BydaoOpCode::Index, 0, 0, objToken);
             object = "_acc";
         }
     }
 
-    // Обработка присваивания (a.b.c = value)
+    // Обработка присваивания (obj.member = value)
     if (canAssign && match(BydaoTokenType::Assign)) {
         if (isModule(object) || isBuiltinTypeName(object)) {
             error("Cannot assign to module or type");
@@ -1079,16 +1126,16 @@ bool BydaoParser::parseMember(bool canAssign) {
         BydaoToken assignToken = m_current;
         nextToken();
         if (!parseExpression()) return false;
-        emitCode(BydaoOpCode::Store, object, assignToken);
+
+        // TODO: реализовать присваивание свойству
+        error("Property assignment not implemented yet");
+        return false;
     }
 
     return true;
 }
 
-bool BydaoParser::parseCall(const QString& object) {
-    // object уже не нужен - объект и метод уже на стеке!
-    Q_UNUSED( object );
-
+bool BydaoParser::parseCall() {
     if (!expect(BydaoTokenType::LParen)) return false;
 
     int argCount = 0;
@@ -1102,13 +1149,13 @@ bool BydaoParser::parseCall(const QString& object) {
 
     if (!expect(BydaoTokenType::RParen)) return false;
 
-    // Генерируем CALL с количеством аргументов
-    emitCode(BydaoOpCode::Call, QString::number(argCount));
+    emitCode(BydaoOpCode::Call, argCount, 0);
 
     return true;
 }
 
 bool BydaoParser::parseArrayLiteral() {
+    BydaoToken token = m_current;
     nextToken(); // [
 
     int elementCount = 0;
@@ -1127,8 +1174,9 @@ bool BydaoParser::parseArrayLiteral() {
 
     if (!expect(BydaoTokenType::RBracket)) return false;
 
-    // Генерируем одну инструкцию с количеством элементов
-    emitCode(BydaoOpCode::PushArray, QString::number(elementCount));
+    // Генерируем PushArray с количеством элементов
+    // Элементы уже на стеке в правильном порядке (благодаря parseExpression)
+    emitCode(BydaoOpCode::PushArray, elementCount, 0, token);
 
     return true;
 }

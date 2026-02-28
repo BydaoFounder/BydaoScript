@@ -3,48 +3,142 @@
 #include <QString>
 #include <QVector>
 #include <QMetaType>
+#include "BydaoConfig.h"
 
 namespace BydaoScript {
 
-//enum class BydaoOpCode : quint8 {
+// Инструкции байткода (1 байт)
 enum BydaoOpCode : quint8 {
-    Nop, Halt,
-    VarDecl, Drop, Load, Store,
-    PushNull, PushInt, PushReal, PushString, PushArray,
-    PushFalse, PushTrue,
+    // Управление
+    Nop = 0, Halt,
+
+    // Переменные и области видимости
+    VarDecl,        // arg1 = имя переменной (индекс в таблице строк)
+    Drop,           // arg1 = индекс переменной, arg2 = уровень области
+    Load,           // arg1 = уровень области, arg2 = индекс переменной
+    Store,          // arg1 = уровень области, arg2 = индекс переменной
+
+    // Константы
+    PushConst,      // arg1 = индекс в таблице констант
+
+    // Арифметика
     Add, Sub, Neg,
     Mul, Div, Mod,
+
+    // Сравнение
     Eq, Neq, Lt, Gt, Le, Ge,
+
+    // Логические
     And, Or, Not,
-    Next,        // iter.next() -> bool
+
+    // Итераторы
+    Next,        // вызов iter.next() -> bool
     Value,       // iter.value() -> значение
     Key,         // iter.key() -> ключ
-    Member, Index, Call,
-    Jump, JumpIfFalse, JumpIfTrue,
-    Label,
-    ScopeBegin, ScopeEnd,
-    ScopePush, ScopePop,
-    UseModule,
-    TypeClass
+
+    // Доступ к членам
+    Member,      // arg1 = индекс имени свойства/метода
+    Index,       // arg1 = не используется (индекс на стеке)
+    Call,        // arg1 = количество аргументов
+
+    // Переходы
+    Jump,        // arg1 = смещение (индекс инструкции)
+    JumpIfFalse, // arg1 = смещение
+    JumpIfTrue,  // arg1 = смещение
+
+    // Области видимости
+    ScopeBegin,  // начало области видимости (без создания новой)
+    ScopeEnd,    // конец области видимости (без удаления)
+    ScopePush,   // войти в новую область (с созданием)
+    ScopePop,    // выйти из области (с удалением)
+
+    // Модули и типы
+    UseModule,   // arg1 = индекс имени модуля в таблице строк
+    TypeClass,   // arg1 = индекс имени типа в таблице строк
+
+    // Массивы
+    PushArray    // arg1 = количество элементов
 };
 
+// Инструкция (9 байт)
 struct BydaoInstruction {
-    BydaoOpCode op;
-    QString arg;
-    int line;
-    int column;
+    BydaoOpCode op;     // 1 байт
+    qint16 arg1;        // 2 байта
+    qint16 arg2;        // 2 байта
+    qint16 line;        // 2 байта (опционально, для отладки)
+    qint16 column;      // 2 байта (опционально, для отладки)
 
-    BydaoInstruction(BydaoOpCode o = BydaoOpCode::Nop, QString a = "", int l = 0, int c = 0)
-        : op(o), arg(a), line(l), column(c) {}
+    BydaoInstruction(BydaoOpCode o = BydaoOpCode::Nop, 
+                     qint16 a1 = 0, qint16 a2 = 0,
+                     qint16 l = 0, qint16 c = 0)
+        : op(o), arg1(a1), arg2(a2), line(l), column(c) {}
 };
 
+// Типы констант
+enum BydaoConstantType : quint8 {
+    CONST_INT,
+    CONST_REAL,
+    CONST_STRING,
+    CONST_BOOL,
+    CONST_NULL
+};
+
+// Константа
+struct BydaoConstant {
+    BydaoConstantType type;  // 1 байт
+    
+    union {
+        qint64 intValue;     // 8 байт
+        double realValue;    // 8 байт
+        quint32 stringIndex; // 4 байта (индекс в таблице строк)
+        quint8 boolValue;    // 1 байт
+    };
+    
+    BydaoConstant() : type(CONST_NULL), intValue(0) {}
+    explicit BydaoConstant(qint64 v) : type(CONST_INT), intValue(v) {}
+    explicit BydaoConstant(double v) : type(CONST_REAL), realValue(v) {}
+    explicit BydaoConstant(bool v) : type(CONST_BOOL), boolValue(v ? 1 : 0) {}
+    explicit BydaoConstant(quint32 strIdx) : type(CONST_STRING), stringIndex(strIdx) {}
+};
+
+// Отладочная информация (опционально)
+struct BydaoDebugInfo {
+    quint32 instructionIndex;  // индекс инструкции в коде
+    qint16 line;
+    qint16 column;
+    qint16 fileIndex;          // индекс имени файла в таблице строк
+};
+
+// Основной класс для работы с байткодом
 class BydaoBytecode {
 public:
-
+    // Версии формата
+    static const quint32 MAGIC = 0x42594453;  // "BYDS"
+    static const quint32 VERSION = 0x00020000; // версия 2.0
+    
+    // Преобразование опкода в строку (для дизассемблера)
     static QString opcodeToString(BydaoOpCode op);
-
-    static bool save(const QVector<BydaoInstruction>& code, const QString& filename);
-    static QVector<BydaoInstruction> load(const QString& filename, QString* error = nullptr);
+    
+    // Сохранение
+    static bool save(const QVector<BydaoConstant>& constants,
+                     const QVector<QString>& stringTable,
+                     const QVector<BydaoInstruction>& code,
+                     const QString& filename,
+                     const QVector<BydaoDebugInfo>* debugInfo = nullptr);
+    
+    // Загрузка
+    static bool load(const QString& filename,
+                     QVector<BydaoConstant>& constants,
+                     QVector<QString>& stringTable,
+                     QVector<BydaoInstruction>& code,
+                     QVector<BydaoDebugInfo>* debugInfo = nullptr,
+                     QString* error = nullptr);
+    
+    // Валидация
+    static bool validate(const QVector<BydaoInstruction>& code,
+                         const QVector<BydaoConstant>& constants,
+                         const QVector<QString>& stringTable,
+                         QString* error = nullptr);
 };
 
 } // namespace BydaoScript
