@@ -10,6 +10,8 @@
 #include "BydaoScript/BydaoTypeRegistry.h"
 #include "BydaoScript/BydaoIterator.h"
 #include <QDebug>
+#include <QElapsedTimer>
+#include <QList>
 
 namespace BydaoScript {
 
@@ -36,7 +38,13 @@ void BydaoVM::setTraceMode(bool enable) {
     m_traceMode = enable;
 }
 
+void BydaoVM::setProfileMode(bool enable) {
+    m_profileMode = enable;
+}
+
 bool BydaoVM::run() {
+
+    QElapsedTimer timer;
 
     m_running = true;
     m_pc = 0;
@@ -53,9 +61,47 @@ bool BydaoVM::run() {
             }
         }
 
+        if ( m_profileMode ) {
+            timer.start();
+        }
         if (!execute(instr)) {
             return false;
         }
+        if ( m_profileMode ) {
+            qint64 duration = timer.nsecsElapsed();
+            QString name = BydaoBytecode::opcodeToString( instr.op );
+            auto it = m_profile.find( name );
+            if ( it == m_profile.end() ) {
+                m_profile.insert( name, duration );
+            }
+            else {
+                m_profile[ name ] += duration;
+            }
+        }
+    }
+
+    if ( m_profileMode ) {
+
+        QList<ProfileItem> list;
+        for (auto it = m_profile.begin(); it != m_profile.end(); ++it ) {
+            ProfileItem item;
+            item.name = it.key();
+            item.value = it.value();
+            list.append( item );
+        }
+        std::sort( list.begin(), list.end(), [](const ProfileItem& a, const ProfileItem& b) {
+            return a.value > b.value;
+        } );
+        qint64 total = 0;
+        qDebug().noquote() << "======= Start profile ======";
+        for (int i  = 0; i  < list.size(); ++i ) {
+            ProfileItem &item = list[ i ];
+            total += item.value;
+            qDebug().noquote() << QString( "%1\t%2" ).arg( item.name.leftJustified( 12 ) ).arg( item.value / 1000000.0, 12, 'f' );
+        }
+        qDebug().noquote() << "----------------------------";
+        qDebug().noquote() << QString("%1\t\t%2").arg( "Total" ).arg( total / 1000000.0, 12, 'f' );
+        qDebug().noquote() << "======= End profile ========";
     }
 
     return true;
@@ -118,14 +164,13 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::Load: {
         QString name = instr.arg;
-        BydaoValue value;
 
         // Ищем в текущей области видимости (снизу вверх по стеку)
         bool found = false;
         for (int i = m_scopeStack.size() - 1; i >= 0; i--) {
             if (m_scopeStack[i].vars.contains(name)) {
                 found = true;
-                value = m_scopeStack[i].vars[name];
+                m_stack.push( m_scopeStack[i].vars[name] );
                 break;
             }
         }
@@ -135,7 +180,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             return false;
         }
 
-        m_stack.push(value);
         break;
     }
 
@@ -267,12 +311,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     case BydaoOpCode::Add: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-
-        if (!a.isObject() || !b.isObject()) {
-            error("Add on non-object", instr);
-            return false;
-        }
-
         m_stack.push(a.toObject()->add(b));
         break;
     }

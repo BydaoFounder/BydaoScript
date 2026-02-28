@@ -51,6 +51,9 @@ int main(int argc, char *argv[]) {
     QCommandLineOption listingOption( QStringList() << "l" << "list", "Show bytecode listing");
     parser.addOption(listingOption);
 
+    QCommandLineOption profileOption( QStringList() << "p" << "profile", "Profile bytecode execution");
+    parser.addOption(profileOption);
+
     parser.process(app);
     
     QTextStream cout(stdout);
@@ -136,6 +139,7 @@ int main(int argc, char *argv[]) {
     BydaoVM vm;
     
     vm.setTraceMode( parser.isSet(traceOption) );
+    vm.setProfileMode( parser.isSet(profileOption) );
 
     if (!vm.load(bytecode)) {
         cout << "Cannot load bytecode" << eol;

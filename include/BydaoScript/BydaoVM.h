@@ -21,6 +21,7 @@ public:
     void registerGlobal(const QString& name, BydaoObject* obj);
 
     void setTraceMode(bool enable);
+    void setProfileMode(bool enable);
 
 private:
     bool execute(const BydaoInstruction& instr);
@@ -43,6 +44,14 @@ private:
     int m_errorLine;
 
     bool m_traceMode = false;
+
+    struct ProfileItem {
+        QString name;
+        qint64  value;
+        int     count;
+    };
+    bool m_profileMode = false;
+    QHash< QString, qint64 >    m_profile;
 };
 
 } // namespace BydaoScript
