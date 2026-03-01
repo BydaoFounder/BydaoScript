@@ -185,8 +185,7 @@ BydaoValue& BydaoVM::getVariable(int scopeLevel, int varIndex, const BydaoInstru
         return nullValue;
     }
     
-    int scopePos = m_scopeStack.size() - 1 - scopeLevel;
-    RuntimeScope& scope = m_scopeStack[scopePos];
+    RuntimeScope& scope = m_scopeStack[ m_scopeStack.size() - 1 - scopeLevel ];
     
     if (varIndex < 0 || varIndex >= scope.vars.size()) {
         error("Invalid variable index", instr);
@@ -206,8 +205,7 @@ const BydaoValue& BydaoVM::getVariable(int scopeLevel, int varIndex, const Bydao
         return nullValue;
     }
     
-    int scopePos = m_scopeStack.size() - 1 - scopeLevel;
-    const RuntimeScope& scope = m_scopeStack[scopePos];
+    const RuntimeScope& scope = m_scopeStack[ m_scopeStack.size() - 1 - scopeLevel ];
     
     if (varIndex < 0 || varIndex >= scope.vars.size()) {
         return nullValue;
@@ -222,8 +220,7 @@ void BydaoVM::setVariable(int scopeLevel, int varIndex, const BydaoValue& value,
         return;
     }
     
-    int scopePos = m_scopeStack.size() - 1 - scopeLevel;
-    RuntimeScope& scope = m_scopeStack[scopePos];
+    RuntimeScope& scope = m_scopeStack[ m_scopeStack.size() - 1 - scopeLevel ];
     
     if (varIndex < 0 || varIndex >= scope.vars.size()) {
         error("Invalid variable index", instr);
@@ -348,14 +345,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
     
     case BydaoOpCode::Load: {
-        BydaoValue& val = getVariable(instr.arg1, instr.arg2, instr);
-        m_stack.push(val);
+        m_stack.push( getVariable(instr.arg1, instr.arg2, instr) );
         break;
     }
     
     case BydaoOpCode::Store: {
-        BydaoValue val = m_stack.pop();
-        setVariable(instr.arg1, instr.arg2, val, instr);
+        setVariable(instr.arg1, instr.arg2, m_stack.pop(), instr);
         break;
     }
     
@@ -670,9 +665,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Свойство не найдено
         QString objType = obj.isObject() ? obj.toObject()->typeName() : "non-object";
-        error(QString("Property not found: '%1' on object of type '%2'")
-                  .arg(memberName)
-                  .arg(objType), instr);
+        error(QString("Property not found: '%1' on object of type '%2'").arg(memberName, objType), instr);
         return false;
     }
 
@@ -687,7 +680,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         BydaoValue obj = m_stack.pop();
-
         if (!obj.isObject()) {
             error("METHOD on non-object", instr);
             return false;
