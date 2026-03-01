@@ -647,9 +647,10 @@ bool BydaoParser::parseIter() {
     nextToken();
 
     // Получаем итератор: collection.iter()
-    qint16 iterMethodIdx = addString("iter");
-    emitCode(BydaoOpCode::Method, iterMethodIdx, 0, token);
-    emitCode(BydaoOpCode::Call, 0, 0, token);
+    // qint16 iterMethodIdx = addString("iter");
+    // emitCode(BydaoOpCode::Method, iterMethodIdx, 0, token);
+    // emitCode(BydaoOpCode::Call, 0, 0, token);
+    emitCode(BydaoOpCode::GetIter, 0, 0, token);
 
     // Сохраняем итератор во временную переменную
     declareVariable(iterName, iterToken);  // объявляем в текущей области
@@ -713,9 +714,10 @@ bool BydaoParser::parseEnum() {
     VariableInfo varInfo = resolveVariable(varName);
 
     // Получаем итератор: collection.iter()
-    qint16 iterMethodIdx = addString("iter");
-    emitCode(BydaoOpCode::Method, iterMethodIdx, 0, token);
-    emitCode(BydaoOpCode::Call, 0, 0, token);
+    // qint16 iterMethodIdx = addString("iter");
+    // emitCode(BydaoOpCode::Method, iterMethodIdx, 0, token);
+    // emitCode(BydaoOpCode::Call, 0, 0, token);
+    emitCode(BydaoOpCode::GetIter, 0, 0, token);
 
     // Создаём временный итератор
     QString tmpIterName = QString("__enum_iter_%1").arg(m_iteratorCounter++);

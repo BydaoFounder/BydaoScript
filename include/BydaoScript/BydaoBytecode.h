@@ -32,6 +32,7 @@ enum BydaoOpCode : quint8 {
     And, Or, Not,
 
     // Итераторы
+    GetIter,     // obj.iter() - получение итератора
     ItNext,      // вызов iter.next() -> bool
     ItValue,     // iter.value -> значение
     ItKey,       // iter.key -> ключ

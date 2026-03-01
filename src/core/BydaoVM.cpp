@@ -556,6 +556,26 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
     
     // ===== Итераторы =====
+
+    case BydaoOpCode::GetIter: {
+        BydaoValue obj = m_stack.pop();
+
+        auto* native = dynamic_cast<BydaoNative*>(obj.toObject());
+        if (!native) {
+            error("GETITER on non-native object", instr);
+            return false;
+        }
+
+        BydaoValue it = native->iter();
+        if ( it.isNull() ) {
+            error("Object does not have an iterator", instr);
+            return false;
+        }
+
+        m_stack.push( it );
+        break;
+    }
+
     case BydaoOpCode::ItNext: {
         BydaoValue obj = m_stack.pop();
         

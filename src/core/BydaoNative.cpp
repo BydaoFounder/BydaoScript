@@ -1,4 +1,5 @@
 #include "BydaoScript/BydaoNative.h"
+#include "BydaoScript/BydaoNull.h"
 
 namespace BydaoScript {
 
@@ -7,6 +8,11 @@ BydaoNative::BydaoNative(QObject* parent)
 }
 
 BydaoNative::~BydaoNative() {
+}
+
+// Получить итератор
+BydaoValue BydaoNative::iter() {
+    return BydaoValue( BydaoNull::instance() );
 }
 
 // ========== Свойства ==========

@@ -23,6 +23,9 @@ public:
     // Информация о типе
     virtual QString typeName() const = 0;
 
+    // Получить итератор
+    virtual BydaoValue iter() = 0;
+
     // ========== Операции (с реализацией по умолчанию) ==========
 
     virtual BydaoValue add(const BydaoValue& other) {
