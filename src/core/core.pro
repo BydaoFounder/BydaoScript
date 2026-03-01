@@ -8,6 +8,7 @@ include(../../BydaoScript.pri)
 HEADERS += \
     ../../include/BydaoScript/BydaoArrayIterator.h \
     ../../include/BydaoScript/BydaoBool.h \
+    ../../include/BydaoScript/BydaoConfig.h \
     ../../include/BydaoScript/BydaoDisassembler.h \
     ../../include/BydaoScript/BydaoInt.h \
     ../../include/BydaoScript/BydaoIntClass.h \
