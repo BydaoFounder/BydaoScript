@@ -252,14 +252,28 @@ void BydaoVM::error(const QString& msg, const BydaoInstruction& instr) {
 
 bool BydaoVM::execute(const BydaoInstruction& instr) {
     switch (instr.op) {
-    
-    // ===== Управление =====
-    case BydaoOpCode::Nop:
+
+    // ===== Переходы =====
+    case BydaoOpCode::Jump: {
+        m_pc = instr.arg1;
         break;
-        
-    case BydaoOpCode::Halt:
-        m_running = false;
+    }
+
+    case BydaoOpCode::JumpIfFalse: {
+        BydaoValue cond = m_stack.pop();
+        if (!cond.toBool()) {
+            m_pc = instr.arg1;
+        }
         break;
+    }
+
+    case BydaoOpCode::JumpIfTrue: {
+        BydaoValue cond = m_stack.pop();
+        if (cond.toBool()) {
+            m_pc = instr.arg1;
+        }
+        break;
+    }
     
     // ===== Области видимости =====
     case BydaoOpCode::ScopeBegin:
@@ -542,12 +556,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
     
     // ===== Итераторы =====
-    case BydaoOpCode::Next: {
+    case BydaoOpCode::ItNext: {
         BydaoValue obj = m_stack.pop();
         
         auto* iter = dynamic_cast<BydaoIterator*>(obj.toObject());
         if (!iter) {
-            error("NEXT on non-iterator", instr);
+            error("ITNEXT on non-iterator", instr);
             return false;
         }
         
@@ -555,12 +569,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
     
-    case BydaoOpCode::Value: {
+    case BydaoOpCode::ItValue: {
         BydaoValue obj = m_stack.pop();
         
         auto* iter = dynamic_cast<BydaoIterator*>(obj.toObject());
         if (!iter) {
-            error("VALUE on non-iterator", instr);
+            error("ITVALUE on non-iterator", instr);
             return false;
         }
         
@@ -568,12 +582,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
     
-    case BydaoOpCode::Key: {
+    case BydaoOpCode::ItKey: {
         BydaoValue obj = m_stack.pop();
         
         auto* iter = dynamic_cast<BydaoIterator*>(obj.toObject());
         if (!iter) {
-            error("KEY on non-iterator", instr);
+            error("ITKEY on non-iterator", instr);
             return false;
         }
         
@@ -750,28 +764,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         break;
     }
-
-    // ===== Переходы =====
-    case BydaoOpCode::Jump: {
-        m_pc = instr.arg1;
-        break;
-    }
-    
-    case BydaoOpCode::JumpIfFalse: {
-        BydaoValue cond = m_stack.pop();
-        if (!cond.toBool()) {
-            m_pc = instr.arg1;
-        }
-        break;
-    }
-    
-    case BydaoOpCode::JumpIfTrue: {
-        BydaoValue cond = m_stack.pop();
-        if (cond.toBool()) {
-            m_pc = instr.arg1;
-        }
-        break;
-    }
     
     // ===== Модули и типы =====
     case BydaoOpCode::UseModule: {
@@ -872,6 +864,14 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_stack.push(BydaoValue(array));
         break;
     }
+
+    // ===== Управление =====
+    case BydaoOpCode::Nop:
+        break;
+
+    case BydaoOpCode::Halt:
+        m_running = false;
+        break;
 
     default:
         error("Unknown opcode: " + QString::number((int)instr.op), instr);

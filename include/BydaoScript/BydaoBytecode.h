@@ -32,9 +32,9 @@ enum BydaoOpCode : quint8 {
     And, Or, Not,
 
     // Итераторы
-    Next,        // вызов iter.next() -> bool
-    Value,       // iter.value() -> значение
-    Key,         // iter.key() -> ключ
+    ItNext,      // вызов iter.next() -> bool
+    ItValue,     // iter.value -> значение
+    ItKey,       // iter.key -> ключ
 
     // Доступ к членам
     Member,      // arg1 = индекс имени свойства

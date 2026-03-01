@@ -47,8 +47,7 @@ BydaoIntRangeIterator::BydaoIntRangeIterator( BydaoIntRange* range ) {
 }
 
 bool BydaoIntRangeIterator::next() {
-    m_current++;
-    return m_current < m_end;
+    return ++m_current < m_end;
 }
 
 bool BydaoIntRangeIterator::isValid() const {

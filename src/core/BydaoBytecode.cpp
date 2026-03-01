@@ -32,9 +32,9 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::And] = "AND";
         names[BydaoOpCode::Or] = "OR";
         names[BydaoOpCode::Not] = "NOT";
-        names[BydaoOpCode::Next] = "NEXT";
-        names[BydaoOpCode::Key] = "KEY";
-        names[BydaoOpCode::Value] = "VALUE";
+        names[BydaoOpCode::ItNext] = "ITNEXT";
+        names[BydaoOpCode::ItKey] = "ITKEY";
+        names[BydaoOpCode::ItValue] = "ITVALUE";
         names[BydaoOpCode::Member] = "MEMBER";
         names[BydaoOpCode::Method] = "METHOD";  // ← новая строка
         names[BydaoOpCode::Index] = "INDEX";

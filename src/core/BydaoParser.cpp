@@ -660,7 +660,7 @@ bool BydaoParser::parseIter() {
 
     // iter.next()
     emitCode(BydaoOpCode::Load, iterInfo.scopeDepth, iterInfo.varIndex, iterToken);
-    emitCode(BydaoOpCode::Next, 0, 0, token);
+    emitCode(BydaoOpCode::ItNext, 0, 0, token);
 
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 
@@ -727,13 +727,13 @@ bool BydaoParser::parseEnum() {
 
     // iter.next()
     emitCode(BydaoOpCode::Load, iterInfo.scopeDepth, iterInfo.varIndex, token);
-    emitCode(BydaoOpCode::Next, 0, 0, token);
+    emitCode(BydaoOpCode::ItNext, 0, 0, token);
 
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 
     // Получаем значение и сохраняем в переменную
     emitCode(BydaoOpCode::Load, iterInfo.scopeDepth, iterInfo.varIndex, token);
-    emitCode(BydaoOpCode::Value, 0, 0, token);
+    emitCode(BydaoOpCode::ItValue, 0, 0, token);
     emitCode(BydaoOpCode::Store, varInfo.scopeDepth, varInfo.varIndex, varToken);
 
     // Тело цикла - parseBlock сам создаст область видимости

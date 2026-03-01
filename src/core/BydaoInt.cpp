@@ -84,8 +84,9 @@ bool BydaoInt::method_toHex(const QVector<BydaoValue>& args, BydaoValue& result)
 BydaoValue BydaoInt::add(const BydaoValue& other) {
     switch (other.typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = static_cast<const BydaoInt*>(other.toObject());
-        return BydaoValue::fromInt(m_value + otherInt->m_value);
+        // const auto* otherInt = static_cast<const BydaoInt*>(other.toObject());
+        // return BydaoValue( BydaoInt::create(m_value + otherInt->m_value) );
+        return BydaoValue( BydaoInt::create(m_value + ((BydaoInt*)other.toObject())->m_value) );
     }
     case TYPE_REAL: {
         const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
