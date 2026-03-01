@@ -86,12 +86,13 @@ private:
     bool isBuiltinTypeName(const QString& name) const;
     bool isModule(const QString& name);
     BydaoModuleInfo* getModuleInfo(const QString& name);
+    bool isNameToken(BydaoTokenType type) const;
 
     // ===== Парсинг грамматики =====
     bool parseProgram();
     bool parseStatement();
     bool parseBlock(bool requireBraces = true);
-    
+
     // Объявления и присваивания
     bool parseVarDecl();
     bool parseAssign();
@@ -113,8 +114,12 @@ private:
     bool parseAddition();
     bool parseTerm();
     bool parseUnary();
+    bool parsePrimaryBase();
     bool parsePrimary();
-    
+    bool parseCallSuffix();
+    bool parseMemberSuffix();
+    bool parseIndexSuffix();
+
     // Составные конструкции
     bool parseMember(bool canAssign = false);
     bool parseCall();

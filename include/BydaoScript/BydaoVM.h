@@ -60,6 +60,8 @@ private:
     const BydaoValue& getVariable(int scopeLevel, int varIndex, const BydaoInstruction& instr) const;
     void setVariable(int scopeLevel, int varIndex, const BydaoValue& value, const BydaoInstruction& instr);
 
+    void dumpStack(const QString& label = QString());
+
     // Таблицы из байткода
     QVector<BydaoConstant> m_constants;      // исходные константы
     QVector<BydaoValue> m_constantValues;    // готовые значения констант

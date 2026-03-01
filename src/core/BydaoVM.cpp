@@ -157,6 +157,24 @@ QVector<BydaoVM::ProfileItem> BydaoVM::takeProfile() {
     return result;
 }
 
+void BydaoVM::dumpStack(const QString& label) {
+    if (!label.isEmpty()) {
+        qDebug() << "=== " << label << " ===";
+    }
+    for (int i = 0; i < m_stack.size(); i++) {
+        QString value;
+        if (m_stack[i].isObject()) {
+            if (m_stack[i].typeId() == TYPE_STRING)
+                value = "\"" + m_stack[i].toString() + "\"";
+            else
+                value = m_stack[i].toObject()->typeName();
+        } else {
+            value = "null";
+        }
+        qDebug() << "    [" << i << "]:" << value;
+    }
+}
+
 // ========== Доступ к переменным ==========
 
 BydaoValue& BydaoVM::getVariable(int scopeLevel, int varIndex, const BydaoInstruction& instr) {
@@ -562,44 +580,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_stack.push(iter->key());
         break;
     }
-    
-    // ===== Доступ к членам =====
-    case BydaoOpCode::Member: {
-        BydaoValue obj = m_stack.pop();
-        
-        if (!obj.isObject()) {
-            error("MEMBER on non-object", instr);
-            return false;
-        }
-        
-        QString memberName;
-        if (instr.arg1 >= 0 && instr.arg1 < m_stringTable.size()) {
-            memberName = m_stringTable[instr.arg1];
-        } else {
-            error("Invalid member name index", instr);
-            return false;
-        }
-        
-        BydaoObject* objPtr = obj.toObject();
-        
-        // Проверяем, является ли объект нативным со свойствами
-        if (auto* native = dynamic_cast<BydaoNative*>(objPtr)) {
-            if (native->hasProperty(memberName)) {
-                m_stack.push(native->getProperty(memberName));
-                break;
-            }
-        }
-        
-        // Если свойство не найдено, сохраняем объект и имя для последующего вызова
-        m_stack.push(obj);
-        m_stack.push(BydaoValue::fromString(memberName));
-        break;
-    }
-    
+
     case BydaoOpCode::Index: {
         BydaoValue obj = m_stack.pop();
         BydaoValue index = m_stack.pop();
-        
+
         if (auto* array = dynamic_cast<BydaoArray*>(obj.toObject())) {
             m_stack.push(array->get(index));
         } else {
@@ -608,50 +593,164 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         break;
     }
-    
+
+    // ===== Доступ к членам =====
+    case BydaoOpCode::Member: {
+        if (m_traceMode ) {
+            dumpStack("Before MEMBER at PC " + QString::number(m_pc-1));
+        }
+
+        if (m_stack.isEmpty()) {
+            error("Stack underflow in MEMBER", instr);
+            return false;
+        }
+
+        BydaoValue obj = m_stack.pop();
+
+        if (!obj.isObject()) {
+            error("MEMBER on non-object", instr);
+            return false;
+        }
+
+        QString memberName;
+        if (instr.arg1 >= 0 && instr.arg1 < m_stringTable.size()) {
+            memberName = m_stringTable[instr.arg1];
+//            qDebug() << "  memberName:" << memberName;
+        } else {
+            error("Invalid member name index", instr);
+            return false;
+        }
+
+        // Проверяем, является ли объект нативным со свойствами
+        if (auto* native = dynamic_cast<BydaoNative*>(obj.toObject())) {
+            if (native->hasProperty(memberName)) {
+                // Это свойство - возвращаем его значение
+//                qDebug() << "  -> property found, getting value";
+                m_stack.push(native->getProperty(memberName));
+                if ( m_traceMode ) {
+                    dumpStack("After MEMBER (property)");
+                }
+                break;
+            }
+        }
+
+        // Свойство не найдено
+        QString objType = obj.isObject() ? obj.toObject()->typeName() : "non-object";
+        error(QString("Property not found: '%1' on object of type '%2'")
+                  .arg(memberName)
+                  .arg(objType), instr);
+        return false;
+    }
+
+    case BydaoOpCode::Method: {
+        if ( m_traceMode ) {
+            dumpStack("Before METHOD at PC " + QString::number(m_pc-1));
+        }
+
+        if (m_stack.isEmpty()) {
+            error("Stack underflow in METHOD", instr);
+            return false;
+        }
+
+        BydaoValue obj = m_stack.pop();
+
+        if (!obj.isObject()) {
+            error("METHOD on non-object", instr);
+            return false;
+        }
+
+        QString methodName;
+        if (instr.arg1 >= 0 && instr.arg1 < m_stringTable.size()) {
+            methodName = m_stringTable[instr.arg1];
+//            qDebug() << "  methodName:" << methodName;
+        } else {
+            error("Invalid method name index", instr);
+            return false;
+        }
+
+        // Кладём объект и имя метода на стек для последующего CALL
+        m_stack.push(obj);
+        m_stack.push(BydaoValue::fromString(methodName));
+
+        if ( m_traceMode ) {
+            qDebug() << "  prepared for method call";
+            dumpStack("After METHOD");
+        }
+        break;
+    }
+
     case BydaoOpCode::Call: {
         int argCount = instr.arg1;
-        
+        if ( m_traceMode ) {
+            dumpStack("Before CALL at PC " + QString::number(m_pc-1) +
+                      ", argCount=" + QString::number(argCount));
+        }
+
+        // Забираем аргументы
         QVector<BydaoValue> args;
         for (int i = 0; i < argCount; i++) {
-            args.prepend(m_stack.pop());
-        }
-        
-        // Имя метода может быть на стеке или в инструкции
-        QString methodName;
-        BydaoValue obj;
-        
-        if (m_stack.top().isObject() && 
-            dynamic_cast<BydaoString*>(m_stack.top().toObject())) {
-            // На стеке есть строка - имя метода
-            methodName = m_stack.pop().toString();
-            obj = m_stack.pop();
-        } else {
-            // Имя метода должно быть в инструкции
-            if (instr.arg2 >= 0 && instr.arg2 < m_stringTable.size()) {
-                methodName = m_stringTable[instr.arg2];
-            } else {
-                error("No method name for CALL", instr);
+            if (m_stack.isEmpty()) {
+                error("Stack underflow: not enough arguments", instr);
                 return false;
             }
-            obj = m_stack.pop();
+            args.prepend(m_stack.pop());
         }
-        
+
+        // Имя метода должно быть на стеке (от предыдущей инструкции METHOD)
+        if (m_stack.size() < 2) {
+            error("Stack underflow: no method name and object for CALL", instr);
+            return false;
+        }
+
+        // Проверяем, что на стеке строка - имя метода
+        if (!m_stack.top().isObject() || m_stack.top().typeId() != TYPE_STRING) {
+            BydaoValue badValue = m_stack.top();
+            QString valueDesc;
+            if (badValue.isObject()) {
+                valueDesc = badValue.toObject()->typeName();
+            } else {
+                valueDesc = "non-object";
+            }
+
+            // Пытаемся определить, что хотели вызвать
+            QString hint;
+            if (instr.arg2 >= 0 && instr.arg2 < m_stringTable.size()) {
+                hint = m_stringTable[instr.arg2];
+            } else {
+                hint = "unknown";
+            }
+
+            error(QString("Cannot call '%1' as function - it is a %2")
+                      .arg(hint)
+                      .arg(valueDesc), instr);
+            return false;
+        }
+
+        QString methodName = m_stack.pop().toString();
+        BydaoValue obj = m_stack.pop();
+
         if (!obj.isObject()) {
             error("CALL on non-object", instr);
             return false;
         }
-        
+
+//        qDebug() << "  calling method:" << methodName << "on object type:" << obj.toObject()->typeName();
+
         BydaoValue result;
         if (obj.toObject()->callMethod(methodName, args, result)) {
             m_stack.push(result);
+            if ( m_traceMode ) {
+                dumpStack("After CALL");
+            }
         } else {
-            error("Method not found: " + methodName, instr);
+            error(QString("Method not found: '%1' on object of type '%2'")
+                      .arg(methodName)
+                      .arg(obj.toObject()->typeName()), instr);
             return false;
         }
         break;
     }
-    
+
     // ===== Переходы =====
     case BydaoOpCode::Jump: {
         m_pc = instr.arg1;

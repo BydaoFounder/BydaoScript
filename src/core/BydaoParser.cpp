@@ -1,6 +1,7 @@
 #include "BydaoScript/BydaoParser.h"
 #include <QCoreApplication>
 #include <QDir>
+#include <QDebug>
 
 namespace BydaoScript {
 
@@ -320,6 +321,21 @@ bool BydaoParser::isBuiltinTypeName(const QString& name) const {
     return m_builtinTypes.contains(name);
 }
 
+bool BydaoParser::isNameToken(BydaoTokenType type) const {
+    return type == BydaoTokenType::Identifier ||
+           type == BydaoTokenType::Iter ||
+           type == BydaoTokenType::Enum ||
+           type == BydaoTokenType::While ||
+           type == BydaoTokenType::If ||
+           type == BydaoTokenType::Else ||
+           type == BydaoTokenType::Break ||
+           type == BydaoTokenType::Next ||
+           type == BydaoTokenType::Var ||
+           type == BydaoTokenType::Drop ||
+           type == BydaoTokenType::Use ||
+           type == BydaoTokenType::As;
+}
+
 // ============================================================
 // МОДУЛИ
 // ============================================================
@@ -632,7 +648,7 @@ bool BydaoParser::parseIter() {
 
     // Получаем итератор: collection.iter()
     qint16 iterMethodIdx = addString("iter");
-    emitCode(BydaoOpCode::Member, iterMethodIdx, 0, token);
+    emitCode(BydaoOpCode::Method, iterMethodIdx, 0, token);
     emitCode(BydaoOpCode::Call, 0, 0, token);
 
     // Сохраняем итератор во временную переменную
@@ -698,7 +714,7 @@ bool BydaoParser::parseEnum() {
 
     // Получаем итератор: collection.iter()
     qint16 iterMethodIdx = addString("iter");
-    emitCode(BydaoOpCode::Member, iterMethodIdx, 0, token);
+    emitCode(BydaoOpCode::Method, iterMethodIdx, 0, token);
     emitCode(BydaoOpCode::Call, 0, 0, token);
 
     // Создаём временный итератор
@@ -933,54 +949,11 @@ bool BydaoParser::parseUnary() {
     return parsePrimary();
 }
 
-bool BydaoParser::parsePrimary() {
+bool BydaoParser::parsePrimaryBase() {
+    // Убираем всю обработку идентификаторов
     if (match(BydaoTokenType::Identifier)) {
-        QString name = m_current.text;
-        BydaoToken nameToken = m_current;
-
-        if (isBuiltinTypeName(name)) {
-            nextToken();
-            if (match(BydaoTokenType::Dot)) {
-                m_pos--;
-                m_current = m_tokens[m_pos];
-                return parseMember(true);
-            }
-            qint16 typeIdx = addString(name);
-            emitCode(BydaoOpCode::TypeClass, typeIdx, 0, nameToken);
-            return true;
-        }
-
-        if (isModule(name)) {
-            nextToken();
-            if (match(BydaoTokenType::Dot)) {
-                m_pos--;
-                m_current = m_tokens[m_pos];
-                return parseMember(true);
-            }
-            // Используем модуль как значение
-            VariableInfo info = resolveVariable(name);
-            if (info.scopeDepth >= 0) {
-                emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
-                return true;
-            }
-            error("Module not loaded: " + name);
-            return false;
-        }
-
-        if (isVariableDeclared(name)) {
-            nextToken();
-            if (match(BydaoTokenType::Dot) || match(BydaoTokenType::LBracket)) {
-                m_pos--;
-                m_current = m_tokens[m_pos];
-                return parseMember(true);
-            }
-
-            VariableInfo info = resolveVariable(name);
-            emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
-            return true;
-        }
-
-        error("Undeclared variable: " + name);
+        // Идентификаторы теперь обрабатываются в новом parsePrimary()
+        error("Identifier should be handled in parsePrimary()");
         return false;
     }
 
@@ -1042,6 +1015,210 @@ bool BydaoParser::parsePrimary() {
     }
 
     return false;
+}
+
+bool BydaoParser::parsePrimary() {
+    // Запоминаем позицию для возможного восстановления
+    int savedPos = m_pos;
+    BydaoToken savedToken = m_current;
+
+    // Обрабатываем идентификаторы (переменные, типы, модули)
+    if (match(BydaoTokenType::Identifier)) {
+        QString name = m_current.text;
+        BydaoToken nameToken = m_current;
+
+        // Определяем тип идентификатора
+        if (isBuiltinTypeName(name)) {
+            // Встроенный тип: Int, String, Array и т.д.
+            nextToken(); // съедаем имя типа
+            qint16 typeIdx = addString(name);
+            emitCode(BydaoOpCode::TypeClass, typeIdx, 0, nameToken);
+
+//            qDebug() << "parsePrimary: builtin type" << name;
+        }
+        else if (isModule(name)) {
+            // Модуль (загружен через use)
+            if (!isVariableDeclared(name)) {
+                error("Module not loaded: " + name);
+                return false;
+            }
+            nextToken(); // съедаем имя модуля
+            VariableInfo info = resolveVariable(name);
+            emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
+
+//            qDebug() << "parsePrimary: module" << name;
+        }
+        else if (isVariableDeclared(name)) {
+            // Обычная переменная
+            nextToken(); // съедаем имя переменной
+            VariableInfo info = resolveVariable(name);
+            emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
+
+//            qDebug() << "parsePrimary: variable" << name;
+        }
+        else {
+            error("Undeclared identifier: " + name);
+            return false;
+        }
+    }
+    else {
+        // Не идентификатор - пробуем другие варианты (числа, строки, массивы, скобки)
+        if (!parsePrimaryBase()) {
+            // Если ничего не подошло - восстанавливаем позицию и возвращаем false
+            m_pos = savedPos;
+            m_current = savedToken;
+            return false;
+        }
+    }
+
+    // После того как получили базовое значение,
+    // обрабатываем цепочку вызовов и доступов
+    while (true) {
+        if (match(BydaoTokenType::LParen)) {
+//            qDebug() << "parsePrimary: found call suffix";
+            if (!parseCallSuffix()) return false;
+        }
+        else if (match(BydaoTokenType::Dot)) {
+//            qDebug() << "parsePrimary: found member suffix";
+            if (!parseMemberSuffix()) return false;
+        }
+        else if (match(BydaoTokenType::LBracket)) {
+//            qDebug() << "parsePrimary: found index suffix";
+            if (!parseIndexSuffix()) return false;
+        }
+        else {
+            break;
+        }
+    }
+
+    return true;
+}
+
+bool BydaoParser::parseCallSuffix() {
+    // Текущий токен должен быть LParen
+    if (!match(BydaoTokenType::LParen)) {
+        error("Expected '(' in call");
+        return false;
+    }
+
+    BydaoToken token = m_current;
+//    qDebug() << "parseCallSuffix at line" << token.line << "," << token.column;
+
+    int argCount = 0;
+
+    // Пропускаем '('
+    nextToken();
+
+    // Парсим аргументы, если они есть
+    if (!match(BydaoTokenType::RParen)) {
+        do {
+            if (!parseExpression()) {
+                error("Expected expression in argument list");
+                return false;
+            }
+            argCount++;
+
+            // Если после выражения запятая - продолжаем
+            if (match(BydaoTokenType::Comma)) {
+                nextToken(); // пропускаем запятую
+            } else {
+                break;
+            }
+        } while (true);
+    }
+
+    // Ожидаем закрывающую скобку
+    if (!expect(BydaoTokenType::RParen)) {
+        error("Expected ')' after arguments");
+        return false;
+    }
+
+    // Генерируем инструкцию CALL
+    // Объект для вызова уже лежит на стеке (результат предыдущих операций)
+    // Аргументы лежат на стеке в правильном порядке (благодаря parseExpression)
+//    qDebug() << "parseCallSuffix: emitting CALL with" << argCount << "arguments";
+    emitCode(BydaoOpCode::Call, argCount, 0, token);
+
+    return true;
+}
+
+bool BydaoParser::parseMemberSuffix() {
+    // Текущий токен должен быть Dot
+    if (!match(BydaoTokenType::Dot)) {
+        error("Expected '.' in member access");
+        return false;
+    }
+
+    BydaoToken dotToken = m_current;
+//    qDebug() << "parseMemberSuffix at line" << dotToken.line << "," << dotToken.column;
+
+    // Пропускаем '.'
+    nextToken();
+
+    // После точки должно быть имя члена (идентификатор или ключевое слово)
+    if (!match(BydaoTokenType::Identifier) && !isNameToken(m_current.type)) {
+        qDebug() << "  Current token:" << m_current.text << "type:" << (int)m_current.type;
+        error("Expected member name after '.'");
+        return false;
+    }
+
+    QString memberName = m_current.text;
+    BydaoToken memberToken = m_current;
+//    qDebug() << "parseMemberSuffix: member name =" << memberName;
+
+    // Добавляем имя члена в таблицу строк
+    qint16 memberIdx = addString(memberName);
+
+    // Пропускаем имя члена
+    nextToken();
+
+    // Смотрим, что идёт после имени члена
+    if (match(BydaoTokenType::LParen)) {
+        // Это вызов метода - используем METHOD
+//        qDebug() << "  -> method call, emitting METHOD";
+        emitCode(BydaoOpCode::Method, memberIdx, 0, memberToken);
+    } else {
+        // Это доступ к свойству - используем MEMBER
+//        qDebug() << "  -> property access, emitting MEMBER";
+        emitCode(BydaoOpCode::Member, memberIdx, 0, memberToken);
+    }
+
+    return true;
+}
+
+bool BydaoParser::parseIndexSuffix() {
+    // Текущий токен должен быть LBracket
+    if (!match(BydaoTokenType::LBracket)) {
+        error("Expected '[' in index access");
+        return false;
+    }
+
+    BydaoToken bracketToken = m_current;
+//    qDebug() << "parseIndexSuffix at line" << bracketToken.line << "," << bracketToken.column;
+
+    // Пропускаем '['
+    nextToken();
+
+    // Парсим выражение-индекс
+    if (!parseExpression()) {
+        error("Expected expression inside '[]'");
+        return false;
+    }
+
+    // Ожидаем закрывающую скобку
+    if (!expect(BydaoTokenType::RBracket)) {
+        error("Expected ']' after index expression");
+        return false;
+    }
+
+    // Генерируем инструкцию INDEX
+    // Объект для индексации уже лежит на стеке (результат предыдущих операций)
+    // Индекс тоже уже на стеке (результат parseExpression)
+    emitCode(BydaoOpCode::Index, 0, 0, bracketToken);
+
+//    qDebug() << "parseIndexSuffix: emitted INDEX";
+
+    return true;
 }
 
 bool BydaoParser::parseMember(bool canAssign) {

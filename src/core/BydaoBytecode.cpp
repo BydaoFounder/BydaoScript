@@ -36,6 +36,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Key] = "KEY";
         names[BydaoOpCode::Value] = "VALUE";
         names[BydaoOpCode::Member] = "MEMBER";
+        names[BydaoOpCode::Method] = "METHOD";  // ← новая строка
         names[BydaoOpCode::Index] = "INDEX";
         names[BydaoOpCode::Call] = "CALL";
         names[BydaoOpCode::Jump] = "JUMP";
