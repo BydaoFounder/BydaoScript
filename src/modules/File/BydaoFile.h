@@ -17,13 +17,6 @@ namespace Modules {
 // Объект файла
 class BYDAOFILE_EXPORT BydaoFileObject : public BydaoModule {
     Q_OBJECT
-    // Q_PROPERTY(QString name READ name)
-    // Q_PROPERTY(QString path READ path)
-    // Q_PROPERTY(qint64 size READ size)
-    // Q_PROPERTY(bool exists READ exists)
-    // Q_PROPERTY(bool isOpen READ isOpen)
-    // Q_PROPERTY(bool isReadable READ isReadable)
-    // Q_PROPERTY(bool isWritable READ isWritable)
 
 public:
     explicit BydaoFileObject(const QString& path, QObject* parent = nullptr);
@@ -105,7 +98,7 @@ protected:
 
 private:
     // Методы модуля
-    bool method_open(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_new(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_exists(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_copy(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_move(const QVector<BydaoValue>& args, BydaoValue& result);

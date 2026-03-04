@@ -1,0 +1,8 @@
+BydaoScript Programming Language
+Copyright 2026 Oleh Horshkov
+
+This software includes:
+- The BydaoScript compiler and virtual machine
+- Original concept of Role-Based Polymorphism
+
+Licensed under the Apache License, Version 2.0.

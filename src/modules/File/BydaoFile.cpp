@@ -21,7 +21,7 @@ BydaoModuleInfoImpl* BydaoFileModule::createInfo() {
                           "isOpen", "isReadable", "isWritable"};
 
     info->m_methods = {
-        {"open",      {"mode"}},
+        {"new",       {"path"}},
         {"exists",    {"path"}},
         {"copy",      {"src", "dst"}},
         {"move",      {"src", "dst"}},
@@ -47,7 +47,7 @@ BydaoModuleInfo* BydaoFileModule::info() const {
 BydaoFileModule::BydaoFileModule(QObject* parent)
     : BydaoModule(parent)
 {
-    registerMethod("open",     &BydaoFileModule::method_open);
+    registerMethod("new",      &BydaoFileModule::method_new);
     registerMethod("exists",   &BydaoFileModule::method_exists);
     registerMethod("copy",     &BydaoFileModule::method_copy);
     registerMethod("move",     &BydaoFileModule::method_move);
@@ -86,9 +86,9 @@ bool BydaoFileModule::callMethod(const QString& name,
 
 // ========== Методы модуля ==========
 
-bool BydaoFileModule::method_open(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() != 1) return false;
-    result = BydaoValue(new BydaoFileObject(args[0].toString()));
+bool BydaoFileModule::method_new(const QVector<BydaoValue>& args, BydaoValue& result) {
+    QString name = (args.size() == 1) ? args[0].toString() : "";
+    result = BydaoValue(new BydaoFileObject( name ));
     return true;
 }
 
@@ -277,7 +277,7 @@ bool BydaoFileObject::method_open(const QVector<BydaoValue>& args, BydaoValue& r
     QIODevice::OpenMode flags = parseMode(args[0].toString());
     bool ok = m_file.open(flags);
 
-    if (ok && !(flags & QIODevice::Text)) {
+    if (ok && (flags & QIODevice::Text)) {
         if (m_stream) delete m_stream;
         m_stream = new QTextStream(&m_file);
     }
