@@ -804,44 +804,52 @@ bool BydaoParser::parseUse() {
         return false;
     }
 
-    QString moduleName = m_current.text;
-    nextToken();
-
-    QString alias = moduleName;
-    if (match(BydaoTokenType::As)) {
+    do {
+        QString moduleName = m_current.text;
         nextToken();
-        if (!match(BydaoTokenType::Identifier)) {
-            error("Expected alias name");
+
+        QString alias = moduleName;
+        if (match(BydaoTokenType::As)) {    // есть "as"
+            nextToken();
+            if (!match(BydaoTokenType::Identifier)) {
+                error("Expected alias name");
+                return false;
+            }
+            alias = m_current.text;         // получить алиас
+            nextToken();
+        }
+
+        if (!loadModuleInfo(moduleName)) {
             return false;
         }
-        alias = m_current.text;
-        nextToken();
-    }
 
-    if (!loadModuleInfo(moduleName)) {
-        return false;
-    }
+        // Сохраняем алиас в карту модулей
+        m_moduleInfoCache[alias] = getModuleInfo(moduleName);
 
-    // Сохраняем алиас в карту модулей
-    m_moduleInfoCache[alias] = getModuleInfo(moduleName);
+        // Добавляем переменную в текущую область
+        m_varScopes.top().insert(alias);
 
-    // Добавляем переменную в текущую область
-    m_varScopes.top().insert(alias);
+        // Вычисляем индекс переменной (порядковый номер в области)
+        int varIndex = m_varScopes.top().size() - 1;
 
-    // Вычисляем индекс переменной (порядковый номер в области)
-    int varIndex = m_varScopes.top().size() - 1;
+        // Сохраняем в глобальной карте для быстрого поиска
+        VariableInfo info;
+        info.name = alias;
+        info.scopeDepth = m_scopeStack.top().scopeDepth;
+        info.varIndex = varIndex;
+        m_varMap[alias] = info;
 
-    // Сохраняем в глобальной карте для быстрого поиска
-    VariableInfo info;
-    info.name = alias;
-    info.scopeDepth = m_scopeStack.top().scopeDepth;
-    info.varIndex = varIndex;
-    m_varMap[alias] = info;
+        // Генерируем код
+        qint16 moduleNameIdx = addString(moduleName);
+        qint16 aliasIdx = addString(alias);
+        emitCode(BydaoOpCode::UseModule, moduleNameIdx, aliasIdx, token);
 
-    // Генерируем код
-    qint16 moduleNameIdx = addString(moduleName);
-    qint16 aliasIdx = addString(alias);
-    emitCode(BydaoOpCode::UseModule, moduleNameIdx, aliasIdx, token);
+        // Если нет запятой - заканчиваем
+        if ( ! match(BydaoTokenType::Comma) ) {
+            break;
+        }
+        nextToken(); // пропускаем запятую
+    } while ( true );
 
     return true;
 }
@@ -1133,12 +1141,11 @@ bool BydaoParser::parseCallSuffix() {
             }
             argCount++;
 
-            // Если после выражения запятая - продолжаем
-            if (match(BydaoTokenType::Comma)) {
-                nextToken(); // пропускаем запятую
-            } else {
+            // Если после выражения нет запятой - заканчиваем
+            if ( ! match(BydaoTokenType::Comma) ) {
                 break;
             }
+            nextToken(); // пропускаем запятую
         } while (true);
     }
 
