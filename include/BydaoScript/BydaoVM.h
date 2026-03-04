@@ -30,7 +30,7 @@ struct RuntimeVar {
 // Область видимости в runtime
 struct RuntimeScope {
     QVector<RuntimeVar> vars;           // переменные в этой области
-    QHash<QString, int> nameToIndex;    // имя -> индекс (для быстрого доступа при загрузке)
+//    QHash<QString, int> nameToIndex;    // имя -> индекс (для быстрого доступа при загрузке)
 };
 
 class BydaoVM {
@@ -102,6 +102,9 @@ private:
     };
     QHash<QString, ProfileData> m_profile;
     qint64 m_lastInstrStart;  // время начала текущей инструкции
+
+    QHash<QString, int> m_moduleName;    // для проверки повторной загрузки модулей
+
 };
 
 } // namespace BydaoScript

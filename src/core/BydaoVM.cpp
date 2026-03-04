@@ -329,7 +329,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             var.value = BydaoValue(BydaoNull::instance());
             
             scope.vars.append(var);
-            scope.nameToIndex[name] = varIndex;
+//            scope.nameToIndex[name] = varIndex;
         } else {
             // Анонимная переменная (например, временная)
             RuntimeVar var;
@@ -824,11 +824,14 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         // Проверяем, не загружен ли уже модуль
-        RuntimeScope& globalScope = m_scopeStack.top();
-        if (globalScope.nameToIndex.contains(alias)) {
-            // Уже загружен
+        if ( m_moduleName.contains( alias ) ) {
             break;
         }
+        // RuntimeScope& globalScope = m_scopeStack.top();
+        // if (globalScope.nameToIndex.contains(alias)) {
+        //     // Уже загружен
+        //     break;
+        // }
         
         QString errorMsg;
         BydaoModule* module = BydaoModuleManager::instance().loadModule(moduleName, &errorMsg);
@@ -839,6 +842,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         // Добавляем модуль как переменную в глобальной области
+        RuntimeScope& globalScope = m_scopeStack.top();
         int varIndex = globalScope.vars.size();
         
         RuntimeVar var;
@@ -846,7 +850,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         var.value = BydaoValue(module);
         
         globalScope.vars.append(var);
-        globalScope.nameToIndex[alias] = varIndex;
+        m_moduleName[alias] = varIndex;
         
         break;
     }
