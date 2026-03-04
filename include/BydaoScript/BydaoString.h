@@ -16,6 +16,7 @@ protected:
     void release() override {
         if (s_cache.size() < MAX_CACHE_SIZE) {
             m_refCount = 0;  // сбрасываем для следующего использования
+            m_value.clear();
             s_cache.append(this);
         } else {
             delete this;

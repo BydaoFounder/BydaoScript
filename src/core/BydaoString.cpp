@@ -66,7 +66,7 @@ BydaoValue BydaoString::iter() {
 BydaoValue BydaoString::add(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
         const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
-        return BydaoValue::fromString( m_value.append(otherStr->m_value) );
+        return BydaoValue::fromString( m_value + otherStr->m_value );
     }
     QString result = m_value + other.toString();
     return BydaoValue::fromString(result);
