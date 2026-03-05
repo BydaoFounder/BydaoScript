@@ -1,0 +1,12 @@
+use Sys
+
+var i = 0
+var sum = 0
+var cnt = 1000000
+var one = 1
+var t1 = Sys.time()
+while i < cnt next i = i + one {
+    sum = sum + i
+}
+t1 = Sys.time() - t1
+Sys.outln( 'time: ' + t1 + ' msec, sum = ' + sum )

@@ -1,0 +1,9 @@
+use Sys
+
+var sum = 0
+var t1 = Sys.time()
+enum Int.range( 0, 1000000 ) as v {
+    sum = sum + v
+}
+t1 = Sys.time() - t1
+Sys.outln( 'time: ' + t1 + ' msec, sum = ' + sum )
