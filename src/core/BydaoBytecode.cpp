@@ -30,6 +30,10 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Load] = "LOAD";
         names[BydaoOpCode::Store] = "STORE";
         names[BydaoOpCode::AddStore] = "ADDSTORE";
+        names[BydaoOpCode::SubStore] = "ADDSTORE";
+        names[BydaoOpCode::MulStore] = "MULSTORE";
+        names[BydaoOpCode::DivStore] = "DIVSTORE";
+        names[BydaoOpCode::ModStore] = "MODSTORE";
         names[BydaoOpCode::PushConst] = "PUSHCONST";
         names[BydaoOpCode::Add] = "ADD";
         names[BydaoOpCode::Sub] = "SUB";

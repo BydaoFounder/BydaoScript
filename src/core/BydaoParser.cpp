@@ -25,7 +25,6 @@ namespace BydaoScript {
 BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     : m_tokens(tokens)
     , m_pos(0)
-    , m_currentScopeDepth(0)
     , m_inLoop(false)
     , m_iteratorCounter(0)
 {
@@ -206,25 +205,16 @@ void BydaoParser::patchJumps(const QVector<int>& jumps, int targetAddr) {
 // ============================================================
 
 void BydaoParser::enterScope() {
-    // Генерируем SCOPEBEG и запоминаем его индекс
-    int begIdx = emitCode(BydaoOpCode::ScopeBegin, 0, 0);
+    // Генерируем SCOPEPUSH
+    emitCode(BydaoOpCode::ScopePush, 0, 0);
 
-    ScopeInfo info;
-    info.beginInstrIndex = begIdx;
-    info.hasVariables = false;
-    info.scopeDepth = m_scopeStack.size();  // текущая глубина
-
-    m_scopeStack.push(info);
-    m_varScopes.push(QSet<QString>());  // пустой набор переменных
+    // Добавляем пустой набор переменных в новую область видимости
+    m_varScopes.push(QSet<QString>());
 }
 
 void BydaoParser::exitScope() {
-    if (m_scopeStack.isEmpty()) {
-        error("No scope to exit");
-        return;
-    }
 
-    ScopeInfo info = m_scopeStack.pop();
+    // Забираем набор переменных в текущей области видимости
     QSet<QString> vars = m_varScopes.pop();
 
     // Удаляем переменные из глобальной карты
@@ -232,20 +222,11 @@ void BydaoParser::exitScope() {
         m_varMap.remove(name);
     }
 
-    if (info.hasVariables) {
-        // В области были переменные - генерируем SCOPEPOP
-        emitCode(BydaoOpCode::ScopePop, 0, 0);
-    } else {
-        // В области не было переменных - генерируем SCOPEEND
-        emitCode(BydaoOpCode::ScopeEnd, 0, 0);
-    }
+    // В области были переменные - генерируем SCOPEPOP
+    emitCode(BydaoOpCode::ScopePop, 0, 0);
 }
 
 void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) {
-    if (m_scopeStack.isEmpty()) {
-        error("No active scope for variable declaration: " + name);
-        return;
-    }
 
     // Проверяем, не объявлена ли уже в этой области
     if (m_varScopes.top().contains(name)) {
@@ -253,15 +234,11 @@ void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) 
         return;
     }
 
-    // Отмечаем, что в текущей области есть переменные
-    if (!m_scopeStack.top().hasVariables) {
-        // Первая переменная в этой области - меняем SCOPEBEG на SCOPEPUSH
-        m_scopeStack.top().hasVariables = true;
-        m_bytecode[m_scopeStack.top().beginInstrIndex].op = BydaoOpCode::ScopePush;
-    }
-
     // Добавляем переменную в текущую область
     m_varScopes.top().insert(name);
+
+    // Индекс области видимости
+    int scopeIndex = m_varScopes.size() - 1;
 
     // Вычисляем индекс переменной (порядковый номер в области)
     int varIndex = m_varScopes.top().size() - 1;
@@ -269,7 +246,7 @@ void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) 
     // Сохраняем в глобальной карте для быстрого поиска
     VariableInfo info;
     info.name = name;
-    info.scopeDepth = m_scopeStack.top().scopeDepth;
+    info.scopeDepth = scopeIndex;
     info.varIndex = varIndex;
     m_varMap[name] = info;
 
@@ -286,19 +263,26 @@ VariableInfo BydaoParser::resolveVariable(const QString& name) {
     }
 
     VariableInfo info = it.value();
-
-    // Проверяем, что переменная всё ещё существует
-    // (не была удалена при выходе из области)
-    if (info.scopeDepth >= m_scopeStack.size()) {
-        error("Variable '" + name + "' is out of scope");
-        return VariableInfo();
-    }
-
     return info;
 }
 
 bool BydaoParser::isVariableDeclared(const QString& name) {
     return m_varMap.contains(name);
+}
+
+bool BydaoParser::removeVariable(const QString& name ) {
+    auto it = m_varMap.find(name);
+    if (it == m_varMap.end()) {
+        error("Undeclared variable: " + name);
+        return false;
+    }
+
+    // Удалить переменную из глоабльной карты и области видимости
+    VariableInfo info = it.value();
+    m_varScopes[ info.scopeDepth ].remove( name );
+    m_varMap.remove(name);
+
+    return true;
 }
 
 // ============================================================
@@ -420,8 +404,23 @@ bool BydaoParser::parseStatement() {
     // identifier = expression
     // identifier += expression
     if ( match(BydaoTokenType::Identifier) ) {
-        if ( peek(BydaoTokenType::Assign, 1) || peek(BydaoTokenType::PlusAssign, 1) ) {
+        if ( peek(BydaoTokenType::Assign, 1) ) {
             return parseAssign();
+        }
+        if ( peek(BydaoTokenType::PlusAssign, 1) ) {
+            return parseAddAssign();
+        }
+        if ( peek(BydaoTokenType::MinusAssign, 1) ) {
+            return parseSubAssign();
+        }
+        if ( peek(BydaoTokenType::MulAssign, 1) ) {
+            return parseMulAssign();
+        }
+        if ( peek(BydaoTokenType::DivAssign, 1) ) {
+            return parseDivAssign();
+        }
+        if ( peek(BydaoTokenType::ModAssign, 1) ) {
+            return parseModAssign();
         }
     }
 
@@ -509,14 +508,7 @@ bool BydaoParser::parseAssign() {
     }
 
     nextToken(); // identifier
-    auto op = m_current.type;
-    if ( op == BydaoTokenType::Assign ) {
-        expect(BydaoTokenType::Assign); // =
-    }
-    else if ( op == BydaoTokenType::PlusAssign ) {
-        expect(BydaoTokenType::PlusAssign); // +=
-    }
-    else {
+    if ( ! expect( BydaoTokenType::Assign ) ) {
         error("Unexpected expression after identifier");
         return false;
     }
@@ -527,12 +519,137 @@ bool BydaoParser::parseAssign() {
     }
 
     VariableInfo info = resolveVariable(name);
-    if ( op == BydaoTokenType::Assign ) {
-        emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
+    emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
+
+    return true;
+}
+
+bool BydaoParser::parseAddAssign() {
+    QString name = m_current.text;
+    BydaoToken nameToken = m_current;
+
+    if (!isVariableDeclared(name)) {
+        error("Undeclared variable: " + name);
+        return false;
     }
-    else if ( op == BydaoTokenType::PlusAssign ) {
-        emitCode(BydaoOpCode::AddStore, info.scopeDepth, info.varIndex, nameToken);
+
+    nextToken(); // identifier
+    if ( ! expect( BydaoTokenType::PlusAssign ) ) {
+        error("Unexpected expression after identifier");
+        return false;
     }
+
+    if (!parseExpression()) {
+        error("Expected expression after =");
+        return false;
+    }
+
+    VariableInfo info = resolveVariable(name);
+    emitCode(BydaoOpCode::AddStore, info.scopeDepth, info.varIndex, nameToken);
+
+    return true;
+}
+
+bool BydaoParser::parseSubAssign() {
+    QString name = m_current.text;
+    BydaoToken nameToken = m_current;
+
+    if (!isVariableDeclared(name)) {
+        error("Undeclared variable: " + name);
+        return false;
+    }
+
+    nextToken(); // identifier
+    if ( ! expect( BydaoTokenType::MinusAssign ) ) {
+        error("Unexpected expression after identifier");
+        return false;
+    }
+
+    if (!parseExpression()) {
+        error("Expected expression after =");
+        return false;
+    }
+
+    VariableInfo info = resolveVariable(name);
+    emitCode(BydaoOpCode::SubStore, info.scopeDepth, info.varIndex, nameToken);
+
+    return true;
+}
+
+bool BydaoParser::parseMulAssign() {
+    QString name = m_current.text;
+    BydaoToken nameToken = m_current;
+
+    if (!isVariableDeclared(name)) {
+        error("Undeclared variable: " + name);
+        return false;
+    }
+
+    nextToken(); // identifier
+    if ( ! expect( BydaoTokenType::MulAssign ) ) {
+        error("Unexpected expression after identifier");
+        return false;
+    }
+
+    if (!parseExpression()) {
+        error("Expected expression after =");
+        return false;
+    }
+
+    VariableInfo info = resolveVariable(name);
+    emitCode(BydaoOpCode::MulStore, info.scopeDepth, info.varIndex, nameToken);
+
+    return true;
+}
+
+bool BydaoParser::parseDivAssign() {
+    QString name = m_current.text;
+    BydaoToken nameToken = m_current;
+
+    if (!isVariableDeclared(name)) {
+        error("Undeclared variable: " + name);
+        return false;
+    }
+
+    nextToken(); // identifier
+    if ( ! expect( BydaoTokenType::DivAssign ) ) {
+        error("Unexpected expression after identifier");
+        return false;
+    }
+
+    if (!parseExpression()) {
+        error("Expected expression after =");
+        return false;
+    }
+
+    VariableInfo info = resolveVariable(name);
+    emitCode(BydaoOpCode::DivStore, info.scopeDepth, info.varIndex, nameToken);
+
+    return true;
+}
+
+bool BydaoParser::parseModAssign() {
+    QString name = m_current.text;
+    BydaoToken nameToken = m_current;
+
+    if (!isVariableDeclared(name)) {
+        error("Undeclared variable: " + name);
+        return false;
+    }
+
+    nextToken(); // identifier
+    if ( ! expect( BydaoTokenType::ModAssign ) ) {
+        error("Unexpected expression after identifier");
+        return false;
+    }
+
+    if (!parseExpression()) {
+        error("Expected expression after =");
+        return false;
+    }
+
+    VariableInfo info = resolveVariable(name);
+    emitCode(BydaoOpCode::ModStore, info.scopeDepth, info.varIndex, nameToken);
 
     return true;
 }
@@ -709,7 +826,7 @@ bool BydaoParser::parseIter() {
 
     // Очистка - удаляем переменную итератора
     emitCode(BydaoOpCode::Drop, iterInfo.scopeDepth, iterInfo.varIndex, iterToken);
-    m_varMap.remove(iterName);  // удаляем из глобальной карты
+    removeVariable(iterName);
 
     return true;
 }
@@ -782,11 +899,11 @@ bool BydaoParser::parseEnum() {
 
     // Очистка - удаляем временный итератор
     emitCode(BydaoOpCode::Drop, iterInfo.scopeDepth, iterInfo.varIndex, token);
-    m_varMap.remove(tmpIterName);
+    removeVariable(tmpIterName);
 
     // Удаляем переменную цикла
     emitCode(BydaoOpCode::Drop, varInfo.scopeDepth, varInfo.varIndex, varToken);
-    m_varMap.remove(varName);
+    removeVariable(varName);
 
     return true;
 }
@@ -848,13 +965,16 @@ bool BydaoParser::parseUse() {
         // Добавляем переменную в текущую область
         m_varScopes.top().insert(alias);
 
+        // Индекс области видимости
+        int scopeIndex = m_varScopes.size() - 1;
+
         // Вычисляем индекс переменной (порядковый номер в области)
         int varIndex = m_varScopes.top().size() - 1;
 
         // Сохраняем в глобальной карте для быстрого поиска
         VariableInfo info;
         info.name = alias;
-        info.scopeDepth = m_scopeStack.top().scopeDepth;
+        info.scopeDepth = scopeIndex;
         info.varIndex = varIndex;
         m_varMap[alias] = info;
 

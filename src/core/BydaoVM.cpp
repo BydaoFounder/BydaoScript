@@ -376,11 +376,64 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoValue b = m_stack.pop();
         BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
         if (!a.isObject() || !b.isObject()) {
-            error("+= operation on non-object", instr);
+            error("'+=' operation on non-object", instr);
             return false;
         }
 
-        a.toObject()->addAssign(b);
+        BydaoValue val = a.toObject()->add(b);
+        setVariable(instr.arg1, instr.arg2, val, instr);
+        break;
+    }
+
+    case BydaoOpCode::SubStore: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        if (!a.isObject() || !b.isObject()) {
+            error("'-=' operation on non-object", instr);
+            return false;
+        }
+
+        BydaoValue val = a.toObject()->sub(b);
+        setVariable(instr.arg1, instr.arg2, val, instr);
+        break;
+    }
+
+    case BydaoOpCode::MulStore: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        if (!a.isObject() || !b.isObject()) {
+            error("'*=' operation on non-object", instr);
+            return false;
+        }
+
+        BydaoValue val = a.toObject()->mul(b);
+        setVariable(instr.arg1, instr.arg2, val, instr);
+        break;
+    }
+
+    case BydaoOpCode::DivStore: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        if (!a.isObject() || !b.isObject()) {
+            error("'/=' operation on non-object", instr);
+            return false;
+        }
+
+        BydaoValue val = a.toObject()->div(b);
+        setVariable(instr.arg1, instr.arg2, val, instr);
+        break;
+    }
+
+    case BydaoOpCode::ModStore: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        if (!a.isObject() || !b.isObject()) {
+            error("'%=' operation on non-object", instr);
+            return false;
+        }
+
+        BydaoValue val = a.toObject()->mod(b);
+        setVariable(instr.arg1, instr.arg2, val, instr);
         break;
     }
 

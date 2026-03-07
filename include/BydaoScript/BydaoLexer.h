@@ -25,7 +25,7 @@ enum class BydaoTokenType {
     As, Break, Use, False, True, Null,
 
     // Операторы
-    PlusAssign, Assign,
+    Assign, PlusAssign, MinusAssign, MulAssign, DivAssign, ModAssign,
     Plus, Minus,
     Mul, Div, Mod,
     And, Or, Not,

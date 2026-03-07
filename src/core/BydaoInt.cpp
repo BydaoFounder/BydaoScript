@@ -113,25 +113,6 @@ BydaoValue BydaoInt::add(const BydaoValue& other) {
     }
 }
 
-BydaoValue BydaoInt::addAssign(const BydaoValue& other) {
-    switch (other.typeId()) {
-        case TYPE_INT: {
-            qint64 otherValue = ( (BydaoInt*)other.toObject() )->m_value;
-            m_value += otherValue;
-            return BydaoValue();
-        }
-        case TYPE_REAL: {
-            const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
-            m_value += qint64( otherReal->value() );
-            return BydaoValue();
-        }
-        default: {
-            m_value += other.toInt();
-            return BydaoValue();
-        }
-    }
-}
-
 BydaoValue BydaoInt::sub(const BydaoValue& other) {
     switch (other.typeId()) {
     case TYPE_INT: {

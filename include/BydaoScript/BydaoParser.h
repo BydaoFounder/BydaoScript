@@ -93,6 +93,7 @@ private:
     void declareVariable(const QString& name, const BydaoToken& token);
     VariableInfo resolveVariable(const QString& name);
     bool isVariableDeclared(const QString& name);
+    bool removeVariable(const QString& name);
 
     // ===== Семантический анализ =====
     void initBuiltinTypes();
@@ -109,7 +110,12 @@ private:
     // Объявления и присваивания
     bool parseVarDecl();
     bool parseAssign();
-    
+    bool parseAddAssign();
+    bool parseSubAssign();
+    bool parseMulAssign();
+    bool parseDivAssign();
+    bool parseModAssign();
+
     // Управляющие конструкции
     bool parseIf();
     bool parseWhile();
@@ -160,19 +166,8 @@ private:
     // Метки для переходов
     QMap<int, int> m_labels;
 
-    // Области видимости
-    struct ScopeInfo {
-        int beginInstrIndex;      // индекс инструкции SCOPEBEG
-        bool hasVariables;        // были ли переменные в этой области
-        int scopeDepth;           // глубина области
-    };
-
-    // В классе BydaoParser:
-    QStack<ScopeInfo> m_scopeStack;  // стек с информацией об областях
     QStack<QSet<QString>> m_varScopes; // стек с именами переменных
-
     QHash<QString, VariableInfo> m_varMap;  // глобальная карта переменных
-    int m_currentScopeDepth;
 
     // Циклы
     QStack<LoopInfo> m_loopStack;

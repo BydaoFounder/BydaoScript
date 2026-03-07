@@ -57,7 +57,6 @@ public:
 
     // ========== Операции ==========
     BydaoValue add(const BydaoValue& other) override;
-    BydaoValue addAssign(const BydaoValue& other) override;
     BydaoValue sub(const BydaoValue& other) override;
     BydaoValue mul(const BydaoValue& other) override;
     BydaoValue div(const BydaoValue& other) override;

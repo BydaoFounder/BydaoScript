@@ -1,0 +1,39 @@
+use Sys
+
+var sum
+var t
+Sys.outln( 'Test: enum Int.range' )
+sum = 0
+t = Sys.time()
+enum Int.range( 0, 1000000 ) as v {
+    sum = sum + v
+}
+t = Sys.time() - t
+Sys.outln( 'time: ' + t + ' msec, sum = ' + sum )
+
+Sys.outln( 'Test: enum Int.range +=' )
+sum = 0
+t = Sys.time()
+enum Int.range( 0, 1000000 ) as v {
+    sum += v
+}
+t = Sys.time() - t
+Sys.outln( 'time: ' + t + ' msec, sum = ' + sum )
+
+Sys.outln( 'Test: iter Int.range' )
+sum = 0
+t = Sys.time()
+iter Int.range( 0, 1000000 ) as it {
+    sum = sum + it.value
+}
+t = Sys.time() - t
+Sys.outln( 'time: ' + t + ' msec, sum = ' + sum )
+
+Sys.outln( 'Test: iter Int.range +=' )
+sum = 0
+t = Sys.time()
+iter Int.range( 0, 1000000 ) as it {
+    sum += it.value
+}
+t = Sys.time() - t
+Sys.outln( 'time: ' + t + ' msec, sum = ' + sum )
