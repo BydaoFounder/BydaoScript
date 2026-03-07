@@ -61,7 +61,7 @@ void BydaoDisassembler::disassemble(QTextStream& out,
 
     out << "\n" << (m_colorOutput ? CYAN : "") << "=== BYTECODE ==="
         << (m_colorOutput ? RESET : "") << "\n";
-    out << disassembleCode(code, stringTable, debugInfo);
+    out << disassembleCode(code, constants, stringTable, debugInfo);
 }
 
 // ========== Дизассемблирование таблиц ==========
@@ -124,6 +124,7 @@ QString BydaoDisassembler::disassembleStringTable(const QVector<QString>& string
 }
 
 QString BydaoDisassembler::disassembleCode(const QVector<BydaoInstruction>& code,
+                                           const QVector<BydaoConstant>& constants,
                                            const QVector<QString>& stringTable,
                                            const QVector<BydaoDebugInfo>* debugInfo) {
     QString result;
@@ -155,7 +156,7 @@ QString BydaoDisassembler::disassembleCode(const QVector<BydaoInstruction>& code
                 out << labels[i] << ":\n";
         }
 
-        out << formatInstruction(i, instr, stringTable, debugInfo) << "\n";
+        out << formatInstruction(i, instr, constants, stringTable, debugInfo) << "\n";
     }
 
     return result;
@@ -165,6 +166,7 @@ QString BydaoDisassembler::disassembleCode(const QVector<BydaoInstruction>& code
 
 QString BydaoDisassembler::formatInstruction(int index,
                                              const BydaoInstruction& instr,
+                                             const QVector<BydaoConstant>& constants,
                                              const QVector<QString>& stringTable,
                                              const QVector<BydaoDebugInfo>* debugInfo) {
     QString result;
@@ -204,7 +206,7 @@ QString BydaoDisassembler::formatInstruction(int index,
         result += opName;
 
     // Аргументы
-    QString args = formatArg(instr, stringTable);
+    QString args = formatArg(instr, constants, stringTable);
     if (!args.isEmpty()) {
         if (m_colorOutput)
             result += " " + BLUE + args + RESET;
@@ -216,20 +218,23 @@ QString BydaoDisassembler::formatInstruction(int index,
 }
 
 QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
+                                     const QVector<BydaoConstant>& constants,
                                      const QVector<QString>& stringTable) {
     QStringList args;
 
     switch (instr.op) {
-    case BydaoOpCode::PushConst:
-//        if (instr.arg1 != 0)
-            args << QString("c%1").arg(instr.arg1);
+    case BydaoOpCode::PushConst: {
+        BydaoConstant val = constants[ instr.arg1 ];
+        args << formatConstant( val, stringTable );
+//        args << QString("c%1").arg(instr.arg1);
         break;
+    }
 
     case BydaoOpCode::Load:
     case BydaoOpCode::Store:
+    case BydaoOpCode::AddStore:
     case BydaoOpCode::Drop:
-//        if (instr.arg1 != 0 || instr.arg2 != 0)
-            args << QString("s%1").arg(instr.arg1) << QString("v%1").arg(instr.arg2);
+        args << QString("s%1").arg(instr.arg1) << QString("v%1").arg(instr.arg2);
         break;
 
     case BydaoOpCode::VarDecl:
@@ -240,6 +245,7 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
         break;
 
     case BydaoOpCode::Member:
+    case BydaoOpCode::Method:
     case BydaoOpCode::TypeClass:
         if (instr.arg1 >= 0 && instr.arg1 < stringTable.size() && !stringTable[instr.arg1].isEmpty())
             args << "'" + formatString(stringTable[instr.arg1]) + "'";

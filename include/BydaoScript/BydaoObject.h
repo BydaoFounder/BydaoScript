@@ -47,6 +47,12 @@ public:
         return BydaoValue();  // null
     }
 
+    virtual BydaoValue addAssign(const BydaoValue& other) {
+        Q_UNUSED( other );
+        qWarning() << "'+=' not supported for" << typeName();
+        return BydaoValue();  // null
+    }
+
     virtual BydaoValue sub(const BydaoValue& other) {
         Q_UNUSED( other );
         qWarning() << "sub not supported for" << typeName();

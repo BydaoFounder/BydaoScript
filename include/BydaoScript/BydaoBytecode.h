@@ -16,7 +16,6 @@
 #include <QString>
 #include <QVector>
 #include <QMetaType>
-#include "BydaoConfig.h"
 
 namespace BydaoScript {
 
@@ -30,6 +29,7 @@ enum BydaoOpCode : quint8 {
     Drop,           // arg1 = индекс переменной, arg2 = уровень области
     Load,           // arg1 = уровень области, arg2 = индекс переменной
     Store,          // arg1 = уровень области, arg2 = индекс переменной
+    AddStore,       // arg1 = уровень области, arg2 = индекс переменной
 
     // Константы
     PushConst,      // arg1 = индекс в таблице констант

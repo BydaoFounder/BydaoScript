@@ -163,6 +163,7 @@ BydaoToken BydaoLexer::readOperator(QChar ch) {
         if (two == ">=") { m_pos += 2; m_column += 2; return BydaoToken(BydaoTokenType::GreaterEqual, two, m_line, startCol); }
         if (two == "&&") { m_pos += 2; m_column += 2; return BydaoToken(BydaoTokenType::And, two, m_line, startCol); }
         if (two == "||") { m_pos += 2; m_column += 2; return BydaoToken(BydaoTokenType::Or, two, m_line, startCol); }
+        if (two == "+=") { m_pos += 2; m_column += 2; return BydaoToken(BydaoTokenType::PlusAssign, two, m_line, startCol); }
     }
 
     m_pos++; m_column++;

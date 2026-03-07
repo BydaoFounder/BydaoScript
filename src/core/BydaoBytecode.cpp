@@ -29,6 +29,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Drop] = "DROP";
         names[BydaoOpCode::Load] = "LOAD";
         names[BydaoOpCode::Store] = "STORE";
+        names[BydaoOpCode::AddStore] = "ADDSTORE";
         names[BydaoOpCode::PushConst] = "PUSHCONST";
         names[BydaoOpCode::Add] = "ADD";
         names[BydaoOpCode::Sub] = "SUB";

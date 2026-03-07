@@ -416,9 +416,13 @@ bool BydaoParser::parseProgram() {
 }
 
 bool BydaoParser::parseStatement() {
-    // Проверяем присваивание (identifier = expression)
-    if (match(BydaoTokenType::Identifier) && peek(BydaoTokenType::Assign, 1)) {
-        return parseAssign();
+    // Проверяем присваивание
+    // identifier = expression
+    // identifier += expression
+    if ( match(BydaoTokenType::Identifier) ) {
+        if ( peek(BydaoTokenType::Assign, 1) || peek(BydaoTokenType::PlusAssign, 1) ) {
+            return parseAssign();
+        }
     }
 
     if (match(BydaoTokenType::Var)) return parseVarDecl();
@@ -505,7 +509,17 @@ bool BydaoParser::parseAssign() {
     }
 
     nextToken(); // identifier
-    expect(BydaoTokenType::Assign); // =
+    auto op = m_current.type;
+    if ( op == BydaoTokenType::Assign ) {
+        expect(BydaoTokenType::Assign); // =
+    }
+    else if ( op == BydaoTokenType::PlusAssign ) {
+        expect(BydaoTokenType::PlusAssign); // +=
+    }
+    else {
+        error("Unexpected expression after identifier");
+        return false;
+    }
 
     if (!parseExpression()) {
         error("Expected expression after =");
@@ -513,7 +527,12 @@ bool BydaoParser::parseAssign() {
     }
 
     VariableInfo info = resolveVariable(name);
-    emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
+    if ( op == BydaoTokenType::Assign ) {
+        emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
+    }
+    else if ( op == BydaoTokenType::PlusAssign ) {
+        emitCode(BydaoOpCode::AddStore, info.scopeDepth, info.varIndex, nameToken);
+    }
 
     return true;
 }

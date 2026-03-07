@@ -198,7 +198,6 @@ BydaoValue& BydaoVM::getVariable(int scopeLevel, int varIndex, const BydaoInstru
         return nullValue;
     }
     
-//    RuntimeScope& scope = m_scopeStack[ m_scopeStack.size() - 1 - scopeLevel ];
     RuntimeScope& scope = m_scopeStack[ scopeLevel ];
 
     if (varIndex < 0 || varIndex >= scope.vars.size()) {
@@ -219,7 +218,6 @@ const BydaoValue& BydaoVM::getVariable(int scopeLevel, int varIndex, const Bydao
         return nullValue;
     }
     
-//    const RuntimeScope& scope = m_scopeStack[ m_scopeStack.size() - 1 - scopeLevel ];
     const RuntimeScope& scope = m_scopeStack[ scopeLevel ];
 
     if (varIndex < 0 || varIndex >= scope.vars.size()) {
@@ -373,7 +371,19 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         setVariable(instr.arg1, instr.arg2, m_stack.pop(), instr);
         break;
     }
-    
+
+    case BydaoOpCode::AddStore: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        if (!a.isObject() || !b.isObject()) {
+            error("+= operation on non-object", instr);
+            return false;
+        }
+
+        a.toObject()->addAssign(b);
+        break;
+    }
+
     // ===== Константы =====
     case BydaoOpCode::PushConst: {
         if (instr.arg1 >= 0 && instr.arg1 < m_constantValues.size()) {
