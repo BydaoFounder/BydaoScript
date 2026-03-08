@@ -1,0 +1,28 @@
+Обработка ошибок.
+
+func funcName(args) {body}
+
+func func2( arg ) {
+    if ! arg {
+        fail 'Неверный аргумент функции "func2"'
+    }
+    var res = funcName(123)
+    if Err.is( res ) {
+        fail Err(res), 'Это дополнительный текст ошибки'
+    }
+    ...
+    return 123
+}
+
+func func3() {
+
+    var data = func2()
+    if Err.is( data ) {
+        Sys.outln( Err.fmt( data ) )
+        return
+    }
+}
+
+Синтаксис
+
+fail = "fail" [ error_obj "," ] expression
