@@ -1,0 +1,11 @@
+use Sys, File, Dir
+if Dir.cd( '../../src/core' ) {
+    enum Dir.list() as name {
+        if name.endsWith('.cpp') {
+            var content = File.readAll(name)
+            if content.contains('Licensed under the Apache License') {
+                Sys.outln( 'File ' + name + ' contains license' )
+            }
+        }
+    }
+}
