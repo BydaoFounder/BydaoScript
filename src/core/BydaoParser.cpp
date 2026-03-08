@@ -209,80 +209,84 @@ void BydaoParser::enterScope() {
     emitCode(BydaoOpCode::ScopePush, 0, 0);
 
     // Добавляем пустой набор переменных в новую область видимости
-    m_varScopes.push(QSet<QString>());
+    m_varScopes.push( ScopeItem() );
 }
 
 void BydaoParser::exitScope() {
 
     // Забираем набор переменных в текущей области видимости
-    QSet<QString> vars = m_varScopes.pop();
-
-    // Удаляем переменные из глобальной карты
-    for (const QString& name : vars) {
-        m_varMap.remove(name);
-    }
+    ScopeItem item = m_varScopes.pop();
 
     // В области были переменные - генерируем SCOPEPOP
     emitCode(BydaoOpCode::ScopePop, 0, 0);
 }
 
-void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) {
+bool BydaoParser::appendVariable(const QString& name) {
 
     // Проверяем, не объявлена ли уже в этой области
-    if (m_varScopes.top().contains(name)) {
+    if (m_varScopes.top().varInfo.contains(name)) {
         error("Variable '" + name + "' already declared in this scope");
-        return;
+        return false;
     }
-
-    // Добавляем переменную в текущую область
-    m_varScopes.top().insert(name);
 
     // Индекс области видимости
     int scopeIndex = m_varScopes.size() - 1;
 
     // Вычисляем индекс переменной (порядковый номер в области)
-    int varIndex = m_varScopes.top().size() - 1;
+    int varIndex = m_varScopes.top().varList.size();
 
     // Сохраняем в глобальной карте для быстрого поиска
     VariableInfo info;
     info.name = name;
     info.scopeDepth = scopeIndex;
     info.varIndex = varIndex;
-    m_varMap[name] = info;
+    m_varScopes.top().varList.insert( name );
+    m_varScopes.top().varInfo[name] = info;
 
-    // Генерируем VARDECL (имя переменной нужно только для отладки)
-    qint16 nameIndex = addString(name);
-    emitCode(BydaoOpCode::VarDecl, nameIndex, 0, token);
+    return true;
+}
+
+void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) {
+
+    if ( appendVariable( name ) ) {
+
+        // Генерируем VARDECL (имя переменной нужно только для отладки)
+        qint16 nameIndex = addString(name);
+        emitCode(BydaoOpCode::VarDecl, nameIndex, 0, token);
+    }
 }
 
 VariableInfo BydaoParser::resolveVariable(const QString& name) {
-    auto it = m_varMap.find(name);
-    if (it == m_varMap.end()) {
-        error("Undeclared variable: " + name);
-        return VariableInfo();
-    }
 
-    VariableInfo info = it.value();
-    return info;
+    int stackSize = m_varScopes.size();
+    for ( int i = stackSize-1; i >= 0; --i ) {
+        if ( m_varScopes[ i ].varInfo.contains( name ) ) {
+            return m_varScopes[ i ].varInfo[name];
+        }
+    }
+    return VariableInfo();
 }
 
 bool BydaoParser::isVariableDeclared(const QString& name) {
-    return m_varMap.contains(name);
+    int stackSize = m_varScopes.size();
+    for ( int i = stackSize-1; i >= 0; --i ) {
+        if ( m_varScopes[ i ].varInfo.contains( name ) ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool BydaoParser::removeVariable(const QString& name ) {
-    auto it = m_varMap.find(name);
-    if (it == m_varMap.end()) {
-        error("Undeclared variable: " + name);
-        return false;
+    int stackSize = m_varScopes.size();
+    for ( int i = stackSize-1; i >= 0; --i ) {
+        if ( m_varScopes[ i ].varInfo.contains( name ) ) {
+            m_varScopes[ i ].varList.remove( name );
+            m_varScopes[ i ].varInfo.remove( name );
+            return true;
+        }
     }
-
-    // Удалить переменную из глоабльной карты и области видимости
-    VariableInfo info = it.value();
-    m_varScopes[ info.scopeDepth ].remove( name );
-    m_varMap.remove(name);
-
-    return true;
+    return false;
 }
 
 // ============================================================
@@ -933,14 +937,15 @@ bool BydaoParser::parseBreakNext() {
 
 bool BydaoParser::parseUse() {
     BydaoToken token = m_current;
-    nextToken(); // use
-
-    if (!match(BydaoTokenType::Identifier)) {
-        error("Expected module name");
-        return false;
-    }
+    nextToken(); // next after use
 
     do {
+
+        if (!match(BydaoTokenType::Identifier)) {
+            error("Expected module name");
+            return false;
+        }
+
         QString moduleName = m_current.text;
         nextToken();
 
@@ -962,21 +967,10 @@ bool BydaoParser::parseUse() {
         // Сохраняем алиас в карту модулей
         m_moduleInfoCache[alias] = getModuleInfo(moduleName);
 
-        // Добавляем переменную в текущую область
-        m_varScopes.top().insert(alias);
-
-        // Индекс области видимости
-        int scopeIndex = m_varScopes.size() - 1;
-
-        // Вычисляем индекс переменной (порядковый номер в области)
-        int varIndex = m_varScopes.top().size() - 1;
-
-        // Сохраняем в глобальной карте для быстрого поиска
-        VariableInfo info;
-        info.name = alias;
-        info.scopeDepth = scopeIndex;
-        info.varIndex = varIndex;
-        m_varMap[alias] = info;
+        // Добавляем переменную в текущую область видимости
+        if ( ! appendVariable( alias ) ) {
+            return false;
+        }
 
         // Генерируем код
         qint16 moduleNameIdx = addString(moduleName);

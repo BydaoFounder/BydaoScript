@@ -90,6 +90,7 @@ private:
     // ===== Области видимости =====
     void enterScope();
     void exitScope();
+    bool appendVariable(const QString& name);
     void declareVariable(const QString& name, const BydaoToken& token);
     VariableInfo resolveVariable(const QString& name);
     bool isVariableDeclared(const QString& name);
@@ -166,8 +167,11 @@ private:
     // Метки для переходов
     QMap<int, int> m_labels;
 
-    QStack<QSet<QString>> m_varScopes; // стек с именами переменных
-    QHash<QString, VariableInfo> m_varMap;  // глобальная карта переменных
+    struct ScopeItem {
+        QSet<QString>                varList;   // линейный список переменных в данной области видимости
+        QHash<QString, VariableInfo> varInfo;   // таблица с информацией о переменных
+    };
+    QStack<ScopeItem> m_varScopes;      // стек областей видимости переменных
 
     // Циклы
     QStack<LoopInfo> m_loopStack;
