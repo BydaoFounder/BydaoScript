@@ -37,7 +37,7 @@ protected:
 
 public:
 
-    static BydaoReal* create(qint64 value) {
+    static BydaoReal* create(double value) {
         if (!s_cache.isEmpty()) {
             BydaoReal* obj = s_cache.takeLast();
             obj->m_value = value;

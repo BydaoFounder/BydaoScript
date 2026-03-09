@@ -221,7 +221,9 @@ void BydaoParser::exitScope() {
     emitCode(BydaoOpCode::ScopePop, 0, 0);
 }
 
-bool BydaoParser::appendVariable(const QString& name) {
+bool BydaoParser::appendVariable(const QString& name, bool isConstant ) {
+
+//    qDebug() << "appendVariable:" << name << "isConstant =" << isConstant;  // ОТЛАДКА
 
     // Проверяем, не объявлена ли уже в этой области
     if (m_varScopes.top().varInfo.contains(name)) {
@@ -240,6 +242,7 @@ bool BydaoParser::appendVariable(const QString& name) {
     info.name = name;
     info.scopeDepth = scopeIndex;
     info.varIndex = varIndex;
+    info.isConstant = isConstant;
     m_varScopes.top().varList.insert( name );
     m_varScopes.top().varInfo[name] = info;
 
@@ -248,7 +251,7 @@ bool BydaoParser::appendVariable(const QString& name) {
 
 void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) {
 
-    if ( appendVariable( name ) ) {
+    if ( appendVariable( name, false ) ) {
 
         // Генерируем VARDECL (имя переменной нужно только для отладки)
         qint16 nameIndex = addString(name);
@@ -429,6 +432,7 @@ bool BydaoParser::parseStatement() {
     }
 
     if (match(BydaoTokenType::Var)) return parseVarDecl();
+    if (match(BydaoTokenType::Const)) return parseConstDecl();
     if (match(BydaoTokenType::While)) return parseWhile();
     if (match(BydaoTokenType::If)) return parseIf();
     if (match(BydaoTokenType::Iter)) return parseIter();
@@ -502,12 +506,93 @@ bool BydaoParser::parseVarDecl() {
     return true;
 }
 
+bool BydaoParser::parseConstDecl() {
+//    qDebug() << "parseConstDecl: start at line" << m_current.line;
+    BydaoToken token = m_current;
+    nextToken(); // const
+
+    if (!match(BydaoTokenType::Identifier)) {
+        error("Expected constant name");
+        return false;
+    }
+
+    QString name = m_current.text;
+    BydaoToken nameToken = m_current;
+    nextToken();
+
+    if (!match(BydaoTokenType::Assign)) {
+        error("Expected '=' in constant declaration");
+        return false;
+    }
+    nextToken(); // '='
+
+    // Добавляем константу в таблицу (без значения)
+    if (!appendVariable(name, true)) {
+        return false;
+    }
+
+    // Пытаемся вычислить выражение
+    BydaoConstantFolder folder(this);
+    BydaoValue constValue = folder.evaluate();  // Один проход!
+
+    if (constValue.isNull()) {
+        // Если получили null - значит выражение не константное
+        removeVariable(name);
+        error("Constant expression expected");
+        return false;
+    }
+
+    // Обновляем значение в таблице
+    VariableInfo info = resolveVariable(name);
+    info.constValue = constValue;
+    m_varScopes.top().varInfo[name] = info;
+
+    // Генерируем код
+    qint16 nameIndex = addString(name);
+//    qDebug() << "  generating VarDecl for" << name << "index =" << nameIndex;
+    emitCode(BydaoOpCode::VarDecl, nameIndex, 0, token);
+
+    // Добавляем значение в таблицу констант и генерируем PUSH
+    qint16 constIndex;
+    switch (constValue.typeId()) {
+    case TYPE_INT:
+        constIndex = addConstant(constValue.toInt());
+        break;
+    case TYPE_REAL:
+        constIndex = addConstant(constValue.toReal());
+        break;
+    case TYPE_BOOL:
+        constIndex = addConstant(constValue.toBool());
+        break;
+    case TYPE_STRING:
+        constIndex = addConstant(constValue.toString());
+        break;
+    default:
+        constIndex = addNullConstant();
+        break;
+    }
+//    qDebug() << "  generating PushConst for value" << constValue.toString() << "index =" << constIndex;
+    emitCode(BydaoOpCode::PushConst, constIndex, 0, token);
+
+//    qDebug() << "  generating Store for" << name;
+    emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
+
+    return true;
+}
+
 bool BydaoParser::parseAssign() {
     QString name = m_current.text;
     BydaoToken nameToken = m_current;
 
     if (!isVariableDeclared(name)) {
         error("Undeclared variable: " + name);
+        return false;
+    }
+
+    // ПРОВЕРКА НА КОНСТАНТУ
+    VariableInfo info = resolveVariable(name);
+    if (info.isConstant) {
+        error("Cannot assign to constant: " + name);
         return false;
     }
 
@@ -522,7 +607,6 @@ bool BydaoParser::parseAssign() {
         return false;
     }
 
-    VariableInfo info = resolveVariable(name);
     emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
 
     return true;
@@ -537,6 +621,13 @@ bool BydaoParser::parseAddAssign() {
         return false;
     }
 
+    // ПРОВЕРКА НА КОНСТАНТУ
+    VariableInfo info = resolveVariable(name);
+    if (info.isConstant) {
+        error("Cannot assign to constant: " + name);
+        return false;
+    }
+
     nextToken(); // identifier
     if ( ! expect( BydaoTokenType::PlusAssign ) ) {
         error("Unexpected expression after identifier");
@@ -548,7 +639,6 @@ bool BydaoParser::parseAddAssign() {
         return false;
     }
 
-    VariableInfo info = resolveVariable(name);
     emitCode(BydaoOpCode::AddStore, info.scopeDepth, info.varIndex, nameToken);
 
     return true;
@@ -563,6 +653,13 @@ bool BydaoParser::parseSubAssign() {
         return false;
     }
 
+    // ПРОВЕРКА НА КОНСТАНТУ
+    VariableInfo info = resolveVariable(name);
+    if (info.isConstant) {
+        error("Cannot assign to constant: " + name);
+        return false;
+    }
+
     nextToken(); // identifier
     if ( ! expect( BydaoTokenType::MinusAssign ) ) {
         error("Unexpected expression after identifier");
@@ -574,7 +671,6 @@ bool BydaoParser::parseSubAssign() {
         return false;
     }
 
-    VariableInfo info = resolveVariable(name);
     emitCode(BydaoOpCode::SubStore, info.scopeDepth, info.varIndex, nameToken);
 
     return true;
@@ -589,6 +685,13 @@ bool BydaoParser::parseMulAssign() {
         return false;
     }
 
+    // ПРОВЕРКА НА КОНСТАНТУ
+    VariableInfo info = resolveVariable(name);
+    if (info.isConstant) {
+        error("Cannot assign to constant: " + name);
+        return false;
+    }
+
     nextToken(); // identifier
     if ( ! expect( BydaoTokenType::MulAssign ) ) {
         error("Unexpected expression after identifier");
@@ -600,7 +703,6 @@ bool BydaoParser::parseMulAssign() {
         return false;
     }
 
-    VariableInfo info = resolveVariable(name);
     emitCode(BydaoOpCode::MulStore, info.scopeDepth, info.varIndex, nameToken);
 
     return true;
@@ -615,6 +717,13 @@ bool BydaoParser::parseDivAssign() {
         return false;
     }
 
+    // ПРОВЕРКА НА КОНСТАНТУ
+    VariableInfo info = resolveVariable(name);
+    if (info.isConstant) {
+        error("Cannot assign to constant: " + name);
+        return false;
+    }
+
     nextToken(); // identifier
     if ( ! expect( BydaoTokenType::DivAssign ) ) {
         error("Unexpected expression after identifier");
@@ -626,7 +735,6 @@ bool BydaoParser::parseDivAssign() {
         return false;
     }
 
-    VariableInfo info = resolveVariable(name);
     emitCode(BydaoOpCode::DivStore, info.scopeDepth, info.varIndex, nameToken);
 
     return true;
@@ -641,6 +749,13 @@ bool BydaoParser::parseModAssign() {
         return false;
     }
 
+    // ПРОВЕРКА НА КОНСТАНТУ
+    VariableInfo info = resolveVariable(name);
+    if (info.isConstant) {
+        error("Cannot assign to constant: " + name);
+        return false;
+    }
+
     nextToken(); // identifier
     if ( ! expect( BydaoTokenType::ModAssign ) ) {
         error("Unexpected expression after identifier");
@@ -652,7 +767,6 @@ bool BydaoParser::parseModAssign() {
         return false;
     }
 
-    VariableInfo info = resolveVariable(name);
     emitCode(BydaoOpCode::ModStore, info.scopeDepth, info.varIndex, nameToken);
 
     return true;

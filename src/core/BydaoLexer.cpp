@@ -18,6 +18,7 @@ namespace BydaoScript {
 QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
     {"use", BydaoTokenType::Use},
     {"var", BydaoTokenType::Var},
+    {"const", BydaoTokenType::Const},
     {"drop", BydaoTokenType::Drop},
     {"while", BydaoTokenType::While},
     {"next", BydaoTokenType::Next},

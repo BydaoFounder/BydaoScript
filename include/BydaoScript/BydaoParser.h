@@ -16,6 +16,7 @@
 #include "BydaoLexer.h"
 #include "BydaoBytecode.h"
 #include "BydaoModule.h"
+#include "BydaoConstantFolder.h"
 #include <QStack>
 #include <QSet>
 #include <QMap>
@@ -26,8 +27,10 @@ namespace BydaoScript {
 // Информация о переменной
 struct VariableInfo {
     QString name;
-    int scopeDepth;      // глубина области, где объявлена
-    int varIndex;        // индекс в этой области
+    int scopeDepth;         // глубина области, где объявлена
+    int varIndex;           // индекс в этой области
+    bool isConstant;        // флаг константы
+    BydaoValue constValue;  // значение константы для вычислителя
 };
 
 // Информация о цикле (для break/next)
@@ -65,6 +68,9 @@ public:
     bool loadModuleInfo(const QString& name);
 
 private:
+
+    friend class BydaoConstantFolder;
+
     // ===== Лексический анализ =====
     void nextToken();
     bool match(BydaoTokenType type);
@@ -90,7 +96,7 @@ private:
     // ===== Области видимости =====
     void enterScope();
     void exitScope();
-    bool appendVariable(const QString& name);
+    bool appendVariable(const QString& name, bool isConstant = false);
     void declareVariable(const QString& name, const BydaoToken& token);
     VariableInfo resolveVariable(const QString& name);
     bool isVariableDeclared(const QString& name);
@@ -110,6 +116,7 @@ private:
 
     // Объявления и присваивания
     bool parseVarDecl();
+    bool parseConstDecl();
     bool parseAssign();
     bool parseAddAssign();
     bool parseSubAssign();
