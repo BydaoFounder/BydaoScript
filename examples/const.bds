@@ -1,0 +1,19 @@
+use Sys
+
+pub const BASE = 10
+const MULTIPLIER = BASE * 2
+const SUM = 1 + 2 + 3
+const MIXED = (BASE + 5) * 2
+pub const FLAG = true && false
+const TEXT = "Hello, " + "World!"
+const ANSWER = 42
+const CHECK = ANSWER > 40
+
+Sys.outln( 'BASE = ' + BASE )
+Sys.outln( 'MULTIPLIER = ' + MULTIPLIER )
+Sys.outln( 'SUM = ' + SUM )
+Sys.outln( 'MIXED = ' + MIXED )
+Sys.outln( 'FLAG = ' + FLAG )
+Sys.outln( 'TEXT = ' + TEXT )
+Sys.outln( 'ANSWER = ' + ANSWER )
+Sys.outln( 'CHECK = ' + CHECK )

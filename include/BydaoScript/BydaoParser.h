@@ -29,7 +29,8 @@ struct VariableInfo {
     QString name;
     int scopeDepth;         // глубина области, где объявлена
     int varIndex;           // индекс в этой области
-    bool isConstant;        // флаг константы
+    bool isConstant;        // true для констант
+    bool isPublic;          // true для pub-переменных/констант
     BydaoValue constValue;  // значение константы для вычислителя
 };
 
@@ -96,7 +97,7 @@ private:
     // ===== Области видимости =====
     void enterScope();
     void exitScope();
-    bool appendVariable(const QString& name, bool isConstant = false);
+    bool appendVariable(const QString& name, bool isConstant = false, bool isPublic = false);
     void declareVariable(const QString& name, const BydaoToken& token);
     VariableInfo resolveVariable(const QString& name);
     bool isVariableDeclared(const QString& name);
@@ -115,8 +116,9 @@ private:
     bool parseBlock(bool requireBraces = true);
 
     // Объявления и присваивания
-    bool parseVarDecl();
-    bool parseConstDecl();
+    bool parsePubDecl();
+    bool parseVarDecl( bool isPublic = false );
+    bool parseConstDecl( bool isPublic = false );
     bool parseAssign();
     bool parseAddAssign();
     bool parseSubAssign();

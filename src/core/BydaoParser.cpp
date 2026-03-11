@@ -221,7 +221,7 @@ void BydaoParser::exitScope() {
     emitCode(BydaoOpCode::ScopePop, 0, 0);
 }
 
-bool BydaoParser::appendVariable(const QString& name, bool isConstant ) {
+bool BydaoParser::appendVariable(const QString& name, bool isConstant, bool isPublic ) {
 
 //    qDebug() << "appendVariable:" << name << "isConstant =" << isConstant;  // ОТЛАДКА
 
@@ -234,15 +234,17 @@ bool BydaoParser::appendVariable(const QString& name, bool isConstant ) {
     // Индекс области видимости
     int scopeIndex = m_varScopes.size() - 1;
 
-    // Вычисляем индекс переменной (порядковый номер в области)
+    // Вычисляем индекс переменной в области видимости
     int varIndex = m_varScopes.top().varList.size();
 
-    // Сохраняем в глобальной карте для быстрого поиска
+    // Сохраняем в текущей области видимости
     VariableInfo info;
     info.name = name;
     info.scopeDepth = scopeIndex;
     info.varIndex = varIndex;
     info.isConstant = isConstant;
+    info.isPublic = isPublic;
+
     m_varScopes.top().varList.insert( name );
     m_varScopes.top().varInfo[name] = info;
 
@@ -431,6 +433,7 @@ bool BydaoParser::parseStatement() {
         }
     }
 
+    if (match(BydaoTokenType::Pub)) return parsePubDecl();
     if (match(BydaoTokenType::Var)) return parseVarDecl();
     if (match(BydaoTokenType::Const)) return parseConstDecl();
     if (match(BydaoTokenType::While)) return parseWhile();
@@ -475,7 +478,24 @@ bool BydaoParser::parseBlock(bool requireBraces) {
 // ПАРСИНГ - ОПЕРАТОРЫ
 // ============================================================
 
-bool BydaoParser::parseVarDecl() {
+bool BydaoParser::parsePubDecl() {
+    BydaoToken pubToken = m_current;
+    nextToken(); // pub
+
+    // После pub может быть var или const
+    if (match(BydaoTokenType::Var)) {
+        return parseVarDecl(true);  // true = публичная
+    }
+    else if (match(BydaoTokenType::Const)) {
+        return parseConstDecl(true); // true = публичная
+    }
+    else {
+        error("Expected 'var' or 'const' after 'pub'");
+        return false;
+    }
+}
+
+bool BydaoParser::parseVarDecl( bool isPublic ) {
     BydaoToken token = m_current;
     nextToken(); // var
 
@@ -486,27 +506,33 @@ bool BydaoParser::parseVarDecl() {
 
     QString name = m_current.text;
     BydaoToken nameToken = m_current;
-    declareVariable(name, nameToken);
     nextToken();
+
+    // Добавляем переменную с флагом public
+    if (!appendVariable(name, false, isPublic)) {  // false = не константа
+        return false;
+    }
+
+    VariableInfo info = resolveVariable(name);
+
+    // Генерируем код (как обычно)
+    qint16 nameIndex = addString(name);
+    emitCode(BydaoOpCode::VarDecl, nameIndex, 0, token);
 
     if (match(BydaoTokenType::Assign)) {
         nextToken();
         if (!parseExpression()) return false;
-
-        VariableInfo info = resolveVariable(name);
-        emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
     } else {
         qint16 nullConst = addNullConstant();
         emitCode(BydaoOpCode::PushConst, nullConst, 0, token);
-
-        VariableInfo info = resolveVariable(name);
-        emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
     }
+
+    emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
 
     return true;
 }
 
-bool BydaoParser::parseConstDecl() {
+bool BydaoParser::parseConstDecl( bool isPublic ) {
 //    qDebug() << "parseConstDecl: start at line" << m_current.line;
     BydaoToken token = m_current;
     nextToken(); // const
@@ -527,14 +553,13 @@ bool BydaoParser::parseConstDecl() {
     nextToken(); // '='
 
     // Добавляем константу в таблицу (без значения)
-    if (!appendVariable(name, true)) {
+    if (!appendVariable(name, true, isPublic)) {
         return false;
     }
 
     // Пытаемся вычислить выражение
     BydaoConstantFolder folder(this);
     BydaoValue constValue = folder.evaluate();  // Один проход!
-
     if (constValue.isNull()) {
         // Если получили null - значит выражение не константное
         removeVariable(name);
