@@ -15,6 +15,7 @@ HEADERS += \
     ../../include/BydaoScript/BydaoIntClass.h \
     ../../include/BydaoScript/BydaoIntRange.h \
     ../../include/BydaoScript/BydaoIterator.h \
+    ../../include/BydaoScript/BydaoMetaData.h \
     ../../include/BydaoScript/BydaoNull.h \
     ../../include/BydaoScript/BydaoObject.h \
     ../../include/BydaoScript/BydaoReal.h \
@@ -39,6 +40,7 @@ SOURCES += \
     BydaoIntClass.cpp \
     BydaoIntRange.cpp \
     BydaoIterator.cpp \
+    BydaoMetaData.cpp \
     BydaoNull.cpp \
     BydaoObject.cpp \
     BydaoReal.cpp \
