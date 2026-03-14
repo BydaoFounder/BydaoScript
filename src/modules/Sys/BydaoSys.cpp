@@ -19,6 +19,20 @@
 namespace BydaoScript {
 namespace Modules {
 
+// ========== Экспорт модуля ==========
+
+extern "C" {
+    MODULE_EXPORT BydaoScript::BydaoModule* createModule() {
+        return new BydaoSysModule();
+    }
+
+    MODULE_EXPORT void destroyModule(BydaoScript::BydaoModule* module) {
+        delete module;
+    }
+}
+
+// ==========================================
+
 BydaoModuleInfoImpl* BydaoSysModule::createInfo() {
     auto* info = new BydaoModuleInfoImpl();
     info->m_name = "Sys";
@@ -101,6 +115,20 @@ BydaoSysModule::BydaoSysModule(QObject* parent)
 
 BydaoSysModule::~BydaoSysModule() {
 //    qDebug() << "~BydaoSysModule()";
+}
+
+MetaData*   BydaoSysModule::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            ->append( "out",   FuncMetaData("Void", true, true, true) << FuncArgMetaData("str","String",false) )
+            .append( "outln",  FuncMetaData("Void", true, true, true) << FuncArgMetaData("str","String",false,"\"\"") )
+            .append( "in",     FuncMetaData("String", true, true, true) )
+            .append( "time",   FuncMetaData("Int", true, true, true) )
+            ;
+    }
+    return metaData;
 }
 
 bool BydaoSysModule::initialize() {
@@ -416,18 +444,6 @@ bool BydaoSysModule::method_drives(const QVector<BydaoValue>& args, BydaoValue& 
 
     result = BydaoValue(array);
     return true;
-}
-
-// ========== Экспорт модуля ==========
-
-extern "C" {
-MODULE_EXPORT BydaoScript::BydaoModule* createModule() {
-    return new BydaoSysModule();
-}
-
-MODULE_EXPORT void destroyModule(BydaoScript::BydaoModule* module) {
-    delete module;
-}
 }
 
 } // namespace Modules

@@ -13,10 +13,12 @@
 // limitations under the License.
 #pragma once
 
-#include "BydaoNative.h"
 #include <QLibrary>
-#include <QSet>        // +++ ДОБАВИТЬ +++
-#include <QHash>       // +++ ДОБАВИТЬ (если ещё нет) +++
+#include <QSet>
+#include <QHash>
+
+#include "BydaoNative.h"
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -83,6 +85,8 @@ public:
     // Мета-информация для парсера
     virtual BydaoModuleInfo* info() const = 0;
 
+    virtual MetaData*   metaData() { return nullptr; };
+
     // Жизненный цикл
     virtual bool initialize();
     virtual bool shutdown();
@@ -101,6 +105,7 @@ public:
 
     BydaoModule* loadModule(const QString& name, QString* error = nullptr);
     BydaoModuleInfo* loadModuleInfo(const QString& name, QString* error = nullptr);
+    MetaData* loadMetaData(const QString& name, QString* error = nullptr);
 
     void addModulePath(const QString& path);
     void unloadAllModules();
@@ -115,6 +120,8 @@ private:
     QHash<QString, QLibrary*> m_libraries;
     QHash<QString, BydaoModuleInfo*> m_infoCache;
     QStringList m_modulePaths;
+
+    QMap< QString, MetaData*>   m_metaData;
 };
 
 // Макросы для экспорта

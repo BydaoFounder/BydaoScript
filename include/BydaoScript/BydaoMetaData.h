@@ -139,7 +139,10 @@ struct MetaData {
 
     MetaData();
     MetaData( const MetaData& data );
+    MetaData( MetaData& data );
     MetaData( MetaData* data );
+
+    MetaData&   operator=( MetaData* data );
 
     MetaData&   append( const QString& varName, const VarMetaData& var );
     MetaData&   append( const QString& funcName, const FuncMetaData& func );

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../include/BydaoScript/BydaoModule.h"
+#include "../../../include/BydaoScript/BydaoMetaData.h"
 #include <QProcess>
 #include <QElapsedTimer>
 
@@ -27,6 +28,8 @@ public:
     QString name() const override { return "Sys"; }
     QString version() const override { return "1.0.0"; }
     BydaoModuleInfo* info() const override;
+
+    MetaData*   metaData();
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,

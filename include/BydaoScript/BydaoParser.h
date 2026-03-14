@@ -17,6 +17,7 @@
 #include "BydaoBytecode.h"
 #include "BydaoModule.h"
 #include "BydaoConstantFolder.h"
+#include "BydaoMetaData.h"
 #include <QStack>
 #include <QSet>
 #include <QMap>
@@ -67,6 +68,7 @@ public:
     // Работа с модулями
     void addModulePath(const QString& path);
     bool loadModuleInfo(const QString& name);
+    bool loadMetaData(const QString& name);
 
 private:
 
@@ -150,8 +152,6 @@ private:
     bool parseIndexSuffix();
 
     // Составные конструкции
-    bool parseMember(bool canAssign = false);
-    bool parseCall();
     bool parseArrayLiteral();
 
     // ===== Данные =====
@@ -195,6 +195,9 @@ private:
 
     // Счётчики
     int m_iteratorCounter;
+
+    // Мета-данные типов данных
+    QHash<QString, MetaData*> m_metaData;
 };
 
 } // namespace BydaoScript

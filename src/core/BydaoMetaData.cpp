@@ -149,11 +149,24 @@ MetaData::MetaData( const MetaData& data ){
     funcs = data.funcs;
 }
 
+MetaData::MetaData( MetaData& data ){
+    vars = data.vars;
+    funcs = data.funcs;
+}
+
 MetaData::MetaData( MetaData* data ){
     if ( data != nullptr ) {
         vars = data->vars;
         funcs = data->funcs;
     }
+}
+
+MetaData&   MetaData::operator=( MetaData* data ) {
+    if ( data != nullptr ) {
+        vars = data->vars;
+        funcs = data->funcs;
+    }
+    return *this;
 }
 
 MetaData&   MetaData::append( const QString& varName, const VarMetaData& var ){

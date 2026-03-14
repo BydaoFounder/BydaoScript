@@ -377,12 +377,28 @@ bool BydaoParser::loadModuleInfo(const QString& name) {
     return false;
 }
 
+bool BydaoParser::loadMetaData(const QString& name) {
+    if (m_metaData.contains(name)) {
+        return true;
+    }
+
+    QString errorMsg;
+    MetaData* metaData = BydaoModuleManager::instance().loadMetaData(name, &errorMsg);
+    if ( metaData ) {
+        m_metaData[name] = metaData;
+        return true;
+    }
+
+    error("Cannot load module '" + name + "': " + errorMsg);
+    return false;
+}
+
 // ============================================================
 // ПАРСИНГ - ОСНОВНЫЕ МЕТОДЫ
 // ============================================================
 
 bool BydaoParser::parse() {
-    // Глобальная область (без создания, только SCOPEBEG)
+    // Глобальная область
     enterScope();
 
     bool ok = parseProgram();
@@ -1092,7 +1108,8 @@ bool BydaoParser::parseUse() {
         }
 
         QString moduleName = m_current.text;
-        if ( ! isModule( moduleName ) ) {
+//        if ( ! isModule( moduleName ) ) {
+        if ( ! m_metaData.contains( moduleName ) ) {
 
             nextToken();
 
@@ -1107,12 +1124,15 @@ bool BydaoParser::parseUse() {
                 nextToken();
             }
 
-            if (!loadModuleInfo(moduleName)) {
+            // if (!loadModuleInfo(moduleName)) {
+            //     return false;
+            // }
+            if ( ! loadMetaData( moduleName ) ) {
                 return false;
             }
 
             // Сохраняем алиас в карту модулей
-            m_moduleInfoCache[alias] = getModuleInfo(moduleName);
+//            m_moduleInfoCache[alias] = getModuleInfo(moduleName);
 
             // Добавляем переменную в текущую область видимости
             if ( ! appendVariable( alias ) ) {
@@ -1334,8 +1354,6 @@ bool BydaoParser::parsePrimary() {
             nextToken(); // съедаем имя типа
             qint16 typeIdx = addString(name);
             emitCode(BydaoOpCode::TypeClass, typeIdx, 0, nameToken);
-
-//            qDebug() << "parsePrimary: builtin type" << name;
         }
         else if (isModule(name)) {
             // Модуль (загружен через use)
@@ -1346,16 +1364,12 @@ bool BydaoParser::parsePrimary() {
             nextToken(); // съедаем имя модуля
             VariableInfo info = resolveVariable(name);
             emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
-
-//            qDebug() << "parsePrimary: module" << name;
         }
         else if (isVariableDeclared(name)) {
             // Обычная переменная
             nextToken(); // съедаем имя переменной
             VariableInfo info = resolveVariable(name);
             emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
-
-//            qDebug() << "parsePrimary: variable" << name;
         }
         else {
             error("Undeclared identifier: " + name);
@@ -1376,15 +1390,12 @@ bool BydaoParser::parsePrimary() {
     // обрабатываем цепочку вызовов и доступов
     while (true) {
         if (match(BydaoTokenType::LParen)) {
-//            qDebug() << "parsePrimary: found call suffix";
             if (!parseCallSuffix()) return false;
         }
         else if (match(BydaoTokenType::Dot)) {
-//            qDebug() << "parsePrimary: found member suffix";
             if (!parseMemberSuffix()) return false;
         }
         else if (match(BydaoTokenType::LBracket)) {
-//            qDebug() << "parsePrimary: found index suffix";
             if (!parseIndexSuffix()) return false;
         }
         else {
@@ -1402,15 +1413,12 @@ bool BydaoParser::parseCallSuffix() {
         return false;
     }
 
-    BydaoToken token = m_current;
-//    qDebug() << "parseCallSuffix at line" << token.line << "," << token.column;
-
-    int argCount = 0;
-
-    // Пропускаем '('
-    nextToken();
+    BydaoToken token = m_current;   // '('
+    nextToken();                    // следущий токен за '('
 
     // Парсим аргументы, если они есть
+
+    int argCount = 0;
     if (!match(BydaoTokenType::RParen)) {
         do {
             if (!parseExpression()) {
@@ -1521,115 +1529,6 @@ bool BydaoParser::parseIndexSuffix() {
     return true;
 }
 
-bool BydaoParser::parseMember(bool canAssign) {
-    if (!match(BydaoTokenType::Identifier)) {
-        error("Expected object name");
-        return false;
-    }
-
-    QString object = m_current.text;
-    BydaoToken objToken = m_current;
-
-    nextToken();
-
-    while (match(BydaoTokenType::Dot) || match(BydaoTokenType::LBracket)) {
-        if (match(BydaoTokenType::Dot)) {
-            nextToken();
-
-            if (!match(BydaoTokenType::Identifier)) {
-                error("Expected member name");
-                return false;
-            }
-
-            QString member = m_current.text;
-            BydaoToken memberToken = m_current;
-            qint16 memberIdx = addString(member);
-
-            nextToken();
-
-            if (match(BydaoTokenType::LParen)) {
-                // Вызов метода
-                if (isBuiltinTypeName(object)) {
-                    qint16 typeIdx = addString(object);
-                    emitCode(BydaoOpCode::TypeClass, typeIdx, 0, objToken);
-                }
-                // else if (isModule(object)) {
-                //     qint16 typeIdx = addString(object);
-                //     emitCode(BydaoOpCode::TypeClass, typeIdx, 0, objToken);
-                // }
-                else {
-                    VariableInfo info = resolveVariable(object);
-                    emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, objToken);
-                }
-
-                emitCode(BydaoOpCode::Member, memberIdx, 0, memberToken);
-
-                if (!parseCall()) {
-                    return false;
-                }
-            } else {
-                // Доступ к свойству
-                if (isBuiltinTypeName(object)) {
-                    error("Type '" + object + "' has no property '" + member + "'");
-                    return false;
-                } else {
-                    VariableInfo info = resolveVariable(object);
-                    emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, objToken);
-                    emitCode(BydaoOpCode::Member, memberIdx, 0, memberToken);
-                }
-            }
-
-            object = "_acc";
-        }
-        else if (match(BydaoTokenType::LBracket)) {
-            nextToken();
-            if (!parseExpression()) return false;
-            if (!expect(BydaoTokenType::RBracket)) return false;
-
-            VariableInfo info = resolveVariable(object);
-            emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, objToken);
-            emitCode(BydaoOpCode::Index, 0, 0, objToken);
-            object = "_acc";
-        }
-    }
-
-    // Обработка присваивания (obj.member = value)
-    if (canAssign && match(BydaoTokenType::Assign)) {
-        if (isModule(object) || isBuiltinTypeName(object)) {
-            error("Cannot assign to module or type");
-            return false;
-        }
-
-        BydaoToken assignToken = m_current;
-        nextToken();
-        if (!parseExpression()) return false;
-
-        // TODO: реализовать присваивание свойству
-        error("Property assignment not implemented yet");
-        return false;
-    }
-
-    return true;
-}
-
-bool BydaoParser::parseCall() {
-    if (!expect(BydaoTokenType::LParen)) return false;
-
-    int argCount = 0;
-
-    if (!match(BydaoTokenType::RParen)) {
-        do {
-            if (!parseExpression()) return false;
-            argCount++;
-        } while (match(BydaoTokenType::Comma) && (nextToken(), true));
-    }
-
-    if (!expect(BydaoTokenType::RParen)) return false;
-
-    emitCode(BydaoOpCode::Call, argCount, 0);
-
-    return true;
-}
 
 bool BydaoParser::parseArrayLiteral() {
     BydaoToken token = m_current;

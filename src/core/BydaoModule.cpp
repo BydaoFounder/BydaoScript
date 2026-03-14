@@ -183,6 +183,60 @@ BydaoModuleInfo* BydaoModuleManager::loadModuleInfo(const QString& name, QString
     return infoCopy;
 }
 
+
+MetaData*   BydaoModuleManager::loadMetaData(const QString& name, QString* error) {
+    // Уже есть в кэше?
+    if (m_metaData.contains(name)) {
+        return m_metaData[name];
+    }
+
+    QString path = findModuleFile(name);
+    if (path.isEmpty()) {
+        if (error) *error = "Module not found: " + name;
+        return nullptr;
+    }
+
+    QLibrary lib(path);
+    if (!lib.load()) {
+        if (error) *error = lib.errorString();
+        return nullptr;
+    }
+
+    auto create = (BydaoModule* (*)())lib.resolve("createModule");
+    if (!create) {
+        if (error) *error = "No createModule()";
+        lib.unload();
+        return nullptr;
+    }
+
+    // ВРЕМЕННЫЙ модуль
+    BydaoModule* tempModule = create();
+    if (!tempModule) {
+        if (error) *error = "Failed to create module";
+        lib.unload();
+        return nullptr;
+    }
+
+    // Сохраняем мета-данные модуля
+    MetaData* moduleMetaData = tempModule->metaData();
+    if ( ! moduleMetaData ) {
+        if (error) *error = "Metadata is NULL for module '" + name + "'";
+        lib.unload();
+        return nullptr;
+    }
+    MetaData* metaData = new MetaData( moduleMetaData );
+    m_metaData[ name ] = metaData;
+
+    // Удаляем ВРЕМЕННЫЙ модуль (он больше не нужен)
+    auto destroy = (void (*)(BydaoModule*))lib.resolve("destroyModule");
+    if (destroy) destroy(tempModule);
+    else delete tempModule;
+
+    lib.unload();
+
+    return metaData;
+}
+
 void BydaoModuleManager::unloadAllModules() {
     // qDebug() << "Unloading all modules, count:" << m_modules.size();
 
