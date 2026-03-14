@@ -1086,6 +1086,11 @@ bool BydaoParser::parseUse() {
         }
 
         QString moduleName = m_current.text;
+        if ( isModule( moduleName ) ) {
+            error("Module '" + moduleName + "' already loaded");
+            return false;
+        }
+
         nextToken();
 
         QString alias = moduleName;
