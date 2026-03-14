@@ -22,21 +22,18 @@ namespace BydaoScript {
 
 VarMetaData::VarMetaData(){
     isConst = false;
-    isPublic = false;
     isStatic = false;
 }
 
 VarMetaData::VarMetaData( const VarMetaData& var ) {
     type = var.type;
     isConst = var.isConst;
-    isPublic = var.isPublic;
     isStatic = var.isStatic;
 }
 
-VarMetaData::VarMetaData( const QString& type, bool isConst, bool isPublic, bool isStatic ) {
+VarMetaData::VarMetaData( const QString& type, bool isConst, bool isStatic ) {
     this->type = type;
     this->isConst = isConst;
-    this->isPublic = isPublic;
     this->isStatic = isStatic;
 }
 
@@ -85,13 +82,11 @@ void    FuncArgMetaData::operator=( const FuncArgMetaData& funcArg ) {
  *
  * FuncArgMetaDataList argList;
  * QString             retType;
- * bool                isPublic;
  * bool                isStatic;
  * bool                isImmutable;
  */
 FuncMetaData::FuncMetaData(){
     retType = "Void";
-    isPublic = false;
     isStatic = false;
     isImmutable = false;
 }
@@ -99,23 +94,20 @@ FuncMetaData::FuncMetaData(){
 FuncMetaData::FuncMetaData( const FuncMetaData& func ){
     argList = func.argList;
     retType = func.retType;
-    isPublic = func.isPublic;
     isStatic = func.isStatic;
     isImmutable = func.isImmutable;
 }
 
-FuncMetaData::FuncMetaData( const QString& retType, bool isPublic, bool isStatic, bool isImmutable ) {
+FuncMetaData::FuncMetaData( const QString& retType, bool isStatic, bool isImmutable ) {
     this->retType = retType;
-    this->isPublic = isPublic;
     this->isStatic = isStatic;
     this->isImmutable = isImmutable;
 }
 
 FuncMetaData::FuncMetaData( const FuncArgMetaDataList& argList, const QString& retType,
-                            bool isPublic, bool isStatic, bool isImmutable ){
+                            bool isStatic, bool isImmutable ){
     this->argList = argList;
     this->retType = retType;
-    this->isPublic = isPublic;
     this->isStatic = isStatic;
     this->isImmutable = isImmutable;
 }

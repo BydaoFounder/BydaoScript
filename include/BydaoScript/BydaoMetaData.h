@@ -39,14 +39,6 @@ struct VarMetaData {
     bool        isConst;
 
     /**
-     * Флаг публичной функции.
-     *
-     * NOTE: Не уверен, что этот флаг нужен, так как в метаданных модуля/класса
-     * описываются только публичные функции и переменные.
-     */
-    bool        isPublic;
-
-    /**
      * Флаг статической переменной.
      * В модуле все переменные статические.
      * Статическая переменная в классе принадлежит только объекту класса.
@@ -56,7 +48,7 @@ struct VarMetaData {
 
     VarMetaData();
     VarMetaData( const VarMetaData& var );
-    VarMetaData( const QString& type, bool isConst, bool isPublic, bool isStatic );
+    VarMetaData( const QString& type, bool isConst, bool isStatic );
 
 };
 typedef QMap< QString, VarMetaData > VarMetaDataDict;
@@ -96,14 +88,6 @@ struct FuncMetaData {
     QString             retType;
 
     /**
-     * Флаг публичной функции.
-     *
-     * NOTE: Не уверен, что этот флаг нужен, так как в метаданных модуля/класса
-     * описываются только публичные функции и переменные.
-     */
-    bool                isPublic;
-
-    /**
      * Флаг статической функции.
      * В модуле все функции статические.
      * Статическая функция в классе (с признакком "static") применима к объекту класса.
@@ -118,8 +102,8 @@ struct FuncMetaData {
 
     FuncMetaData();
     FuncMetaData( const FuncMetaData& func );
-    FuncMetaData( const QString& retType, bool isPublic, bool isStatic, bool isImmutable );
-    FuncMetaData( const FuncArgMetaDataList& argList, const QString& retType, bool isPublic, bool isStatic, bool isImmutable );
+    FuncMetaData( const QString& retType, bool isStatic, bool isImmutable );
+    FuncMetaData( const FuncArgMetaDataList& argList, const QString& retType, bool isStatic, bool isImmutable );
 
     FuncMetaData&   append( const FuncArgMetaData& arg );
 

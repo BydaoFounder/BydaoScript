@@ -122,10 +122,10 @@ MetaData*   BydaoSysModule::metaData() {
     if ( ! metaData ) {
         metaData = new MetaData();
         metaData
-            ->append( "out",   FuncMetaData("Void", true, true, true) << FuncArgMetaData("str","String",false) )
-            .append( "outln",  FuncMetaData("Void", true, true, true) << FuncArgMetaData("str","String",false,"\"\"") )
-            .append( "in",     FuncMetaData("String", true, true, true) )
-            .append( "time",   FuncMetaData("Int", true, true, true) )
+            ->append( "out",   FuncMetaData("Void", true, true) << FuncArgMetaData("str","String",false) )
+            .append( "outln",  FuncMetaData("Void", true, true) << FuncArgMetaData("str","String",false,"\"\"") )
+            .append( "in",     FuncMetaData("String", true, true) )
+            .append( "time",   FuncMetaData("Int", true, true) )
             ;
     }
     return metaData;
