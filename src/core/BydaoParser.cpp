@@ -1074,59 +1074,60 @@ bool BydaoParser::parseBreakNext() {
     return false;
 }
 
+/**
+ * @brief Разбор оператора use <moduleName> [as <alias>] {, <moduleName> [as <alias>]}
+ * @return bool
+ */
 bool BydaoParser::parseUse() {
     BydaoToken token = m_current;
-    nextToken(); // next after use
 
     do {
 
+        // Получим следующий токен после оператора "use" или запятой
+
+        nextToken();
         if (!match(BydaoTokenType::Identifier)) {
             error("Expected module name");
             return false;
         }
 
         QString moduleName = m_current.text;
-        if ( isModule( moduleName ) ) {
-            error("Module '" + moduleName + "' already loaded");
-            return false;
-        }
+        if ( ! isModule( moduleName ) ) {
 
-        nextToken();
-
-        QString alias = moduleName;
-        if (match(BydaoTokenType::As)) {    // есть "as"
             nextToken();
-            if (!match(BydaoTokenType::Identifier)) {
-                error("Expected alias name");
+
+            QString alias = moduleName;
+            if (match(BydaoTokenType::As)) {    // есть "as"
+                nextToken();
+                if (!match(BydaoTokenType::Identifier)) {
+                    error("Expected alias name");
+                    return false;
+                }
+                alias = m_current.text;         // получить алиас
+                nextToken();
+            }
+
+            if (!loadModuleInfo(moduleName)) {
                 return false;
             }
-            alias = m_current.text;         // получить алиас
-            nextToken();
+
+            // Сохраняем алиас в карту модулей
+            m_moduleInfoCache[alias] = getModuleInfo(moduleName);
+
+            // Добавляем переменную в текущую область видимости
+            if ( ! appendVariable( alias ) ) {
+                return false;
+            }
+
+            // Генерируем код
+            qint16 moduleNameIdx = addString(moduleName);
+            qint16 aliasIdx = addString(alias);
+            emitCode(BydaoOpCode::UseModule, moduleNameIdx, aliasIdx, token);
         }
 
-        if (!loadModuleInfo(moduleName)) {
-            return false;
-        }
+        // Продолжим обработку, если есть запятая
 
-        // Сохраняем алиас в карту модулей
-        m_moduleInfoCache[alias] = getModuleInfo(moduleName);
-
-        // Добавляем переменную в текущую область видимости
-        if ( ! appendVariable( alias ) ) {
-            return false;
-        }
-
-        // Генерируем код
-        qint16 moduleNameIdx = addString(moduleName);
-        qint16 aliasIdx = addString(alias);
-        emitCode(BydaoOpCode::UseModule, moduleNameIdx, aliasIdx, token);
-
-        // Если нет запятой - заканчиваем
-        if ( ! match(BydaoTokenType::Comma) ) {
-            break;
-        }
-        nextToken(); // пропускаем запятую
-    } while ( true );
+    } while ( match(BydaoTokenType::Comma) );
 
     return true;
 }
