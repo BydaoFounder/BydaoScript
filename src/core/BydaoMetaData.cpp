@@ -73,6 +73,13 @@ FuncArgMetaData::FuncArgMetaData( const QString& name, const QString& type, bool
     this->defVal = defVal;
 }
 
+void    FuncArgMetaData::operator=( const FuncArgMetaData& funcArg ) {
+    name = funcArg.name;
+    type = funcArg.type;
+    isOut = funcArg.isOut;
+    defVal = funcArg.defVal;
+}
+
 /**
  * Свойства функции модуля/класса.
  *
@@ -114,7 +121,7 @@ FuncMetaData::FuncMetaData( const FuncArgMetaDataList& argList, const QString& r
 }
 
 FuncMetaData&   FuncMetaData::append( const FuncArgMetaData& arg ) {
-    argList << arg;
+    argList.append( arg );
     return *this;
 }
 
@@ -140,6 +147,13 @@ MetaData::MetaData(){
 MetaData::MetaData( const MetaData& data ){
     vars = data.vars;
     funcs = data.funcs;
+}
+
+MetaData::MetaData( MetaData* data ){
+    if ( data != nullptr ) {
+        vars = data->vars;
+        funcs = data->funcs;
+    }
 }
 
 MetaData&   MetaData::append( const QString& varName, const VarMetaData& var ){

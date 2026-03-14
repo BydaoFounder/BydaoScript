@@ -75,6 +75,8 @@ struct FuncArgMetaData {
     FuncArgMetaData( const FuncArgMetaData& funcArg );
     FuncArgMetaData( const QString& name, const QString& type, bool isOut );
     FuncArgMetaData( const QString& name, const QString& type, bool isOut, const QString& defVal );
+
+    void    operator=( const FuncArgMetaData& funcArg );
 };
 typedef QList< FuncArgMetaData >    FuncArgMetaDataList;
 
@@ -137,6 +139,7 @@ struct MetaData {
 
     MetaData();
     MetaData( const MetaData& data );
+    MetaData( MetaData* data );
 
     MetaData&   append( const QString& varName, const VarMetaData& var );
     MetaData&   append( const QString& funcName, const FuncMetaData& func );
