@@ -11,10 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "BydaoScript/BydaoParser.h"
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QDebug>
+
+#include "BydaoScript/BydaoParser.h"
+#include "BydaoScript/BydaoIntClass.h"
+#include "BydaoScript/BydaoString.h"
 
 namespace BydaoScript {
 
@@ -40,11 +44,23 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     // Добавляем пустую строку под индексом 0
     addString("");
 
+    // Инициализировать встроенные типы данных
     initBuiltinTypes();
+
+    BydaoIntClass* intClass = new BydaoIntClass();
+    MetaData* intMetaData = new MetaData( intClass->metaData() );
+    delete intClass;
+    m_metaData["Int"] = intMetaData;
+
+    BydaoString* strClass = BydaoString::create("");
+    MetaData* strMetaData = new MetaData( strClass->metaData() );
+    delete strClass;
+    m_metaData["String"] = strMetaData;
 }
 
 BydaoParser::~BydaoParser() {
-    qDeleteAll(m_moduleInfoCache);
+    qDeleteAll( m_moduleInfoCache );
+    qDeleteAll( m_metaData );   // !!! TODO: Падает при выходе
 }
 
 // ============================================================
@@ -157,10 +173,11 @@ bool BydaoParser::peek(BydaoTokenType type, int offset) const {
 }
 
 void BydaoParser::error(const QString& msg) {
-    m_errors.append(QString("%1 at %2:%3")
-                   .arg(msg)
-                   .arg(m_current.line)
-                   .arg(m_current.column));
+    m_errors.append( QString("%1 at %2:%3").arg(msg).arg(m_current.line).arg(m_current.column) );
+}
+
+void BydaoParser::error(const QString& msg, const BydaoToken& token) {
+    m_errors.append( QString("%1 at %2:%3").arg(msg).arg(token.line).arg(token.column) );
 }
 
 // ============================================================
@@ -240,6 +257,7 @@ bool BydaoParser::appendVariable(const QString& name, bool isConstant, bool isPu
     // Сохраняем в текущей области видимости
     VariableInfo info;
     info.name = name;
+    info.type = "Null";
     info.scopeDepth = scopeIndex;
     info.varIndex = varIndex;
     info.isConstant = isConstant;
@@ -292,6 +310,17 @@ bool BydaoParser::removeVariable(const QString& name ) {
         }
     }
     return false;
+}
+
+void BydaoParser::setVariableType(const QString& name, const QString type) {
+
+    int stackSize = m_varScopes.size();
+    for ( int i = stackSize-1; i >= 0; --i ) {
+        if ( m_varScopes[ i ].varInfo.contains( name ) ) {
+            m_varScopes[ i ].varInfo[name].type = type;
+            break;
+        }
+    }
 }
 
 // ============================================================
@@ -385,7 +414,7 @@ bool BydaoParser::loadMetaData(const QString& name) {
     QString errorMsg;
     MetaData* metaData = BydaoModuleManager::instance().loadMetaData(name, &errorMsg);
     if ( metaData ) {
-        m_metaData[name] = metaData;
+        m_metaData[name] = new MetaData( metaData );
         return true;
     }
 
@@ -511,6 +540,9 @@ bool BydaoParser::parsePubDecl() {
     }
 }
 
+/**
+ * Определение новой переменной: "var" name [ "=" expr ]
+ */
 bool BydaoParser::parseVarDecl( bool isPublic ) {
     BydaoToken token = m_current;
     nextToken(); // var
@@ -535,10 +567,25 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
     qint16 nameIndex = addString(name);
     emitCode(BydaoOpCode::VarDecl, nameIndex, 0, token);
 
-    if (match(BydaoTokenType::Assign)) {
+    if (match(BydaoTokenType::Assign)) {    // с инициализацией
+
         nextToken();
+
+        BydaoToken exprToken = m_current;
         if (!parseExpression()) return false;
-    } else {
+
+        if ( m_typeStack.size() == 0 ) {
+            error("Internal error: empty stack of value types");
+            return false;
+        }
+        TypeInfo typeInfo = m_typeStack.pop();
+        if ( typeInfo.type == "Void" ) {
+            error("Cannot assign void value", exprToken );
+            return false;
+        }
+        setVariableType( name, typeInfo.type );
+    }
+    else {                                  // со значением null
         qint16 nullConst = addNullConstant();
         emitCode(BydaoOpCode::PushConst, nullConst, 0, token);
     }
@@ -1284,8 +1331,11 @@ bool BydaoParser::parsePrimaryBase() {
 
         if (text.contains('.') || text.contains('e') || text.contains('E')) {
             constIndex = addConstant(text.toDouble());
-        } else {
+            m_typeStack.push( TypeInfo("Real") );
+        }
+        else {
             constIndex = addConstant(text.toLongLong());
+            m_typeStack.push( TypeInfo("Int") );
         }
 
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
@@ -1300,6 +1350,7 @@ bool BydaoParser::parsePrimaryBase() {
         }
         qint16 constIndex = addConstant(text);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
+        m_typeStack.push( TypeInfo("String") );
         nextToken();
         return true;
     }
@@ -1317,6 +1368,7 @@ bool BydaoParser::parsePrimaryBase() {
     if (match(BydaoTokenType::False)) {
         qint16 constIndex = addConstant(false);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
+        m_typeStack.push( TypeInfo("Bool") );
         nextToken();
         return true;
     }
@@ -1324,6 +1376,7 @@ bool BydaoParser::parsePrimaryBase() {
     if (match(BydaoTokenType::True)) {
         qint16 constIndex = addConstant(true);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
+        m_typeStack.push( TypeInfo("Bool") );
         nextToken();
         return true;
     }
@@ -1331,6 +1384,7 @@ bool BydaoParser::parsePrimaryBase() {
     if (match(BydaoTokenType::Null)) {
         qint16 constIndex = addNullConstant();
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
+        m_typeStack.push( TypeInfo("Null") );
         nextToken();
         return true;
     }
@@ -1348,28 +1402,34 @@ bool BydaoParser::parsePrimary() {
         QString name = m_current.text;
         BydaoToken nameToken = m_current;
 
-        // Определяем тип идентификатора
-        if (isBuiltinTypeName(name)) {
-            // Встроенный тип: Int, String, Array и т.д.
-            nextToken(); // съедаем имя типа
-            qint16 typeIdx = addString(name);
-            emitCode(BydaoOpCode::TypeClass, typeIdx, 0, nameToken);
-        }
-        else if (isModule(name)) {
-            // Модуль (загружен через use)
-            if (!isVariableDeclared(name)) {
-                error("Module not loaded: " + name);
-                return false;
+        if ( m_metaData.contains( name ) ) {    // это название типа данных или модуля
+
+            MetaData* metaData = m_metaData[ name ];
+            if ( metaData->external ) {         // внешний модуль/класс
+                // Должен быть уже загружен через use
+                if (!isVariableDeclared(name)) {
+                    error("External module not loaded: " + name);
+                    return false;
+                }
+                nextToken(); // съедаем имя модуля
+                VariableInfo info = resolveVariable(name);
+                emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
+                m_typeStack.push( TypeInfo( name ) );
             }
-            nextToken(); // съедаем имя модуля
-            VariableInfo info = resolveVariable(name);
-            emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
+            else {                              // внутренний тип/класс
+                // Встроенный тип: Int, String, Array и т.д.
+                nextToken(); // съедаем имя типа
+                qint16 typeIdx = addString(name);
+                emitCode(BydaoOpCode::TypeClass, typeIdx, 0, nameToken);
+                m_typeStack.push( TypeInfo( name ) );
+            }
         }
         else if (isVariableDeclared(name)) {
             // Обычная переменная
             nextToken(); // съедаем имя переменной
             VariableInfo info = resolveVariable(name);
             emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
+            m_typeStack.push( TypeInfo( info.type ) );
         }
         else {
             error("Undeclared identifier: " + name);
@@ -1416,6 +1476,12 @@ bool BydaoParser::parseCallSuffix() {
     BydaoToken token = m_current;   // '('
     nextToken();                    // следущий токен за '('
 
+    const TypeInfo& typeInfo = m_typeStack.top();
+    QString typeName = typeInfo.type;
+    QString memberName = typeInfo.member;
+    MetaData* metaData = m_metaData[ typeInfo.type ];
+    const FuncMetaData func = metaData->func( memberName );
+
     // Парсим аргументы, если они есть
 
     int argCount = 0;
@@ -1424,6 +1490,20 @@ bool BydaoParser::parseCallSuffix() {
             if (!parseExpression()) {
                 error("Expected expression in argument list");
                 return false;
+            }
+
+            QString argType = func.argList[ argCount ].type;
+            TypeInfo argTypeInfo = m_typeStack.pop();
+            if ( argTypeInfo.type != argType ) {
+                if ( ! m_metaData.contains( argType ) ) {
+                    error("Undefined type " + argType );
+                    return false;
+                }
+                MetaData* argMetaData = m_metaData[ argType ];
+                if ( ! argMetaData->hasFunc( QString("to%1").arg(argType) ) ) {
+                    error("Function argument cannot be converted to " + argType );
+                    return false;
+                }
             }
             argCount++;
 
@@ -1435,17 +1515,30 @@ bool BydaoParser::parseCallSuffix() {
         } while (true);
     }
 
+    // TODO: Добавить недостающие аргументы значениями по умолчанию
+
+    if ( argCount != func.argCount() ) {
+        error("Insufficient argument number for " + memberName );
+        return false;
+    }
+
     // Ожидаем закрывающую скобку
     if (!expect(BydaoTokenType::RParen)) {
         error("Expected ')' after arguments");
         return false;
     }
 
+    // Удалим информацию о типе и методе
+    m_typeStack.pop();
+
+    // Сохраним тип возвращаемого значения
+    m_typeStack.push( func.retType );
+
     // Генерируем инструкцию CALL
     // Объект для вызова уже лежит на стеке (результат предыдущих операций)
     // Аргументы лежат на стеке в правильном порядке (благодаря parseExpression)
 //    qDebug() << "parseCallSuffix: emitting CALL with" << argCount << "arguments";
-    emitCode(BydaoOpCode::Call, argCount, 0, token);
+    emitCode( func.retType == "Void" ? BydaoOpCode::CallVoid : BydaoOpCode::Call, argCount, 0, token);
 
     return true;
 }
@@ -1472,7 +1565,15 @@ bool BydaoParser::parseMemberSuffix() {
 
     QString memberName = m_current.text;
     BydaoToken memberToken = m_current;
-//    qDebug() << "parseMemberSuffix: member name =" << memberName;
+
+    // Проверим наличие текущего типа данных
+    TypeInfo& typeInfo = m_typeStack.top();
+    if ( ! m_metaData.contains( typeInfo.type ) ) {
+        qDebug() << "Check member for type" + typeInfo.type;
+        error("Not found metadata for " + typeInfo.type);
+        return false;
+    }
+    MetaData* metaData = m_metaData[ typeInfo.type ];
 
     // Добавляем имя члена в таблицу строк
     qint16 memberIdx = addString(memberName);
@@ -1482,12 +1583,37 @@ bool BydaoParser::parseMemberSuffix() {
 
     // Смотрим, что идёт после имени члена
     if (match(BydaoTokenType::LParen)) {
+
+        // Проверим, что у текущего типа есть такая функция
+
+        if ( ! metaData->hasFunc( memberName ) ) {
+            error("Type " + typeInfo.type + " does not have function " + memberName);
+            return false;
+        }
+
+        // Запомним название метода
+
+        typeInfo.member = memberName;
+
         // Это вызов метода - используем METHOD
-//        qDebug() << "  -> method call, emitting METHOD";
+
         emitCode(BydaoOpCode::Method, memberIdx, 0, memberToken);
-    } else {
+    }
+    else {
+
+        // Проверим, что у текущего типа есть такая переменная
+
+        if ( ! metaData->hasVar( memberName ) ) {
+            error("Type " + typeInfo.type + " does not have member " + memberName);
+            return false;
+        }
+
+        // Сохраним тип переменной
+
+        m_typeStack.pop();
+        m_typeStack.push( metaData->var( memberName ).type );
+
         // Это доступ к свойству - используем MEMBER
-//        qDebug() << "  -> property access, emitting MEMBER";
         emitCode(BydaoOpCode::Member, memberIdx, 0, memberToken);
     }
 
@@ -1549,6 +1675,8 @@ bool BydaoParser::parseArrayLiteral() {
     }
 
     if (!expect(BydaoTokenType::RBracket)) return false;
+
+    m_typeStack.push( TypeInfo( "Array" ) );
 
     // Генерируем PushArray с количеством элементов
     // Элементы уже на стеке в правильном порядке (благодаря parseExpression)

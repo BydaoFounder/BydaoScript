@@ -121,6 +121,7 @@ MetaData*   BydaoSysModule::metaData() {
     static MetaData* metaData = nullptr;
     if ( ! metaData ) {
         metaData = new MetaData();
+        metaData->external = true;
         metaData
             ->append( "out",   FuncMetaData("Void", true, true) << FuncArgMetaData("str","String",false) )
             .append( "outln",  FuncMetaData("Void", true, true) << FuncArgMetaData("str","String",false,"\"\"") )

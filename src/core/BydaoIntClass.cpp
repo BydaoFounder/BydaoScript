@@ -22,11 +22,11 @@ namespace BydaoScript {
 BydaoIntClass::BydaoIntClass(QObject* parent)
     : BydaoNative(parent)
 {
-    registerMethod("range", &BydaoIntClass::method_range);
-    registerMethod("parse", &BydaoIntClass::method_parse);
-    registerMethod("max", &BydaoIntClass::method_max);
-    registerMethod("min", &BydaoIntClass::method_min);
-    registerMethod("random", &BydaoIntClass::method_random);
+    registerMethod("range",     &BydaoIntClass::method_range);
+    registerMethod("parse",     &BydaoIntClass::method_parse);
+    registerMethod("max",       &BydaoIntClass::method_max);
+    registerMethod("min",       &BydaoIntClass::method_min);
+    registerMethod("random",    &BydaoIntClass::method_random);
 }
 
 void BydaoIntClass::registerMethod(const QString& name, MethodPtr method) {
@@ -41,6 +41,47 @@ bool BydaoIntClass::callMethod(const QString& name,
         return (this->*(it.value()))(args, result);
     }
     return false;
+}
+
+// Получить мета-данные
+MetaData*   BydaoIntClass::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // Методы класса
+            ->append( "range",  FuncMetaData("IntRange", true, true)
+                                    << FuncArgMetaData("from","Int",false)
+                                    << FuncArgMetaData("to","Int",false)
+            )
+            .append( "parse",   FuncMetaData("Int", true, true)
+                                    << FuncArgMetaData("str","String",false)
+            )
+            .append( "max",     FuncMetaData("Int", true, true)
+                                    << FuncArgMetaData("arg1","Int",false)
+                                    << FuncArgMetaData("arg2","Int",false)
+            )
+            .append( "min",     FuncMetaData("Int", true, true)
+                                   << FuncArgMetaData("arg1","Int",false)
+                                   << FuncArgMetaData("arg2","Int",false)
+            )
+            .append( "range",   FuncMetaData("Int", true, true)
+                                    << FuncArgMetaData("from","Int",false)
+                                    << FuncArgMetaData("to","Int",false)
+            )
+            // методы объекта
+            .append( "toString", FuncMetaData("String", false, true)
+                                    << FuncArgMetaData("arg","Int",false)
+            )
+            .append( "toReal",  FuncMetaData("Real", false, true) )
+            .append( "toBool",  FuncMetaData("Bool", false, true) )
+            .append( "abs",     FuncMetaData("Int", false, true) )
+            .append( "negate",  FuncMetaData("Int", false, true) )
+            .append( "isNull",  FuncMetaData("Bool", false, true) )
+            .append( "toHex",   FuncMetaData("String", false, true) )
+        ;
+    }
+    return metaData;
 }
 
 // Int.range(start, end) -> возвращает итератор по числам от start до end-1

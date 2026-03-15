@@ -13,12 +13,13 @@
 // limitations under the License.
 #pragma once
 
-#include "BydaoObject.h"
-#include "BydaoValue.h"
 #include <QObject>
 #include <QHash>
 #include <QSet>
 #include <functional>
+
+#include "BydaoObject.h"
+#include "BydaoValue.h"
 
 namespace BydaoScript {
 
@@ -48,7 +49,7 @@ public:
     // Абстрактный метод — каждый класс реализует сам
     virtual bool callMethod(const QString& name,
                             const QVector<BydaoValue>& args,
-                            BydaoValue& result) = 0;
+                            BydaoValue& result) override = 0;
 
     // Получить итератор
     virtual BydaoValue iter() override;

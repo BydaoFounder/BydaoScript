@@ -27,12 +27,13 @@ namespace BydaoScript {
 
 // Информация о переменной
 struct VariableInfo {
-    QString name;
-    int scopeDepth;         // глубина области, где объявлена
-    int varIndex;           // индекс в этой области
-    bool isConstant;        // true для констант
-    bool isPublic;          // true для pub-переменных/констант
-    BydaoValue constValue;  // значение константы для вычислителя
+    QString     name;
+    QString     type;
+    int         scopeDepth;     // глубина области, где объявлена
+    int         varIndex;       // индекс в этой области
+    bool        isConstant;     // true для констант
+    bool        isPublic;       // true для pub-переменных/констант
+    BydaoValue  constValue;     // значение константы для вычислителя
 };
 
 // Информация о цикле (для break/next)
@@ -80,6 +81,7 @@ private:
     bool expect(BydaoTokenType type);
     bool peek(BydaoTokenType type, int offset = 1) const;
     void error(const QString& msg);
+    void error(const QString& msg, const BydaoToken& token );
 
     // ===== Таблицы =====
     qint16 addString(const QString& str);
@@ -104,6 +106,7 @@ private:
     VariableInfo resolveVariable(const QString& name);
     bool isVariableDeclared(const QString& name);
     bool removeVariable(const QString& name);
+    void setVariableType( const QString& name, const QString type );
 
     // ===== Семантический анализ =====
     void initBuiltinTypes();
@@ -197,7 +200,24 @@ private:
     int m_iteratorCounter;
 
     // Мета-данные типов данных
-    QHash<QString, MetaData*> m_metaData;
+    QHash<QString, MetaData*>   m_metaData;
+
+    // Стек типов данных
+    struct TypeInfo {
+        QString type;
+        QString member;
+
+        TypeInfo( const QString& type ) {
+            this->type = type;
+            this->member = QString();
+        }
+
+        TypeInfo( const QString& type, const QString& member ) {
+            this->type = type;
+            this->member = member;
+        }
+    };
+    QStack< TypeInfo >          m_typeStack;
 };
 
 } // namespace BydaoScript

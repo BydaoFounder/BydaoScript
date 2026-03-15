@@ -862,7 +862,78 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         break;
     }
-    
+
+    case BydaoOpCode::CallVoid: {
+        int argCount = instr.arg1;
+        if ( m_traceMode ) {
+            dumpStack("Before CALLVOID at PC " + QString::number(m_pc-1) +
+                      ", argCount=" + QString::number(argCount));
+        }
+
+        // Забираем аргументы
+        QVector<BydaoValue> args;
+        for (int i = 0; i < argCount; i++) {
+            if (m_stack.isEmpty()) {
+                error("Stack underflow: not enough arguments", instr);
+                return false;
+            }
+            args.prepend(m_stack.pop());
+        }
+
+        // Имя метода должно быть на стеке (от предыдущей инструкции METHOD)
+        if (m_stack.size() < 2) {
+            error("Stack underflow: no method name and object for CALLVOID", instr);
+            return false;
+        }
+
+        // Проверяем, что на стеке строка - имя метода
+        if (!m_stack.top().isObject() || m_stack.top().typeId() != TYPE_STRING) {
+            BydaoValue badValue = m_stack.top();
+            QString valueDesc;
+            if (badValue.isObject()) {
+                valueDesc = badValue.toObject()->typeName();
+            } else {
+                valueDesc = "non-object";
+            }
+
+            // Пытаемся определить, что хотели вызвать
+            QString hint;
+            if (instr.arg2 >= 0 && instr.arg2 < m_stringTable.size()) {
+                hint = m_stringTable[instr.arg2];
+            } else {
+                hint = "unknown";
+            }
+
+            error(QString("Cannot call '%1' as function - it is a %2")
+                      .arg(hint)
+                      .arg(valueDesc), instr);
+            return false;
+        }
+
+        QString methodName = m_stack.pop().toString();
+        BydaoValue obj = m_stack.pop();
+
+        if (!obj.isObject()) {
+            error("CALLVOID on non-object", instr);
+            return false;
+        }
+
+        //        qDebug() << "  calling method:" << methodName << "on object type:" << obj.toObject()->typeName();
+
+        BydaoValue result;
+        if (obj.toObject()->callMethod(methodName, args, result)) {
+            if ( m_traceMode ) {
+                dumpStack("After CALLVOID");
+            }
+        } else {
+            error(QString("Method not found: '%1' on object of type '%2'")
+                      .arg(methodName)
+                      .arg(obj.toObject()->typeName()), instr);
+            return false;
+        }
+        break;
+    }
+
     // ===== Модули и типы =====
     case BydaoOpCode::UseModule: {
         if (m_scopeStack.size() != 1) {

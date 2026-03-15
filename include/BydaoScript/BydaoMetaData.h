@@ -118,12 +118,13 @@ typedef QMap< QString, FuncMetaData > FuncMetaDataDict;
  */
 struct MetaData {
 
+    bool                external;
     VarMetaDataDict     vars;
     FuncMetaDataDict    funcs;
 
     MetaData();
     MetaData( const MetaData& data );
-    MetaData( MetaData& data );
+//    MetaData( MetaData& data );
     MetaData( MetaData* data );
 
     MetaData&   operator=( MetaData* data );

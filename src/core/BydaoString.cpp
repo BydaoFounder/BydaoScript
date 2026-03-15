@@ -36,7 +36,7 @@ BydaoString::BydaoString(const QString& value, QObject* parent)
     registerMethod("upper", &BydaoString::method_upper);
     registerMethod("lower", &BydaoString::method_lower);
     registerMethod("trim", &BydaoString::method_trim);
-    registerMethod("substring", &BydaoString::method_substring);
+    registerMethod("substr", &BydaoString::method_substring);
     registerMethod("indexOf", &BydaoString::method_indexOf);
     registerMethod("contains", &BydaoString::method_contains);
     registerMethod("startsWith", &BydaoString::method_startsWith);
@@ -49,7 +49,7 @@ BydaoString::BydaoString(const QString& value, QObject* parent)
     registerMethod("md5", &BydaoString::method_md5);
 #endif
 
-    registerMethod("iter", &BydaoString::method_iter);  // ← добавить
+    registerMethod("iter", &BydaoString::method_iter);
 
     // Свойства
     registerProperty("length",
@@ -60,6 +60,44 @@ BydaoString::BydaoString(const QString& value, QObject* parent)
 
 void BydaoString::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
+}
+
+
+// Получить мета-данные
+MetaData*   BydaoString::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы объекта
+            ->append( "toString",   FuncMetaData("String", false, true) )
+            .append( "isNull",      FuncMetaData("Bool", false, true) )
+            .append( "length",      FuncMetaData("Int", false, true) )
+            .append( "upper",       FuncMetaData("String", false, true) )
+            .append( "lower",       FuncMetaData("String", false, true) )
+            .append( "trim",        FuncMetaData("String", false, true) )
+            .append( "substr",      FuncMetaData("String", false, true)
+                                        << FuncArgMetaData("from","Int",false)
+                                        << FuncArgMetaData("len","Int",false,"null")
+            )
+            .append( "indexOf",     FuncMetaData("Int", false, true)
+                                        << FuncArgMetaData("str","String",false)
+                                        << FuncArgMetaData("pos","Int",false,"0")
+            )
+            .append( "contains",    FuncMetaData("Bool", false, true)
+                                        << FuncArgMetaData("str","String",false)
+            )
+            .append( "startsWith",  FuncMetaData("Bool", false, true)
+                                        << FuncArgMetaData("str","String",false)
+            )
+            .append( "endsWith",    FuncMetaData("Bool", false, true)
+                                        << FuncArgMetaData("str","String",false)
+            )
+            .append( "toReal",      FuncMetaData("Real", false, true) )
+            .append( "toInt",       FuncMetaData("Int", false, true) )
+        ;
+    }
+    return metaData;
 }
 
 bool BydaoString::callMethod(const QString& name,
@@ -181,13 +219,18 @@ bool BydaoString::method_substring(const QVector<BydaoValue>& args, BydaoValue& 
     if (args.size() < 1 || args.size() > 2) return false;
 
     qint64 start = args[0].toInt();
-    qint64 end = (args.size() == 2) ? args[1].toInt() : m_value.length();
+    qint64 len = m_value.length() - start;
+    if ( args.size() == 2) {
+        if ( ! args[1].isNull() ) {
+            len = args[1].toInt();
+        }
+    }
 
-    if (start < 0 || start > m_value.length() || end < start || end > m_value.length()) {
+    if (start < 0 || start > m_value.length() || len < 0 || start + len > m_value.length()) {
         return false;
     }
 
-    result = BydaoValue(BydaoString::create(m_value.mid(start, end - start)));
+    result = BydaoValue( BydaoString::create( m_value.mid(start, len) ) );
     return true;
 }
 
@@ -195,7 +238,12 @@ bool BydaoString::method_indexOf(const QVector<BydaoValue>& args, BydaoValue& re
     if (args.size() < 1 || args.size() > 2) return false;
 
     QString sub = args[0].toString();
-    qint64 from = (args.size() == 2) ? args[1].toInt() : 0;
+    qint64 from = 0;
+    if ( args.size() == 2 ) {
+        if ( ! args[1].isNull() ) {
+            from = args[1].toInt();
+        }
+    }
 
     long idx = m_value.indexOf(sub, from);
     result = BydaoValue(BydaoInt::create(idx));

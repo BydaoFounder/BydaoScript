@@ -16,7 +16,9 @@
 #include <QString>
 #include <QVector>
 #include <QDebug>
+
 #include "BydaoValue.h"
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -32,6 +34,9 @@ public:
     virtual bool callMethod(const QString& name,
                             const QVector<BydaoValue>& args,
                             BydaoValue& result) = 0;
+
+    // Получить мета-данные
+    virtual MetaData*   metaData() { return nullptr; };
 
     // Информация о типе
     virtual QString typeName() const = 0;

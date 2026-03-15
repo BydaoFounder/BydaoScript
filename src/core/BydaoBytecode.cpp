@@ -58,6 +58,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Method] = "METHOD";  // ← новая строка
         names[BydaoOpCode::Index] = "INDEX";
         names[BydaoOpCode::Call] = "CALL";
+        names[BydaoOpCode::CallVoid] = "CALLVOID";
         names[BydaoOpCode::Jump] = "JUMP";
         names[BydaoOpCode::JumpIfFalse] = "JMPF";
         names[BydaoOpCode::JumpIfTrue] = "JMPT";

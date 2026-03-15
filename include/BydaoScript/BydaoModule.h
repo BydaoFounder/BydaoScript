@@ -18,7 +18,6 @@
 #include <QHash>
 
 #include "BydaoNative.h"
-#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -84,8 +83,6 @@ public:
 
     // Мета-информация для парсера
     virtual BydaoModuleInfo* info() const = 0;
-
-    virtual MetaData*   metaData() { return nullptr; };
 
     // Жизненный цикл
     virtual bool initialize();

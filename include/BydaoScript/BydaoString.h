@@ -48,6 +48,9 @@ public:
         return new BydaoString(value);
     }
 
+    // Получить мета-данные
+    virtual MetaData*   metaData() override;
+
     QString typeName() const override { return "String"; }
     const QString& value() const { return m_value; }
     int length() const { return m_value.length(); }

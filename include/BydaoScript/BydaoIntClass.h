@@ -25,6 +25,9 @@ public:
     explicit BydaoIntClass(QObject* parent = nullptr);
     virtual ~BydaoIntClass() = default;
 
+    // Получить мета-данные
+    virtual MetaData*   metaData() override;
+
     QString typeName() const override { return "IntClass"; }
 
     bool callMethod(const QString& name,
