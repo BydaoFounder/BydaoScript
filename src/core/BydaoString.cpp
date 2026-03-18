@@ -69,6 +69,9 @@ MetaData*   BydaoString::metaData() {
     if ( ! metaData ) {
         metaData = new MetaData();
         metaData
+            // переменные объекта
+            ->append( "length",     VarMetaData("Int",true,false) );
+        metaData
             // методы объекта
             ->append( "toString",   FuncMetaData("String", false, true) )
             .append( "isNull",      FuncMetaData("Bool", false, true) )

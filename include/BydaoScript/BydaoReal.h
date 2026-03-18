@@ -37,7 +37,7 @@ protected:
 
 public:
 
-    static BydaoReal* create(double value) {
+    static BydaoReal* create(double value = 0.0) {
         if (!s_cache.isEmpty()) {
             BydaoReal* obj = s_cache.takeLast();
             obj->m_value = value;
@@ -45,6 +45,9 @@ public:
         }
         return new BydaoReal(value);
     }
+
+    // Получить мета-данные
+    virtual MetaData*   metaData() override;
 
     QString typeName() const override { return "Real"; }
     double value() const { return m_value; }

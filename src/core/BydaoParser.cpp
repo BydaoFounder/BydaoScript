@@ -18,6 +18,7 @@
 
 #include "BydaoScript/BydaoParser.h"
 #include "BydaoScript/BydaoIntClass.h"
+#include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoString.h"
 
 namespace BydaoScript {
@@ -51,6 +52,11 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     MetaData* intMetaData = new MetaData( intClass->metaData() );
     delete intClass;
     m_metaData["Int"] = intMetaData;
+
+    BydaoReal* realClass = BydaoReal::create();
+    MetaData* realMetaData = new MetaData( realClass->metaData() );
+    delete realClass;
+    m_metaData["Real"] = realMetaData;
 
     BydaoString* strClass = BydaoString::create("");
     MetaData* strMetaData = new MetaData( strClass->metaData() );
@@ -678,24 +684,30 @@ bool BydaoParser::parseAssign() {
     }
 
     // ПРОВЕРКА НА КОНСТАНТУ
-    VariableInfo info = resolveVariable(name);
-    if (info.isConstant) {
+    VariableInfo varInfo = resolveVariable(name);
+    if (varInfo.isConstant) {
         error("Cannot assign to constant: " + name);
         return false;
     }
 
-    nextToken(); // identifier
+    nextToken(); // must be '='
     if ( ! expect( BydaoTokenType::Assign ) ) {
         error("Unexpected expression after identifier");
         return false;
     }
 
     if (!parseExpression()) {
-        error("Expected expression after =");
+        error("Expected expression after '='");
         return false;
     }
 
-    emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
+    TypeInfo exprType = m_typeStack.pop();
+    QString varType = varInfo.type;
+    if ( varType != "Null" && varType != exprType.type ) {
+        error( "Cannot assign value of type '" + exprType.type + "' to variable of type '" + varType + "'", nameToken );
+        return false;
+    }
+    emitCode(BydaoOpCode::Store, varInfo.scopeDepth, varInfo.varIndex, nameToken);
 
     return true;
 }
@@ -1345,9 +1357,6 @@ bool BydaoParser::parsePrimaryBase() {
 
     if (match(BydaoTokenType::String)) {
         QString text = m_current.text;
-        if (text.length() >= 2 && (text.startsWith('\'') || text.startsWith('"'))) {
-            text = text.mid(1, text.length() - 2);
-        }
         qint16 constIndex = addConstant(text);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
         m_typeStack.push( TypeInfo("String") );
@@ -1487,21 +1496,37 @@ bool BydaoParser::parseCallSuffix() {
     int argCount = 0;
     if (!match(BydaoTokenType::RParen)) {
         do {
+
+            BydaoToken argToken = m_current;
+
             if (!parseExpression()) {
                 error("Expected expression in argument list");
                 return false;
             }
 
-            QString argType = func.argList[ argCount ].type;
-            TypeInfo argTypeInfo = m_typeStack.pop();
-            if ( argTypeInfo.type != argType ) {
-                if ( ! m_metaData.contains( argType ) ) {
-                    error("Undefined type " + argType );
+            const QStringList& argTypeList = func.argList[ argCount ].types;    // допустимые типы аргумента функции
+
+            TypeInfo exprTypeInfo = m_typeStack.pop();      // тип выражения аргумента
+            QString exprType = exprTypeInfo.type;
+            if ( ! argTypeList.contains( exprType ) ) {     // тип выражения не соответствует ни одному допустимому типу аргумента функции
+
+                // Для типа выражения проверить наличие функции приведения к типу аргумента
+
+                if ( ! m_metaData.contains( exprType ) ) {
+                    error("Unknown expession type '" + exprType + "'" );
                     return false;
                 }
-                MetaData* argMetaData = m_metaData[ argType ];
-                if ( ! argMetaData->hasFunc( QString("to%1").arg(argType) ) ) {
-                    error("Function argument cannot be converted to " + argType );
+                bool canConvert = false;
+                MetaData* exprMetaData = m_metaData[ exprType ];
+                for ( int i = 0; i < argTypeList.size(); ++i ) {
+                    const QString& argType = argTypeList[ i ];
+                    if ( exprMetaData->hasFunc( QString("to%1").arg(argType) ) ) {
+                        canConvert = true;
+                        break;
+                    }
+                }
+                if ( ! canConvert ) {
+                    error( QString( "Argument %1 cannot convert to allowed type" ).arg( argCount + 1 ), argToken );
                     return false;
                 }
             }

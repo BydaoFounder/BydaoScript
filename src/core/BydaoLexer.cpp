@@ -73,14 +73,20 @@ bool BydaoLexer::skipComment() {
 
 BydaoToken BydaoLexer::readNumber() {
     int start = m_pos, startCol = m_column;
-    bool hasDot = false;
-    while (m_pos < m_source.length()) {
-        QChar ch = m_source[m_pos];
-        if (ch.isDigit()) { m_pos++; m_column++; }
-        else if (ch == '.' && !hasDot) { hasDot = true; m_pos++; m_column++; }
-        else break;
-    }
-    QString text = m_source.mid(start, m_pos - start);
+
+    QString text = extractNumber();
+    m_pos = start + text.length();
+    m_column = startCol + text.length();
+
+    // bool hasDot = false;
+    // while (m_pos < m_source.length()) {
+    //     QChar ch = m_source[m_pos];
+    //     if (ch.isDigit()) { m_pos++; m_column++; }
+    //     else if (ch == '.' && !hasDot) { hasDot = true; m_pos++; m_column++; }
+    //     else break;
+    // }
+    // QString text = m_source.mid(start, m_pos - start);
+
     return BydaoToken(BydaoTokenType::Number, text, m_line, startCol);
 }
 
@@ -204,13 +210,105 @@ QVector<BydaoToken> BydaoLexer::tokenize() {
         if (skipComment()) continue;
 
         QChar ch = m_source[m_pos];
-        if (ch.isDigit()) tokens.append(readNumber());
+        if ( ch.isDigit() ||                                        // 123, 1.233
+            ( ch == '-' && QChar(m_source[m_pos+1]).isDigit() ) ) { // -123, -0.234
+            tokens.append(readNumber());
+        }
         else if (ch.isLetter() || ch == '_') tokens.append(readIdentifier());
         else if (ch == '\'' || ch == '"') tokens.append(readString(ch));
         else tokens.append(readOperator(ch));
     }
     tokens.append(BydaoToken(BydaoTokenType::EndOfFile, "EOF", m_line, m_column));
     return tokens;
+}
+
+
+QString BydaoLexer::extractNumber() {
+    QString result;
+    int length = m_source.length();
+
+    // Пропускаем пробельные символы в начале
+    while (m_pos < length && m_source[m_pos].isSpace()) {
+        m_pos++;
+    }
+
+    if (m_pos >= length) {
+        return result; // Достигнут конец строки
+    }
+
+    // Обработка знака числа
+    if (m_source[m_pos] == '+' || m_source[m_pos] == '-') {
+        result += m_source[m_pos];
+        m_pos++;
+    }
+
+    bool hasDigits = false;
+    bool hasDecimalPoint = false;
+    bool hasExponent = false;
+
+    // Сборка мантиссы (целая и дробная часть)
+    while (m_pos < length) {
+        QChar c = m_source[m_pos];
+
+        if (c.isDigit()) {
+            result += c;
+            hasDigits = true;
+            m_pos++;
+        }
+        else if (c == '.' && !hasDecimalPoint && !hasExponent) {
+            // Десятичная точка может быть только одна и до экспоненты
+            result += c;
+            hasDecimalPoint = true;
+            m_pos++;
+        }
+        else {
+            break; // Выходим при обнаружении нецифрового символа
+        }
+    }
+
+    // Если нет цифр после возможного знака, число не найдено
+    if (!hasDigits) {
+        // Откатываем позицию, если не нашли число
+        while (m_pos > 0 && (m_source[m_pos-1] == '+' || m_source[m_pos-1] == '-')) {
+            m_pos--;
+            result.chop(1);
+        }
+        result.clear();
+        return result;
+    }
+
+    // Проверка на экспоненциальную часть (научная нотация)
+    if (m_pos < length && (m_source[m_pos] == 'e' || m_source[m_pos] == 'E')) {
+        int expPos = m_pos;
+        QString expPart;
+        expPart += m_source[m_pos];
+        m_pos++;
+
+        // Знак экспоненты
+        if (m_pos < length && (m_source[m_pos] == '+' || m_source[m_pos] == '-')) {
+            expPart += m_source[m_pos];
+            m_pos++;
+        }
+
+        // Цифры экспоненты
+        bool hasExpDigits = false;
+        while (m_pos < length && m_source[m_pos].isDigit()) {
+            expPart += m_source[m_pos];
+            hasExpDigits = true;
+            m_pos++;
+        }
+
+        if (hasExpDigits) {
+            result += expPart;
+            hasExponent = true;
+        }
+        else {
+            // Откатываем позицию, если после e/E нет допустимой экспоненты
+            m_pos = expPos;
+        }
+    }
+
+    return result;
 }
 
 } // namespace BydaoScript

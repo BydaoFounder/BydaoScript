@@ -58,14 +58,15 @@ typedef QMap< QString, VarMetaData > VarMetaDataDict;
  */
 struct FuncArgMetaData {
 
-    QString     name;
-    QString     type;
-    bool        isOut;
-    QString     defVal;
+    QString         name;
+    QStringList     types;
+    bool            isOut;
+    QString         defVal;
 
     FuncArgMetaData();
     FuncArgMetaData( const FuncArgMetaData& funcArg );
     FuncArgMetaData( const QString& name, const QString& type, bool isOut );
+    FuncArgMetaData( const QString& name, const QStringList& typeList, bool isOut );
     FuncArgMetaData( const QString& name, const QString& type, bool isOut, const QString& defVal );
 
     void    operator=( const FuncArgMetaData& funcArg );

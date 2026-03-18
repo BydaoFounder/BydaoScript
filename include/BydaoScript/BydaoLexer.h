@@ -70,6 +70,8 @@ private:
     BydaoToken readString(QChar quote);
     BydaoToken readOperator(QChar ch);
 
+    QString extractNumber();
+
     QString m_source;
     int m_pos;
     int m_line;

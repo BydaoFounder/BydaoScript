@@ -15,7 +15,6 @@
 #include "BydaoScript/BydaoInt.h"
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoString.h"
-#include "BydaoScript/BydaoNull.h"
 #include <cmath>
 
 namespace BydaoScript {
@@ -40,6 +39,32 @@ BydaoReal::BydaoReal(double value, QObject* parent)
 
 void BydaoReal::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
+}
+
+// Получить мета-данные
+MetaData*   BydaoReal::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы объекта
+            ->append( "toString", FuncMetaData("String", false, true) )
+            .append( "toFixed",  FuncMetaData("String", false, true)
+                                     << FuncArgMetaData("arg","Int",false)
+                     )
+            .append( "toInt",   FuncMetaData("Int", false, true) )
+            .append( "toBool",  FuncMetaData("Bool", false, true) )
+            .append( "abs",     FuncMetaData("Real", false, true) )
+            .append( "negate",  FuncMetaData("Real", false, true) )
+            .append( "isNull",  FuncMetaData("Bool", false, true) )
+            .append( "round",   FuncMetaData("String", false, true)
+                                    << FuncArgMetaData("decimal","Int",false)
+            )
+            .append( "floor",   FuncMetaData("Real", false, true) )
+            .append( "ceil",    FuncMetaData("Real", false, true) )
+            ;
+    }
+    return metaData;
 }
 
 bool BydaoReal::callMethod(const QString& name,

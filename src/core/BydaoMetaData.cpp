@@ -52,27 +52,33 @@ FuncArgMetaData::FuncArgMetaData(){
 
 FuncArgMetaData::FuncArgMetaData( const FuncArgMetaData& funcArg ) {
     name = funcArg.name;
-    type = funcArg.type;
+    types = funcArg.types;
     isOut = funcArg.isOut;
     defVal = funcArg.defVal;
 }
 
 FuncArgMetaData::FuncArgMetaData( const QString& name, const QString& type, bool isOut ) {
     this->name = name;
-    this->type = type;
+    this->types.append(type);
     this->isOut = isOut;
 }
 
 FuncArgMetaData::FuncArgMetaData( const QString& name, const QString& type, bool isOut, const QString& defVal ) {
     this->name = name;
-    this->type = type;
+    this->types.append( type );
     this->isOut = isOut;
     this->defVal = defVal;
 }
 
+FuncArgMetaData::FuncArgMetaData( const QString& name, const QStringList& typeList, bool isOut ) {
+    this->name = name;
+    this->types = typeList;
+    this->isOut = isOut;
+}
+
 void    FuncArgMetaData::operator=( const FuncArgMetaData& funcArg ) {
     name = funcArg.name;
-    type = funcArg.type;
+    types = funcArg.types;
     isOut = funcArg.isOut;
     defVal = funcArg.defVal;
 }
