@@ -34,6 +34,7 @@ BydaoInt::BydaoInt(qint64 value, QObject* parent)
     registerMethod("negate",   &BydaoInt::method_negate);
     registerMethod("isNull",   &BydaoInt::method_isNull);
     registerMethod("toHex",    &BydaoInt::method_toHex);
+    registerMethod("toBin",    &BydaoInt::method_toBin);
 }
 
 void BydaoInt::registerMethod(const QString& name, MethodPtr method) {
@@ -88,7 +89,13 @@ bool BydaoInt::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result
 
 bool BydaoInt::method_toHex(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(QString::number(m_value, 16)));
+    result = BydaoValue(BydaoString::create( QString::number(m_value, 16)));
+    return true;
+}
+
+bool BydaoInt::method_toBin(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue(BydaoString::create( QString::number(m_value, 2)));
     return true;
 }
 

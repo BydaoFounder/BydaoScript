@@ -79,6 +79,7 @@ MetaData*   BydaoIntClass::metaData() {
             .append( "negate",  FuncMetaData("Int", false, true) )
             .append( "isNull",  FuncMetaData("Bool", false, true) )
             .append( "toHex",   FuncMetaData("String", false, true) )
+            .append( "toBin",   FuncMetaData("String", false, true) )
         ;
     }
     return metaData;

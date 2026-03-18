@@ -80,6 +80,7 @@ private:
     bool method_negate(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_isNull(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toHex(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toBin(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoInt::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);

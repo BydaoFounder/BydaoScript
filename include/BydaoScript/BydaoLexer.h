@@ -63,14 +63,22 @@ public:
     QString errorMessage() const { return m_error; }
 
 private:
-    void skipWhitespace();
-    bool skipComment();
-    BydaoToken readNumber();
-    BydaoToken readIdentifier();
-    BydaoToken readString(QChar quote);
-    BydaoToken readOperator(QChar ch);
 
-    QString extractNumber();
+    void        skipWhitespace();
+    bool        skipComment();
+
+    BydaoToken  readDecNumber();
+    BydaoToken  readHexNumber();
+    BydaoToken  readBinNumber();
+    BydaoToken  readIdentifier();
+    BydaoToken  readString(QChar quote);
+    BydaoToken  readOperator(QChar ch);
+
+    QString     extractDecNumber();
+    QString     extractHexNumber();
+    QString     extractBinNumber();
+
+    bool        isHexDigit(const QChar& c);
 
     QString m_source;
     int m_pos;

@@ -494,10 +494,8 @@ bool BydaoParser::parseStatement() {
     if (match(BydaoTokenType::Break) || match(BydaoTokenType::Next)) return parseBreakNext();
     if (match(BydaoTokenType::Use)) return parseUse();
     if (match(BydaoTokenType::LBrace)) return parseBlock(true);
-    if (parseExpression()) return true;
 
-    error("Unexpected token: " + m_current.text);
-    return false;
+    return parseExpression();
 }
 
 bool BydaoParser::parseBlock(bool requireBraces) {
@@ -1341,9 +1339,17 @@ bool BydaoParser::parsePrimaryBase() {
         QString text = m_current.text;
         qint16 constIndex;
 
-        if (text.contains('.') || text.contains('e') || text.contains('E')) {
+        if ( text.contains('x') || text.contains('X')) {
+            constIndex = addConstant(text.toLongLong(nullptr,16));
+            m_typeStack.push( TypeInfo("Int") );
+        }
+        else if (text.contains('.') || text.contains('e') || text.contains('E')) {
             constIndex = addConstant(text.toDouble());
             m_typeStack.push( TypeInfo("Real") );
+        }
+        else if ( text.contains('b') || text.contains('B')) {
+            constIndex = addConstant(text.toLongLong(nullptr,2));
+            m_typeStack.push( TypeInfo("Int") );
         }
         else {
             constIndex = addConstant(text.toLongLong());
@@ -1486,7 +1492,6 @@ bool BydaoParser::parseCallSuffix() {
     nextToken();                    // следущий токен за '('
 
     const TypeInfo& typeInfo = m_typeStack.top();
-    QString typeName = typeInfo.type;
     QString memberName = typeInfo.member;
     MetaData* metaData = m_metaData[ typeInfo.type ];
     const FuncMetaData func = metaData->func( memberName );
@@ -1500,7 +1505,7 @@ bool BydaoParser::parseCallSuffix() {
             BydaoToken argToken = m_current;
 
             if (!parseExpression()) {
-                error("Expected expression in argument list");
+                error( QString( "Invalid expression in argument %1 function '%2'").arg( argCount + 1 ).arg( memberName ) );
                 return false;
             }
 
@@ -1629,7 +1634,7 @@ bool BydaoParser::parseMemberSuffix() {
         // Проверим, что у текущего типа есть такая переменная
 
         if ( ! metaData->hasVar( memberName ) ) {
-            error("Type " + typeInfo.type + " does not have member " + memberName);
+            error("Type '" + typeInfo.type + "' does not have member '" + memberName + "'", memberToken );
             return false;
         }
 
