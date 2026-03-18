@@ -148,6 +148,8 @@ private:
     bool parseAddition();
     bool parseTerm();
     bool parseUnary();
+    bool parseNot();
+    bool parseMinus();
     bool parsePrimaryBase();
     bool parsePrimary();
     bool parseCallSuffix();
@@ -156,6 +158,8 @@ private:
 
     // Составные конструкции
     bool parseArrayLiteral();
+
+    bool    checkTypeConvert( const QString& typeName, const BydaoToken& token );
 
     // ===== Данные =====
     QVector<BydaoToken> m_tokens;

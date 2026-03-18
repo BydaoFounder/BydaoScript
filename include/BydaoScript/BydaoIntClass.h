@@ -28,7 +28,7 @@ public:
     // Получить мета-данные
     virtual MetaData*   metaData() override;
 
-    QString typeName() const override { return "IntClass"; }
+    QString typeName() const override { return "Int"; }
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,

@@ -45,6 +45,8 @@ BydaoString::BydaoString(const QString& value, QObject* parent)
     registerMethod("replace", &BydaoString::method_replace);
     registerMethod("toInt", &BydaoString::method_toInt);
     registerMethod("toReal", &BydaoString::method_toReal);
+    registerMethod("toBool", &BydaoString::method_toBool);
+    registerMethod("isEmpty", &BydaoString::method_toBool);
 #ifdef QT_CRYPTOGRAPHICHASH_LIB
     registerMethod("md5", &BydaoString::method_md5);
 #endif
@@ -61,7 +63,6 @@ BydaoString::BydaoString(const QString& value, QObject* parent)
 void BydaoString::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
 }
-
 
 // Получить мета-данные
 MetaData*   BydaoString::metaData() {
@@ -98,6 +99,8 @@ MetaData*   BydaoString::metaData() {
             )
             .append( "toReal",      FuncMetaData("Real", false, true) )
             .append( "toInt",       FuncMetaData("Int", false, true) )
+            .append( "toBool",      FuncMetaData("Bool", false, true) )
+            .append( "isEmpty",     FuncMetaData("Bool", false, true) )
         ;
     }
     return metaData;
@@ -322,6 +325,18 @@ bool BydaoString::method_toReal(const QVector<BydaoValue>& args, BydaoValue& res
         return true;
     }
     return false;
+}
+
+bool BydaoString::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue::fromBool( ! m_value.isEmpty() );
+    return true;
+}
+
+bool BydaoString::method_isEmpty(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue::fromBool( m_value.isEmpty() );
+    return true;
 }
 
 #ifdef QT_CRYPTOGRAPHICHASH_LIB

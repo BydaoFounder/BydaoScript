@@ -19,16 +19,42 @@ namespace BydaoScript {
 
 BydaoNull* BydaoNull::s_instance = nullptr;
 
+BydaoNull* BydaoNull::instance() {
+    if (!s_instance) {
+        s_instance = new BydaoNull();
+    }
+    return s_instance;
+}
+
+//------------------------------------------------------------------------------
+
 BydaoNull::BydaoNull() {
     // Увеличиваем счётчик, чтобы никогда не удалялся
     ref();  // теперь никогда не станет 0
     registerMethod("toString", &BydaoNull::method_toString);
     registerMethod("toBool", &BydaoNull::method_toBool);
     registerMethod("isNull", &BydaoNull::method_isNull);
+    registerMethod("isEmpty", &BydaoNull::method_isNull);
 }
 
 void BydaoNull::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
+}
+
+// Получить мета-данные
+MetaData*   BydaoNull::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы объекта
+            ->append( "toString",   FuncMetaData("String", false, true) )
+            .append( "toBool",      FuncMetaData("Bool", false, true) )
+            .append( "isNull",      FuncMetaData("Bool", false, true) )
+            .append( "isEmpty",     FuncMetaData("Bool", false, true) )
+            ;
+    }
+    return metaData;
 }
 
 bool BydaoNull::callMethod(const QString& name,
@@ -39,13 +65,6 @@ bool BydaoNull::callMethod(const QString& name,
         return (this->*(it.value()))(args, result);
     }
     return false;
-}
-
-BydaoNull* BydaoNull::instance() {
-    if (!s_instance) {
-        s_instance = new BydaoNull();
-    }
-    return s_instance;
 }
 
 bool BydaoNull::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {

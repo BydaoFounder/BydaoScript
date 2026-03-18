@@ -20,7 +20,10 @@ namespace BydaoScript {
 class BydaoNull : public BydaoNative {
 public:
     static BydaoNull* instance();
-    
+
+    // Получить мета-данные
+    virtual MetaData*   metaData() override;
+
     QString typeName() const override { return "Null"; }
 
     bool callMethod(const QString& name,

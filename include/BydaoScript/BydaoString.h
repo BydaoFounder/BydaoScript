@@ -87,6 +87,8 @@ private:
     bool method_split(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toInt(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toReal(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toBool(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_isEmpty(const QVector<BydaoValue>& args, BydaoValue& result);
 #ifdef QT_CRYPTOGRAPHICHASH_LIB
     bool method_md5(const QVector<BydaoValue>& args, BydaoValue& result);
 #endif

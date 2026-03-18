@@ -20,6 +20,7 @@
 #include "BydaoScript/BydaoIntClass.h"
 #include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoString.h"
+#include "BydaoScript/BydaoNull.h"
 
 namespace BydaoScript {
 
@@ -49,19 +50,19 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     initBuiltinTypes();
 
     BydaoIntClass* intClass = new BydaoIntClass();
-    MetaData* intMetaData = new MetaData( intClass->metaData() );
+    m_metaData["Int"] = new MetaData( intClass->metaData() );
     delete intClass;
-    m_metaData["Int"] = intMetaData;
 
     BydaoReal* realClass = BydaoReal::create();
-    MetaData* realMetaData = new MetaData( realClass->metaData() );
+    m_metaData["Real"] = new MetaData( realClass->metaData() );
     delete realClass;
-    m_metaData["Real"] = realMetaData;
 
     BydaoString* strClass = BydaoString::create("");
-    MetaData* strMetaData = new MetaData( strClass->metaData() );
+    m_metaData["String"] = new MetaData( strClass->metaData() );
     delete strClass;
-    m_metaData["String"] = strMetaData;
+
+    BydaoNull* nullClass = BydaoNull::instance();
+    m_metaData["Null"] = new MetaData( nullClass->metaData() );
 }
 
 BydaoParser::~BydaoParser() {
@@ -874,8 +875,9 @@ bool BydaoParser::parseIf() {
     BydaoToken ifToken = m_current;
     nextToken(); // if
 
+    BydaoToken condToken = m_current;
     if (!parseExpression()) {
-        error("Expected condition after 'if'");
+        error("Expected condition after 'if'", condToken);
         return false;
     }
 
@@ -896,8 +898,9 @@ bool BydaoParser::parseIf() {
         BydaoToken elsifToken = m_current;
         nextToken(); // elsif
 
+        condToken = m_current;
         if (!parseExpression()) {
-            error("Expected condition after 'elsif'");
+            error("Expected condition after 'elsif'",condToken);
             return false;
         }
 
@@ -1213,17 +1216,52 @@ bool BydaoParser::parseUse() {
 // ПАРСИНГ - ВЫРАЖЕНИЯ
 // ============================================================
 
+
+bool    BydaoParser::checkTypeConvert( const QString& typeName, const BydaoToken& token ) {
+    TypeInfo typeInfo = m_typeStack.pop();
+    if ( typeInfo.type != typeName ) {
+        MetaData* metaData = m_metaData[ typeInfo.type ];
+        if ( ! metaData) {
+            error( "Unknown type '" + typeInfo.type + "'" , token );
+            return false;
+        }
+        if ( ! metaData->hasFunc("to" + typeName) ) {
+            error( "Operand cannot be converted to bool", token );
+            return false;
+        }
+    }
+    return true;
+}
+
 bool BydaoParser::parseExpression() {
     return parseLogicalOr();
 }
 
 bool BydaoParser::parseLogicalOr() {
+
+    BydaoToken leftToken = m_current;
     if (!parseLogicalAnd()) return false;
 
     while (match(BydaoTokenType::Or)) {
+
+        // Проверить тип левого операнда операции
+
+        if ( ! checkTypeConvert( "Bool", leftToken ) ) {
+            return false;
+        }
+
         BydaoToken op = m_current;
         nextToken();
+
+        BydaoToken rightToken = m_current;
         if (!parseLogicalAnd()) return false;
+
+        // Проверить тип правого операнда
+
+        if ( ! checkTypeConvert( "Bool", rightToken ) ) {
+            return false;
+        }
+
         emitCode(BydaoOpCode::Or, 0, 0, op);
     }
 
@@ -1316,15 +1354,29 @@ bool BydaoParser::parseTerm() {
 }
 
 bool BydaoParser::parseUnary() {
-    if (match(BydaoTokenType::Not) || match(BydaoTokenType::Minus)) {
-        bool isNot = match(BydaoTokenType::Not);
-        BydaoToken op = m_current;
-        nextToken();
-        if (!parseUnary()) return false;
-        emitCode(isNot ? BydaoOpCode::Not : BydaoOpCode::Neg, 0, 0, op);
-        return true;
+    if ( match(BydaoTokenType::Not) ) {
+        return parseNot();
+    }
+    if ( match(BydaoTokenType::Minus) ) {
+        return parseMinus();
     }
     return parsePrimary();
+}
+
+bool BydaoParser::parseNot() {
+    BydaoToken op = m_current;
+    nextToken();
+    if (!parseUnary()) return false;
+    emitCode(BydaoOpCode::Not, 0, 0, op);
+    return true;
+}
+
+bool BydaoParser::parseMinus() {
+    BydaoToken op = m_current;
+    nextToken();
+    if (!parseUnary()) return false;
+    emitCode(BydaoOpCode::Neg, 0, 0, op);
+    return true;
 }
 
 bool BydaoParser::parsePrimaryBase() {
