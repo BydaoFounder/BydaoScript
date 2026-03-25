@@ -48,6 +48,10 @@ public:
 
     virtual ~BydaoInt() override = default;
 
+    BydaoObject* copy() override {
+        return BydaoInt::create( m_value );
+    }
+
     QString typeName() const override { return "Int"; }
     qint64 value() const { return m_value; }
 
@@ -56,7 +60,12 @@ public:
                     BydaoValue& result) override;
 
     // ========== Операции ==========
+
+    void    assign( BydaoObject* obj ) override {
+        m_value = ((BydaoInt*)obj)->m_value;
+    }
     BydaoValue add(const BydaoValue& other) override;
+    void       addToValue(const BydaoValue& other) override;
     BydaoValue sub(const BydaoValue& other) override;
     BydaoValue mul(const BydaoValue& other) override;
     BydaoValue div(const BydaoValue& other) override;

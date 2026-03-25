@@ -12,10 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "BydaoScript/BydaoIntRange.h"
-#include "BydaoScript/BydaoInt.h"
 #include "BydaoScript/BydaoNull.h"
+#include "BydaoScript/BydaoInt.h"
 
 namespace BydaoScript {
+
+// Получить мета-данные
+MetaData*   BydaoIntRange::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы объекта
+            ->append( "iter",   FuncMetaData("IntRangeIter", false, true) )
+            ;
+    }
+    return metaData;
+}
 
 BydaoIntRange::BydaoIntRange(qint64 start, qint64 end, QObject* parent)
     : BydaoNative(parent)
@@ -52,6 +65,25 @@ bool BydaoIntRange::method_iter(const QVector<BydaoValue>& args, BydaoValue& res
 
 //=============================================================================
 
+// Получить мета-данные
+MetaData*   BydaoIntRangeIterator::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы объекта
+            ->append( "next",    FuncMetaData("Bool", false, false) )
+            .append( "isValid",  FuncMetaData("Bool", false, false) )
+            ;
+        metaData
+            // переменные объекта
+            ->append( "key",     VarMetaData("Int",true,false) )
+            .append( "value",    VarMetaData("Int",true,false) )
+            ;
+    }
+    return metaData;
+}
+
 
 BydaoIntRangeIterator::BydaoIntRangeIterator( BydaoIntRange* range ) {
     m_start = range->start();
@@ -69,12 +101,12 @@ bool BydaoIntRangeIterator::isValid() const {
 
 BydaoValue BydaoIntRangeIterator::key() const {
     if (!isValid()) return BydaoValue(BydaoNull::instance());
-    return BydaoValue::fromInt(m_current - m_start);  // ключ = индекс от 0
+    return BydaoValue( BydaoInt::create(m_current - m_start) );
 }
 
 BydaoValue BydaoIntRangeIterator::value() const {
     if (!isValid()) return BydaoValue(BydaoNull::instance());
-    return BydaoValue::fromInt(m_current);
+    return BydaoValue( BydaoInt::create(m_current) );
 }
 
 } // namespace BydaoScript

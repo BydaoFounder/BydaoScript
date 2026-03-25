@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#pragma once
+#ifndef _BYDAOVALUE_H_
+#define _BYDAOVALUE_H_
 
 #include <QString>
 
@@ -46,6 +47,8 @@ public:
     BydaoValue& operator=(const BydaoValue& other);
     BydaoValue& operator=(BydaoValue&& other) noexcept;
 
+    BydaoValue copy();
+
     bool isObject() const { return m_obj != nullptr; }
     BydaoObject* toObject() const { return m_obj; }
 
@@ -69,10 +72,10 @@ public:
 
 private:
 
-    void updateTypeId();
-
     BydaoObject*    m_obj;
     int             m_typeId;  // кэш типа
 };
 
 } // namespace BydaoScript
+
+#endif

@@ -19,6 +19,51 @@
 
 namespace BydaoScript {
 
+// Получить мета-данные
+MetaData*   BydaoReal::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы объекта
+            ->append( "toString", FuncMetaData("String", false, true) )
+            .append( "toFixed",   FuncMetaData("String", false, true) << FuncArgMetaData("arg","Int",false) )
+            .append( "toInt",     FuncMetaData("Int", false, true) )
+            .append( "toBool",    FuncMetaData("Bool", false, true) )
+            .append( "abs",       FuncMetaData("Real", false, true) )
+            .append( "isNull",    FuncMetaData("Bool", false, true) )
+            .append( "round",     FuncMetaData("Real", false, true) << FuncArgMetaData("decimal","Int",false) )
+            .append( "floor",     FuncMetaData("Real", false, true) )
+            .append( "ceil",      FuncMetaData("Real", false, true) )
+            ;
+        metaData
+            // операции сравнения
+            ->append( "eq",     OperMetaData("Any", "Bool" ) )
+            .append( "neq",     OperMetaData("Any", "Bool" ) )
+            .append( "lt",      OperMetaData("Any", "Bool" ) )
+            .append( "le",      OperMetaData("Any", "Bool" ) )
+            .append( "gt",      OperMetaData("Any", "Bool" ) )
+            .append( "ge",      OperMetaData("Any", "Bool" ) )
+            // операции арифметические
+            .append( "add",     OperMetaData("Real", "Real" ).append( "Int", "Real" )
+                               .append( "String", "String" ).append( "Any", "Real" ) )
+            .append( "addToValue",  OperMetaData("Real", "Void" ).append( "Int", "Void" ).append( "Any", "Void" ) )
+            .append( "sub",     OperMetaData("Real", "Real" )
+                               .append( "Int", "Real" )
+                               .append( "Any", "Real" )
+                    )
+            .append( "mul",     OperMetaData("Real", "Real" )
+                               .append( "Any", "Real" )
+                    )
+            .append( "div",     OperMetaData("Real", "Real" )
+                               .append( "Any", "Real" )
+                    )
+            .append( "neg",     OperMetaData("", "Real" ) )
+            ;
+    }
+    return metaData;
+}
+
 QVector<BydaoReal*> BydaoReal::s_cache;
 
 BydaoReal::BydaoReal(double value, QObject* parent)
@@ -30,7 +75,6 @@ BydaoReal::BydaoReal(double value, QObject* parent)
     registerMethod("toInt", &BydaoReal::method_toInt);
     registerMethod("toBool", &BydaoReal::method_toBool);
     registerMethod("abs", &BydaoReal::method_abs);
-    registerMethod("negate", &BydaoReal::method_negate);
     registerMethod("isNull", &BydaoReal::method_isNull);
     registerMethod("round", &BydaoReal::method_round);
     registerMethod("floor", &BydaoReal::method_floor);
@@ -39,32 +83,6 @@ BydaoReal::BydaoReal(double value, QObject* parent)
 
 void BydaoReal::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
-}
-
-// Получить мета-данные
-MetaData*   BydaoReal::metaData() {
-    static MetaData* metaData = nullptr;
-    if ( ! metaData ) {
-        metaData = new MetaData();
-        metaData
-            // методы объекта
-            ->append( "toString", FuncMetaData("String", false, true) )
-            .append( "toFixed",  FuncMetaData("String", false, true)
-                                     << FuncArgMetaData("arg","Int",false)
-                     )
-            .append( "toInt",   FuncMetaData("Int", false, true) )
-            .append( "toBool",  FuncMetaData("Bool", false, true) )
-            .append( "abs",     FuncMetaData("Real", false, true) )
-            .append( "negate",  FuncMetaData("Real", false, true) )
-            .append( "isNull",  FuncMetaData("Bool", false, true) )
-            .append( "round",   FuncMetaData("String", false, true)
-                                    << FuncArgMetaData("decimal","Int",false)
-            )
-            .append( "floor",   FuncMetaData("Real", false, true) )
-            .append( "ceil",    FuncMetaData("Real", false, true) )
-            ;
-    }
-    return metaData;
 }
 
 bool BydaoReal::callMethod(const QString& name,
@@ -104,12 +122,6 @@ bool BydaoReal::method_toBool(const QVector<BydaoValue>& args, BydaoValue& resul
 bool BydaoReal::method_abs(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
     result = BydaoValue( BydaoReal::create(std::abs(m_value)));
-    return true;
-}
-
-bool BydaoReal::method_negate(const QVector<BydaoValue>& args, BydaoValue& result) {
-    Q_UNUSED(args);
-    result = BydaoValue( BydaoReal::create(-m_value));
     return true;
 }
 
@@ -157,7 +169,24 @@ BydaoValue BydaoReal::add(const BydaoValue& other) {
         return BydaoValue::fromString(str);
     }
     default:
-        return BydaoValue::fromInt(m_value + other.toInt());
+        return BydaoValue::fromReal(m_value + other.toReal());
+    }
+}
+
+void    BydaoReal::addToValue(const BydaoValue& other) {
+    switch (other.typeId()) {
+    case TYPE_INT: {
+        const auto* otherInt = static_cast<const BydaoInt*>(other.toObject());
+        m_value += otherInt->value();
+        break;
+    }
+    case TYPE_REAL: {
+        const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
+        m_value += otherReal->m_value;
+        break;
+    }
+    default:
+        m_value += other.toReal();
     }
 }
 
@@ -165,7 +194,7 @@ BydaoValue BydaoReal::sub(const BydaoValue& other) {
     switch (other.typeId()) {
     case TYPE_INT: {
         const auto* otherInt = static_cast<const BydaoInt*>(other.toObject());
-        return BydaoValue::fromInt(m_value - otherInt->value());
+        return BydaoValue::fromReal(m_value - otherInt->value());
     }
     case TYPE_REAL: {
         const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
@@ -174,11 +203,11 @@ BydaoValue BydaoReal::sub(const BydaoValue& other) {
     case TYPE_STRING: {
         bool ok;
         double val = other.toString().toDouble(&ok);
-        if (ok) return BydaoValue::fromInt(m_value - val);
+        if (ok) return BydaoValue::fromReal(m_value - val);
         return BydaoValue();
     }
     default:
-        return BydaoValue::fromInt(m_value - other.toInt());
+        return BydaoValue::fromReal(m_value - other.toReal());
     }
 }
 
@@ -186,7 +215,7 @@ BydaoValue BydaoReal::mul(const BydaoValue& other) {
     switch (other.typeId()) {
     case TYPE_INT: {
         const auto* otherInt = static_cast<const BydaoInt*>(other.toObject());
-        return BydaoValue::fromInt(m_value * otherInt->value());
+        return BydaoValue::fromReal(m_value * otherInt->value());
     }
     case TYPE_REAL: {
         const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
@@ -195,11 +224,11 @@ BydaoValue BydaoReal::mul(const BydaoValue& other) {
     case TYPE_STRING: {
         bool ok;
         double val = other.toString().toDouble(&ok);
-        if (ok) return BydaoValue::fromInt(m_value * val);
+        if (ok) return BydaoValue::fromReal(m_value * val);
         return BydaoValue();
     }
     default:
-        return BydaoValue::fromInt(m_value * other.toInt());
+        return BydaoValue::fromReal(m_value * other.toReal());
     }
 }
 
@@ -210,7 +239,7 @@ BydaoValue BydaoReal::div(const BydaoValue& other) {
         if (otherInt->value() == 0) {
             return BydaoValue();  // null
         }
-        return BydaoValue::fromReal(static_cast<double>(m_value) / otherInt->value());
+        return BydaoValue::fromReal( m_value / otherInt->value());
     }
     case TYPE_REAL: {
         const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
@@ -247,7 +276,7 @@ BydaoValue BydaoReal::eq(const BydaoValue& other) {
         return BydaoValue::fromBool(m_value == otherReal->m_value);
     }
     default:
-        return BydaoValue::fromBool(m_value == other.toInt());
+        return BydaoValue::fromBool(m_value == other.toReal());
     }
 }
 
@@ -262,7 +291,7 @@ BydaoValue BydaoReal::neq(const BydaoValue& other) {
         return BydaoValue::fromBool(m_value != otherReal->m_value);
     }
     default:
-        return BydaoValue::fromBool(m_value != other.toInt());
+        return BydaoValue::fromBool(m_value != other.toReal());
     }
 }
 

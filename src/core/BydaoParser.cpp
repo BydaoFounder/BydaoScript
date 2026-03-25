@@ -20,6 +20,7 @@
 #include "BydaoScript/BydaoIntClass.h"
 #include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoString.h"
+#include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoNull.h"
 
 namespace BydaoScript {
@@ -47,27 +48,27 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     addString("");
 
     // Инициализировать встроенные типы данных
-    initBuiltinTypes();
 
-    BydaoIntClass* intClass = new BydaoIntClass();
-    m_metaData["Int"] = new MetaData( intClass->metaData() );
-    delete intClass;
+    m_metaData["Int"] = new MetaData( BydaoIntClass::metaData() );
+    UsedMetaDataList usedIntList = BydaoIntClass::usedMetaData();
+    foreach ( const UsedMetaData& used, usedIntList ) {
+        if ( ! m_metaData.contains( used.type ) ) {
+            m_metaData[ used.type ] = new MetaData( used.metaData );
+        }
+    }
 
-    BydaoReal* realClass = BydaoReal::create();
-    m_metaData["Real"] = new MetaData( realClass->metaData() );
-    delete realClass;
+    m_metaData["Real"] = new MetaData( BydaoReal::metaData() );
 
-    BydaoString* strClass = BydaoString::create("");
-    m_metaData["String"] = new MetaData( strClass->metaData() );
-    delete strClass;
+    m_metaData["String"] = new MetaData( BydaoString::metaData() );
 
-    BydaoNull* nullClass = BydaoNull::instance();
-    m_metaData["Null"] = new MetaData( nullClass->metaData() );
+    m_metaData["Bool"] = new MetaData( BydaoBool::metaData() );
+
+    m_metaData["Null"] = new MetaData( BydaoNull::metaData() );
 }
 
 BydaoParser::~BydaoParser() {
     qDeleteAll( m_moduleInfoCache );
-    qDeleteAll( m_metaData );   // !!! TODO: Падает при выходе
+    qDeleteAll( m_metaData );
 }
 
 // ============================================================
@@ -97,7 +98,8 @@ qint16 BydaoParser::addConstant(const BydaoConstant& c) {
     QString key;
     if (c.type == CONST_STRING) {
         key = "s:" + QString::number(c.stringIndex);
-    } else {
+    }
+    else {
         switch (c.type) {
         case CONST_INT: key = "i:" + QString::number(c.intValue); break;
         case CONST_REAL: key = "r:" + QString::number(c.realValue); break;
@@ -319,12 +321,13 @@ bool BydaoParser::removeVariable(const QString& name ) {
     return false;
 }
 
-void BydaoParser::setVariableType(const QString& name, const QString type) {
+void BydaoParser::setVariableType(const QString& name, const QString type, bool isConst) {
 
     int stackSize = m_varScopes.size();
     for ( int i = stackSize-1; i >= 0; --i ) {
         if ( m_varScopes[ i ].varInfo.contains( name ) ) {
             m_varScopes[ i ].varInfo[name].type = type;
+            m_varScopes[ i ].varInfo[name].isConstant = isConst;
             break;
         }
     }
@@ -333,35 +336,6 @@ void BydaoParser::setVariableType(const QString& name, const QString type) {
 // ============================================================
 // ВСТРОЕННЫЕ ТИПЫ
 // ============================================================
-
-void BydaoParser::initBuiltinTypes() {
-    BuiltinTypeInfo intInfo;
-    intInfo.name = "Int";
-    intInfo.methods["range"] = 2;
-    intInfo.methods["parse"] = 1;
-    intInfo.methods["max"] = 2;
-    intInfo.methods["min"] = 2;
-    intInfo.methods["random"] = -1;
-    m_builtinTypes["Int"] = intInfo;
-
-    BuiltinTypeInfo stringInfo;
-    stringInfo.name = "String";
-    stringInfo.methods["length"] = 0;
-    stringInfo.methods["upper"] = 0;
-    stringInfo.methods["lower"] = 0;
-    m_builtinTypes["String"] = stringInfo;
-
-    BuiltinTypeInfo arrayInfo;
-    arrayInfo.name = "Array";
-    arrayInfo.methods["length"] = 0;
-    arrayInfo.methods["push"] = 1;
-    arrayInfo.methods["pop"] = 0;
-    m_builtinTypes["Array"] = arrayInfo;
-}
-
-bool BydaoParser::isBuiltinTypeName(const QString& name) const {
-    return m_builtinTypes.contains(name);
-}
 
 bool BydaoParser::isNameToken(BydaoTokenType type) const {
     return type == BydaoTokenType::Identifier ||
@@ -387,30 +361,6 @@ void BydaoParser::addModulePath(const QString& path) {
     if (!m_modulePaths.contains(normalized)) {
         m_modulePaths.prepend(normalized);
     }
-}
-
-BydaoModuleInfo* BydaoParser::getModuleInfo(const QString& name) {
-    return m_moduleInfoCache.value(name);
-}
-
-bool BydaoParser::isModule(const QString& name) {
-    return m_moduleInfoCache.contains(name);
-}
-
-bool BydaoParser::loadModuleInfo(const QString& name) {
-    if (m_moduleInfoCache.contains(name)) {
-        return true;
-    }
-
-    QString errorMsg;
-    BydaoModuleInfo* info = BydaoModuleManager::instance().loadModuleInfo(name, &errorMsg);
-    if (info) {
-        m_moduleInfoCache[name] = info;
-        return true;
-    }
-
-    error("Cannot load module '" + name + "': " + errorMsg);
-    return false;
 }
 
 bool BydaoParser::loadMetaData(const QString& name) {
@@ -447,6 +397,8 @@ bool BydaoParser::parse() {
 
 bool BydaoParser::parseProgram() {
     while (!match(BydaoTokenType::EndOfFile)) {
+        BydaoToken statementToken = m_current;
+        int typeStackSize = m_typeStack.size();
         if (!parseStatement()) {
             // Восстановление после ошибки
             while (!match(BydaoTokenType::EndOfFile) &&
@@ -455,6 +407,9 @@ bool BydaoParser::parseProgram() {
                 nextToken();
             }
             if (!m_errors.isEmpty()) return false;
+        }
+        if ( ! checkTypeStack( typeStackSize, statementToken ) ) {
+            return false;
         }
     }
     return true;
@@ -496,7 +451,10 @@ bool BydaoParser::parseStatement() {
     if (match(BydaoTokenType::Use)) return parseUse();
     if (match(BydaoTokenType::LBrace)) return parseBlock(true);
 
-    return parseExpression();
+    if ( parseExpression() ) return true;
+
+    error( "Unknown token '" + m_current.text + "'", m_current );
+    return false;
 }
 
 bool BydaoParser::parseBlock(bool requireBraces) {
@@ -508,8 +466,13 @@ bool BydaoParser::parseBlock(bool requireBraces) {
     enterScope();  // новая область для блока
 
     while (!match(BydaoTokenType::RBrace) && !match(BydaoTokenType::EndOfFile)) {
+        BydaoToken statementToken = m_current;
+        int typeStackSize = m_typeStack.size();
         if (!parseStatement()) {
             exitScope();
+            return false;
+        }
+        if ( ! checkTypeStack( typeStackSize, statementToken ) ) {
             return false;
         }
     }
@@ -525,6 +488,106 @@ bool BydaoParser::parseBlock(bool requireBraces) {
 }
 
 // ============================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ПРОВЕРКИ ТИПОВ
+// ============================================================
+
+bool    BydaoParser::checkTypeStack( int typeStackSize, const BydaoToken& statementToken ) {
+    if ( m_typeStack.size() > typeStackSize ) {
+        TypeInfo typeInfo = m_typeStack.pop();
+        if ( typeInfo.type != "Void" ) {
+            error("Invalid statement type '" + typeInfo.type +  "'", statementToken );
+            return false;
+        }
+    }
+    return true;
+}
+
+bool    BydaoParser::checkTypeConvert( const QString& typeName, const BydaoToken& token ) {
+    TypeInfo typeInfo = m_typeStack.pop();
+    if ( typeInfo.type != typeName ) {
+        return checkTypeConvert( typeInfo.type, typeName, token );
+    }
+    return true;
+}
+
+bool    BydaoParser::checkTypeConvert( const QString& fromType, const QString& toType, const BydaoToken& token ) {
+    MetaData* metaData = m_metaData[ fromType ];
+    if ( ! metaData) {
+        error( "Unknown type '" + fromType + "'" , token );
+        return false;
+    }
+    if ( ! metaData->hasFunc("to" + toType) ) {
+        error( "Operand cannot be converted to '" + toType + "'", token );
+        return false;
+    }
+    return true;
+}
+
+bool    BydaoParser::checkTypeOper( const QString& typeName, const QString& operName, const BydaoToken& token ) {
+    MetaData* metaData = m_metaData[ typeName ];
+    if ( ! metaData ) {
+        error( "Unknown type '" + typeName + "'" , token );
+        return false;
+    }
+    if ( ! metaData->hasOper( operName ) ) {
+        error( "Cannot compare operand of type '" + typeName + "'", token );
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Получить тип результата операции с двумя операндами.
+ *
+ * @param leftType тип левого операнда
+ * @param rightType тип правого операнда
+ * @param operName название операции
+ * @param token токен правого операнда для вывода ошибки
+ *
+ * @return Возвращает пустую строку при ошибке или название типа резуьтата операции.
+ */
+QString     BydaoParser::getResultType( const QString& leftType, const QString& rightType, const QString& operName, const BydaoToken& token ) {
+    MetaData* metaData = m_metaData[ leftType ];
+    if ( ! metaData ) {
+        error( "Unknown type '" + leftType + "'" , token );
+        return QString();
+    }
+    OperMetaData operMetaData = metaData->oper( operName );
+    if ( operMetaData.hasOperandType( rightType ) ) {
+        return operMetaData.resultType( rightType );
+    }
+    if ( operMetaData.hasOperandType( "Any" ) ) {
+        if ( ! checkTypeConvert( rightType, leftType, token ) ) {
+            return QString();
+        }
+        return operMetaData.resultType( "Any" );
+    }
+    return QString();
+}
+
+/**
+ * Получить тип результата унарной операции.
+ *
+ * @param type тип операнда
+ * @param operName название операции
+ * @param token токен операнда для вывода ошибки
+ *
+ * @return Возвращает пустую строку при ошибке или название типа резуьтата операции.
+ */
+QString     BydaoParser::getResultType( const QString& type, const QString& operName, const BydaoToken& token ) {
+    MetaData* metaData = m_metaData[ type ];
+    if ( ! metaData ) {
+        error( "Unknown type '" + type + "'" , token );
+        return QString();
+    }
+    OperMetaData operMetaData = metaData->oper( operName );
+    if ( operMetaData.hasOperandType( "" ) ) {
+        return operMetaData.resultType( "" );
+    }
+    return QString();
+}
+
+// ============================================================
 // ПАРСИНГ - ОПЕРАТОРЫ
 // ============================================================
 
@@ -536,13 +599,12 @@ bool BydaoParser::parsePubDecl() {
     if (match(BydaoTokenType::Var)) {
         return parseVarDecl(true);  // true = публичная
     }
-    else if (match(BydaoTokenType::Const)) {
+    if (match(BydaoTokenType::Const)) {
         return parseConstDecl(true); // true = публичная
     }
-    else {
-        error("Expected 'var' or 'const' after 'pub'");
-        return false;
-    }
+
+    error("Expected 'var' or 'const' after 'pub'");
+    return false;
 }
 
 /**
@@ -636,8 +698,10 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
     }
 
     // Обновляем значение в таблице
+
     VariableInfo info = resolveVariable(name);
     info.constValue = constValue;
+    info.type = constValue.toObject()->typeName();
     m_varScopes.top().varInfo[name] = info;
 
     // Генерируем код
@@ -696,18 +760,18 @@ bool BydaoParser::parseAssign() {
     }
 
     if (!parseExpression()) {
-        error("Expected expression after '='");
         return false;
     }
-
     TypeInfo exprType = m_typeStack.pop();
+
     QString varType = varInfo.type;
     if ( varType != "Null" && varType != exprType.type ) {
         error( "Cannot assign value of type '" + exprType.type + "' to variable of type '" + varType + "'", nameToken );
         return false;
     }
-    emitCode(BydaoOpCode::Store, varInfo.scopeDepth, varInfo.varIndex, nameToken);
+    setVariableType( name, exprType.type );
 
+    emitCode(BydaoOpCode::Store, varInfo.scopeDepth, varInfo.varIndex, nameToken);
     return true;
 }
 
@@ -733,13 +797,47 @@ bool BydaoParser::parseAddAssign() {
         return false;
     }
 
+    BydaoToken exprToken = m_current;
     if (!parseExpression()) {
-        error("Expected expression after =");
+        return false;
+    }
+    TypeInfo exprTypeInfo = m_typeStack.pop();
+
+    // Проверить, что тип переменной поддерживает операцию "+"
+
+    QString varType = info.type;
+    if ( varType == "Null" ) {
+        error( "Operation '+=' cannot be applied to uninitialized variable", nameToken );
         return false;
     }
 
-    emitCode(BydaoOpCode::AddStore, info.scopeDepth, info.varIndex, nameToken);
+    // Проверить наличие операции сложения для левого операнда
 
+    QString operName("addToValue");
+    if ( ! checkTypeOper( varType, operName, nameToken ) ) {
+        return false;
+    }
+
+    // Определить тип результат операции
+
+    if ( varType != exprTypeInfo.type ) {
+
+        // Проверить возможность использования правого операнда в операции
+        // сложения с левым операндом
+
+        QString exprType = exprTypeInfo.type;
+        QString resultType = getResultType( varType, exprType, operName, exprToken );
+        if ( resultType.isEmpty() || resultType != "Void" ) {
+            error( "Operation '+=' cannot be applied to a value of type '" + exprType + "'", exprToken );
+            return false;
+        }
+        // if ( resultType != varType ) {
+        //     error( "Invalid type of expression", exprToken );
+        //     return false;
+        // }
+    }
+
+    emitCode(BydaoOpCode::AddStore, info.scopeDepth, info.varIndex, nameToken);
     return true;
 }
 
@@ -766,7 +864,6 @@ bool BydaoParser::parseSubAssign() {
     }
 
     if (!parseExpression()) {
-        error("Expected expression after =");
         return false;
     }
 
@@ -798,7 +895,6 @@ bool BydaoParser::parseMulAssign() {
     }
 
     if (!parseExpression()) {
-        error("Expected expression after =");
         return false;
     }
 
@@ -830,7 +926,6 @@ bool BydaoParser::parseDivAssign() {
     }
 
     if (!parseExpression()) {
-        error("Expected expression after =");
         return false;
     }
 
@@ -862,7 +957,6 @@ bool BydaoParser::parseModAssign() {
     }
 
     if (!parseExpression()) {
-        error("Expected expression after =");
         return false;
     }
 
@@ -875,10 +969,16 @@ bool BydaoParser::parseIf() {
     BydaoToken ifToken = m_current;
     nextToken(); // if
 
-    BydaoToken condToken = m_current;
+    BydaoToken exprToken = m_current;
     if (!parseExpression()) {
-        error("Expected condition after 'if'", condToken);
         return false;
+    }
+    TypeInfo exprTypeInfo = m_typeStack.pop();
+    if ( exprTypeInfo.type != "Bool" ) {
+
+        if ( ! checkTypeConvert( exprTypeInfo.type, "Bool", exprToken ) ) {
+            return false;
+        }
     }
 
     // Условный переход на else/elsif
@@ -894,14 +994,21 @@ bool BydaoParser::parseIf() {
     m_bytecode[elseJump].arg1 = m_bytecode.size();
 
     // Обрабатываем elsif
-    while (match(BydaoTokenType::Elsif)) {
+    while ( match(BydaoTokenType::Elsif) ) {
+
         BydaoToken elsifToken = m_current;
         nextToken(); // elsif
 
-        condToken = m_current;
+        exprToken = m_current;
         if (!parseExpression()) {
-            error("Expected condition after 'elsif'",condToken);
             return false;
+        }
+        exprTypeInfo = m_typeStack.pop();
+        if ( exprTypeInfo.type != "Bool" ) {
+
+            if ( ! checkTypeConvert( exprTypeInfo.type, "Bool", exprToken ) ) {
+                return false;
+            }
         }
 
         int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, elsifToken);
@@ -931,38 +1038,61 @@ bool BydaoParser::parseIf() {
 }
 
 bool BydaoParser::parseWhile() {
-    BydaoToken token = m_current;
+    BydaoToken whileToken = m_current;
     nextToken(); // while
 
     LoopInfo loop;
     loop.conditionAddr = m_bytecode.size();
 
+    BydaoToken exprToken = m_current;
     if (!parseExpression()) {
-        error("Expected condition");
         return false;
+    }
+    TypeInfo exprTypeInfo = m_typeStack.pop();
+    if ( exprTypeInfo.type != "Bool" ) {
+
+        if ( ! checkTypeConvert( exprTypeInfo.type, "Bool", exprToken ) ) {
+            return false;
+        }
     }
 
     // Парсим next-оператор
-    bool hasNext = match(BydaoTokenType::Next);
+
     QVector<BydaoInstruction> nextCode;
 
-    if (hasNext) {
+    bool hasNext = match(BydaoTokenType::Next);
+    if ( hasNext ) {
         nextToken(); // next
 
         int savedPos = m_bytecode.size();
-        if (!parseStatement()) {
-            error("Expected statement after next");
-            return false;
-        }
 
-        // Сохраняем код next-оператора
-        for (int i = savedPos; i < m_bytecode.size(); i++) {
-            nextCode.append(m_bytecode[i]);
-        }
+        do {
+            BydaoToken statementToken = m_current;
+            int typeStackSize = m_typeStack.size();
+            if ( ! parseStatement() ) {
+                return false;
+            }
+            if ( ! checkTypeStack( typeStackSize, statementToken ) ) {
+                return false;
+            }
+
+            // Сохраняем код next-оператора
+            for (int i = savedPos; i < m_bytecode.size(); i++) {
+                nextCode.append(m_bytecode[i]);
+            }
+
+            // Если после оператора нет запятой - заканчиваем
+            if ( ! match(BydaoTokenType::Comma) ) {
+                break;
+            }
+            nextToken(); // пропускаем запятую
+
+        } while( true );
+
         m_bytecode.resize(savedPos);
     }
 
-    int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
+    int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, whileToken);
 
     m_loopStack.push(loop);
     m_inLoop = true;
@@ -986,8 +1116,8 @@ bool BydaoParser::parseWhile() {
     emitCode(BydaoOpCode::Jump, loop.conditionAddr, 0);
 
     loop.exitAddr = m_bytecode.size();
-
     m_bytecode[condJump].arg1 = loop.exitAddr;
+
     patchJumps(loop.breaks, loop.exitAddr);
     patchJumps(loop.nexts, loop.nextAddr);
 
@@ -999,7 +1129,6 @@ bool BydaoParser::parseIter() {
     nextToken(); // iter
 
     if (!parseExpression()) {
-        error("Expected collection");
         return false;
     }
 
@@ -1061,8 +1190,18 @@ bool BydaoParser::parseEnum() {
     BydaoToken token = m_current;
     nextToken(); // enum
 
+    BydaoToken exprToken = m_current;
     if (!parseExpression()) {
-        error("Expected collection");
+        return false;
+    }
+    TypeInfo exprTypeInfo = m_typeStack.pop();
+    MetaData* exprMetaData = m_metaData[ exprTypeInfo.type ];
+    if ( ! exprMetaData ) {
+        error("Unknown type '" + exprTypeInfo.type + "'", exprToken );
+        return false;
+    }
+    if ( ! exprMetaData->hasFunc("iter") ) {
+        error("Type '" + exprTypeInfo.type + "' does not have function 'iter'", exprToken );
         return false;
     }
 
@@ -1077,20 +1216,37 @@ bool BydaoParser::parseEnum() {
     BydaoToken varToken = m_current;
     nextToken();
 
-    // Объявляем переменную для значения
-    declareVariable(varName, varToken);  // объявляем в текущей области
+    // Объявляем переменную а текущей области видимости для значения
+    declareVariable(varName, varToken);
     VariableInfo varInfo = resolveVariable(varName);
 
+    // Подготовить тип переменной
+    const FuncMetaData funcIter = exprMetaData->func("iter");
+    QString iterType = funcIter.retType;
+    MetaData* iterMetaData = m_metaData[ iterType ];
+    if ( ! iterMetaData ) {
+        error("Unknown type '" + iterType + "'", exprToken );
+        return false;
+    }
+    if ( ! iterMetaData->hasVar("value") ) {
+        error("Iterator of type '" + iterType + "' does not have variable 'value'", exprToken );
+        return false;
+    }
+    VarMetaData varMetaData = iterMetaData->var("value");
+    setVariableType( varName, varMetaData.type, varMetaData.isConst );
+
     // Получаем итератор: collection.iter()
-    // qint16 iterMethodIdx = addString("iter");
-    // emitCode(BydaoOpCode::Method, iterMethodIdx, 0, token);
-    // emitCode(BydaoOpCode::Call, 0, 0, token);
     emitCode(BydaoOpCode::GetIter, 0, 0, token);
 
     // Создаём временный итератор
+    if ( ! iterMetaData->hasFunc("next") ) {
+        error("Iterator of type '" + iterType + "' does not have func 'next'", exprToken );
+        return false;
+    }
     QString tmpIterName = QString("__enum_iter_%1").arg(m_iteratorCounter++);
     declareVariable(tmpIterName, token);  // объявляем в текущей области
     VariableInfo iterInfo = resolveVariable(tmpIterName);
+    setVariableType( tmpIterName, iterType );
     emitCode(BydaoOpCode::Store, iterInfo.scopeDepth, iterInfo.varIndex, token);
 
     int loopStart = m_bytecode.size();
@@ -1216,23 +1372,6 @@ bool BydaoParser::parseUse() {
 // ПАРСИНГ - ВЫРАЖЕНИЯ
 // ============================================================
 
-
-bool    BydaoParser::checkTypeConvert( const QString& typeName, const BydaoToken& token ) {
-    TypeInfo typeInfo = m_typeStack.pop();
-    if ( typeInfo.type != typeName ) {
-        MetaData* metaData = m_metaData[ typeInfo.type ];
-        if ( ! metaData) {
-            error( "Unknown type '" + typeInfo.type + "'" , token );
-            return false;
-        }
-        if ( ! metaData->hasFunc("to" + typeName) ) {
-            error( "Operand cannot be converted to bool", token );
-            return false;
-        }
-    }
-    return true;
-}
-
 bool BydaoParser::parseExpression() {
     return parseLogicalOr();
 }
@@ -1269,12 +1408,29 @@ bool BydaoParser::parseLogicalOr() {
 }
 
 bool BydaoParser::parseLogicalAnd() {
+    BydaoToken leftToken = m_current;
     if (!parseEquality()) return false;
 
     while (match(BydaoTokenType::And)) {
+
+        // Проверить тип левого операнда операции
+
+        if ( ! checkTypeConvert( "Bool", leftToken ) ) {
+            return false;
+        }
+
         BydaoToken op = m_current;
         nextToken();
+
+        BydaoToken rightToken = m_current;
         if (!parseEquality()) return false;
+
+        // Проверить тип правого операнда
+
+        if ( ! checkTypeConvert( "Bool", rightToken ) ) {
+            return false;
+        }
+
         emitCode(BydaoOpCode::And, 0, 0, op);
     }
 
@@ -1282,13 +1438,41 @@ bool BydaoParser::parseLogicalAnd() {
 }
 
 bool BydaoParser::parseEquality() {
+    BydaoToken leftToken = m_current;
     if (!parseComparison()) return false;
 
     while (match(BydaoTokenType::Equal) || match(BydaoTokenType::NotEqual)) {
+
+        TypeInfo leftTypeInfo = m_typeStack.pop();
+
         bool isEq = match(BydaoTokenType::Equal);
         BydaoToken op = m_current;
         nextToken();
+
+        BydaoToken rightToken = m_current;
         if (!parseComparison()) return false;
+
+        TypeInfo rightTypeInfo = m_typeStack.pop();
+
+        // Проверить наличие операции сравнения для левого операнда
+
+        QString leftType = leftTypeInfo.type;
+        if ( ! checkTypeOper( leftType, isEq ? "eq" : "neq" , leftToken ) ) {
+            return false;
+        }
+
+        // Если сравнение значений разного типа
+
+        if ( leftTypeInfo.type != rightTypeInfo.type ) {
+
+            // Проверить возможность преобразования типа правого операнда
+            // к типу левого операнда
+
+            if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
+                return false;
+            }
+        }
+
         emitCode(isEq ? BydaoOpCode::Eq : BydaoOpCode::Neq, 0, 0, op);
     }
 
@@ -1296,22 +1480,53 @@ bool BydaoParser::parseEquality() {
 }
 
 bool BydaoParser::parseComparison() {
+    BydaoToken leftToken = m_current;
     if (!parseAddition()) return false;
 
     while (match(BydaoTokenType::Less) || match(BydaoTokenType::Greater) ||
            match(BydaoTokenType::LessEqual) || match(BydaoTokenType::GreaterEqual)) {
+
+        TypeInfo leftTypeInfo = m_typeStack.pop();
+
         BydaoOpCode opCode;
+        QString operName;
         switch (m_current.type) {
-        case BydaoTokenType::Less: opCode = BydaoOpCode::Lt; break;
-        case BydaoTokenType::Greater: opCode = BydaoOpCode::Gt; break;
-        case BydaoTokenType::LessEqual: opCode = BydaoOpCode::Le; break;
-        case BydaoTokenType::GreaterEqual: opCode = BydaoOpCode::Ge; break;
+        case BydaoTokenType::Less: opCode = BydaoOpCode::Lt; operName = "lt"; break;
+        case BydaoTokenType::Greater: opCode = BydaoOpCode::Gt; operName = "gt"; break;
+        case BydaoTokenType::LessEqual: opCode = BydaoOpCode::Le; operName = "le"; break;
+        case BydaoTokenType::GreaterEqual: opCode = BydaoOpCode::Ge; operName = "ge"; break;
         default: return false;
         }
 
         BydaoToken op = m_current;
         nextToken();
+
+        BydaoToken rightToken = m_current;
         if (!parseAddition()) return false;
+
+        TypeInfo rightTypeInfo = m_typeStack.pop();
+
+        // Проверить наличие операции сравнения на равенство для левого операнда
+
+        QString leftType = leftTypeInfo.type;
+        if ( ! checkTypeOper( leftType, operName, leftToken ) ) {
+            return false;
+        }
+
+        // Если сравнение значений разного типа
+
+        if ( leftType != rightTypeInfo.type ) {
+
+            // Проверить возможность преобразования типа правого операнда
+            // к типу левого операнда
+
+            if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
+                return false;
+            }
+        }
+
+        m_typeStack.push( TypeInfo("Bool") );
+
         emitCode(opCode, 0, 0, op);
     }
 
@@ -1319,13 +1534,47 @@ bool BydaoParser::parseComparison() {
 }
 
 bool BydaoParser::parseAddition() {
+    BydaoToken leftToken = m_current;
     if (!parseTerm()) return false;
 
     while (match(BydaoTokenType::Plus) || match(BydaoTokenType::Minus)) {
+
+        TypeInfo leftTypeInfo = m_typeStack.pop();
+
         bool isPlus = match(BydaoTokenType::Plus);
+
         BydaoToken op = m_current;
         nextToken();
+
+        BydaoToken rightToken = m_current;
         if (!parseTerm()) return false;
+        TypeInfo rightTypeInfo = m_typeStack.pop();
+
+        // Проверить наличие операции сложения/вычитания для левого операнда
+
+        QString leftType = leftTypeInfo.type;
+        QString operName = isPlus ? "add" : "sub";
+        if ( ! checkTypeOper( leftType, operName, leftToken ) ) {
+            return false;
+        }
+
+        // Определить тип результат операции
+
+        QString resultType = leftType;
+        if ( leftType != rightTypeInfo.type ) {
+
+            // Проверить возможность использования правого операнда в операции
+            // сложения/вычитания с левым операндом
+
+            QString rightType = rightTypeInfo.type;
+            resultType = getResultType( leftType, rightType, operName, rightToken );
+            if ( resultType.isEmpty() ) {
+                error( "Operation '" + op.text + "' cannot be applied to a value of type '" + rightType + "'", rightToken );
+                return false;
+            }
+        }
+        m_typeStack.push( TypeInfo( resultType ) );
+
         emitCode(isPlus ? BydaoOpCode::Add : BydaoOpCode::Sub, 0, 0, op);
     }
 
@@ -1333,20 +1582,53 @@ bool BydaoParser::parseAddition() {
 }
 
 bool BydaoParser::parseTerm() {
+    BydaoToken leftToken = m_current;
     if (!parseUnary()) return false;
 
     while (match(BydaoTokenType::Mul) || match(BydaoTokenType::Div) || match(BydaoTokenType::Mod)) {
+
+        TypeInfo leftTypeInfo = m_typeStack.pop();
+
         BydaoOpCode opCode;
+        QString operName;
         switch (m_current.type) {
-        case BydaoTokenType::Mul: opCode = BydaoOpCode::Mul; break;
-        case BydaoTokenType::Div: opCode = BydaoOpCode::Div; break;
-        case BydaoTokenType::Mod: opCode = BydaoOpCode::Mod; break;
+        case BydaoTokenType::Mul: opCode = BydaoOpCode::Mul; operName = "mul"; break;
+        case BydaoTokenType::Div: opCode = BydaoOpCode::Div; operName = "div"; break;
+        case BydaoTokenType::Mod: opCode = BydaoOpCode::Mod; operName = "mod"; break;
         default: return false;
         }
 
         BydaoToken op = m_current;
         nextToken();
+
+        BydaoToken rightToken = m_current;
         if (!parseUnary()) return false;
+        TypeInfo rightTypeInfo = m_typeStack.pop();
+
+        // Проверить наличие операции для левого операнда
+
+        QString leftType = leftTypeInfo.type;
+        if ( ! checkTypeOper( leftType, operName, leftToken ) ) {
+            return false;
+        }
+
+        // Определить тип результат операции
+
+        QString resultType = leftType;
+        if ( leftType != rightTypeInfo.type ) {
+
+            // Проверить возможность использования правого операнда в операции
+            // сложения/вычитания с левым операндом
+
+            QString rightType = rightTypeInfo.type;
+            resultType = getResultType( leftType, rightType, operName, rightToken );
+            if ( resultType.isEmpty() ) {
+                error( "Operation '" + op.text + "' cannot be applied to a value of type '" + rightType + "'", rightToken );
+                return false;
+            }
+        }
+        m_typeStack.push( TypeInfo( resultType ) );
+
         emitCode(opCode, 0, 0, op);
     }
 
@@ -1366,7 +1648,16 @@ bool BydaoParser::parseUnary() {
 bool BydaoParser::parseNot() {
     BydaoToken op = m_current;
     nextToken();
+
+    BydaoToken token = m_current;
     if (!parseUnary()) return false;
+
+    // Проверить тип операнда операции
+
+    if ( ! checkTypeConvert( "Bool", token ) ) {
+        return false;
+    }
+
     emitCode(BydaoOpCode::Not, 0, 0, op);
     return true;
 }
@@ -1374,7 +1665,21 @@ bool BydaoParser::parseNot() {
 bool BydaoParser::parseMinus() {
     BydaoToken op = m_current;
     nextToken();
-    if (!parseUnary()) return false;
+
+    BydaoToken token = m_current;
+    if ( ! parseUnary() ) return false;
+    TypeInfo typeInfo = m_typeStack.pop();
+
+    if ( ! checkTypeOper( typeInfo.type, "neg", token ) ) {
+        return false;
+    }
+    QString resultType = getResultType( typeInfo.type, "neg", token );
+    if ( resultType.isEmpty() ) {
+        error( "The '" + op.text + "' operation cannot be applied to a value of type '" + typeInfo.type + "'", token );
+        return false;
+    }
+    m_typeStack.push( TypeInfo( resultType ) );
+
     emitCode(BydaoOpCode::Neg, 0, 0, op);
     return true;
 }
@@ -1491,8 +1796,7 @@ bool BydaoParser::parsePrimary() {
                 m_typeStack.push( TypeInfo( name ) );
             }
         }
-        else if (isVariableDeclared(name)) {
-            // Обычная переменная
+        else if (isVariableDeclared(name)) {    // обычная переменная?
             nextToken(); // съедаем имя переменной
             VariableInfo info = resolveVariable(name);
             emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);

@@ -14,6 +14,7 @@
 #pragma once
 
 #include "BydaoNative.h"
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -47,7 +48,7 @@ public:
     }
 
     // Получить мета-данные
-    virtual MetaData*   metaData() override;
+    static MetaData*   metaData();
 
     QString typeName() const override { return "Real"; }
     double value() const { return m_value; }
@@ -56,8 +57,16 @@ public:
                     const QVector<BydaoValue>& args,
                     BydaoValue& result) override;
 
+    BydaoObject* copy() override {
+        return BydaoReal::create( m_value );
+    }
+
     // ========== Операции ==========
+    void    assign( BydaoObject* obj ) override {
+        m_value = ((BydaoReal*)obj)->m_value;
+    }
     BydaoValue add(const BydaoValue& other) override;
+    void       addToValue(const BydaoValue& other) override;
     BydaoValue sub(const BydaoValue& other) override;
     BydaoValue mul(const BydaoValue& other) override;
     BydaoValue div(const BydaoValue& other) override;
@@ -77,7 +86,6 @@ private:
     bool method_toInt(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toBool(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_abs(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_negate(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_isNull(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_round(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_floor(const QVector<BydaoValue>& args, BydaoValue& result);

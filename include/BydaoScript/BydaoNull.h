@@ -14,6 +14,7 @@
 #pragma once
 
 #include "BydaoNative.h"
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -22,14 +23,21 @@ public:
     static BydaoNull* instance();
 
     // Получить мета-данные
-    virtual MetaData*   metaData() override;
+    static MetaData*   metaData();
 
     QString typeName() const override { return "Null"; }
+
+    BydaoObject* copy() override {
+        return BydaoNull::instance();
+    }
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,
                     BydaoValue& result) override;
 
+    void    assign( BydaoObject* obj ) override {
+        Q_UNUSED( obj );
+    }
     BydaoValue eq(const BydaoValue& other) override;
     BydaoValue neq(const BydaoValue& other) override;
 

@@ -14,7 +14,7 @@
 #pragma once
 
 #include "BydaoNative.h"
-#include "BydaoIntRange.h"  // для range
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -26,7 +26,10 @@ public:
     virtual ~BydaoIntClass() = default;
 
     // Получить мета-данные
-    virtual MetaData*   metaData() override;
+    static MetaData*   metaData();
+
+    // Получить список используемых мета-данных
+    static UsedMetaDataList usedMetaData();
 
     QString typeName() const override { return "Int"; }
 

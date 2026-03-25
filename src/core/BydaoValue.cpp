@@ -55,9 +55,30 @@ BydaoValue::~BydaoValue() {
     if (m_obj) m_obj->unref();
 }
 
+BydaoValue BydaoValue::copy() {
+    BydaoValue newVal;
+    newVal.m_typeId = m_typeId;
+    if ( m_obj ) {
+        newVal.m_obj = m_obj->copy();
+        newVal.m_obj->ref();
+    }
+    else {
+        newVal.m_obj = nullptr;
+    }
+    return newVal;
+}
+
 BydaoValue& BydaoValue::operator=(const BydaoValue& other) {
     if (this != &other) {
-        if (m_obj) m_obj->unref();
+        if (m_obj) {
+            if ( m_obj->getRef() == 1 ) {
+                if ( other.m_obj && m_typeId == other.m_typeId ) {
+                    m_obj->assign( other.m_obj );
+                    return *this;
+                }
+            }
+            m_obj->unref();
+        }
         m_obj = other.m_obj;
         m_typeId = other.m_typeId;
         if (m_obj) m_obj->ref();
@@ -67,29 +88,20 @@ BydaoValue& BydaoValue::operator=(const BydaoValue& other) {
 
 BydaoValue& BydaoValue::operator=(BydaoValue&& other) noexcept {
     if (this != &other) {
-        if (m_obj) m_obj->unref();
+        if (m_obj) {
+            if ( m_obj->getRef() == 1 ) {
+                if ( other.m_obj && m_typeId == other.m_typeId ) {
+                    m_obj->assign( other.m_obj );
+                    return *this;
+                }
+            }
+            m_obj->unref();
+        }
         m_obj = other.m_obj;
         m_typeId = other.m_typeId;
         other.m_obj = nullptr;
     }
     return *this;
-}
-
-void BydaoValue::updateTypeId() {
-    if (!m_obj) {
-        m_typeId = TYPE_NULL;
-        return;
-    }
-
-    QString typeName = m_obj->typeName();
-    if (typeName == "Int") m_typeId = TYPE_INT;
-    else if (typeName == "Real") m_typeId = TYPE_REAL;
-    else if (typeName == "Bool") m_typeId = TYPE_BOOL;
-    else if (typeName == "String") m_typeId = TYPE_STRING;
-    else if (typeName == "Array") m_typeId = TYPE_ARRAY;
-    else if (typeName == "Null") m_typeId = TYPE_NULL;
-    else if (typeName.endsWith("Module")) m_typeId = TYPE_MODULE;
-    else m_typeId = TYPE_OBJECT;
 }
 
 // Фабричные методы

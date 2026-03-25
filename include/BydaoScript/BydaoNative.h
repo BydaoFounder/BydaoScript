@@ -51,9 +51,6 @@ public:
                             const QVector<BydaoValue>& args,
                             BydaoValue& result) override = 0;
 
-    // Получить итератор
-    virtual BydaoValue iter() override;
-
     // ========== Свойства ==========
 
     void registerProperty(const QString& name,

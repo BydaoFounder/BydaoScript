@@ -24,6 +24,58 @@
 
 namespace BydaoScript {
 
+// Получить мета-данные
+MetaData*   BydaoString::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // переменные объекта
+            ->append( "length",     VarMetaData("Int",true,false) );
+        metaData
+            // методы объекта
+            ->append( "toString",   FuncMetaData("String", false, true) )
+            .append( "isNull",      FuncMetaData("Bool", false, true) )
+            .append( "length",      FuncMetaData("Int", false, true) )
+            .append( "upper",       FuncMetaData("String", false, true) )
+            .append( "lower",       FuncMetaData("String", false, true) )
+            .append( "trim",        FuncMetaData("String", false, true) )
+            .append( "substr",      FuncMetaData("String", false, true)
+                                  << FuncArgMetaData("from","Int",false)
+                                  << FuncArgMetaData("len","Int",false,"null")
+                    )
+            .append( "indexOf",     FuncMetaData("Int", false, true)
+                                   << FuncArgMetaData("str","String",false)
+                                   << FuncArgMetaData("pos","Int",false,"0")
+                    )
+            .append( "contains",    FuncMetaData("Bool", false, true)
+                                    << FuncArgMetaData("str","String",false)
+                    )
+            .append( "startsWith",  FuncMetaData("Bool", false, true)
+                                      << FuncArgMetaData("str","String",false)
+                    )
+            .append( "endsWith",    FuncMetaData("Bool", false, true)
+                                    << FuncArgMetaData("str","String",false)
+                    )
+            .append( "toReal",      FuncMetaData("Real", false, true) )
+            .append( "toInt",       FuncMetaData("Int", false, true) )
+            .append( "toBool",      FuncMetaData("Bool", false, true) )
+            .append( "isEmpty",     FuncMetaData("Bool", false, true) )
+            ;
+        metaData
+            ->append( "eq",         OperMetaData("Any", "Bool" ) )
+            .append( "neq",         OperMetaData("Any", "Bool" ) )
+            .append( "lt",          OperMetaData("Any", "Bool" ) )
+            .append( "le",          OperMetaData("Any", "Bool" ) )
+            .append( "gt",          OperMetaData("Any", "Bool" ) )
+            .append( "ge",          OperMetaData("Any", "Bool" ) )
+            .append( "add",         OperMetaData("Any", "String" ) )
+            .append( "addToValue",  OperMetaData("Any", "Void" ) )
+            ;
+    }
+    return metaData;
+}
+
 QVector<BydaoString*> BydaoString::s_cache;
 
 BydaoString::BydaoString(const QString& value, QObject* parent)
@@ -64,48 +116,6 @@ void BydaoString::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
 }
 
-// Получить мета-данные
-MetaData*   BydaoString::metaData() {
-    static MetaData* metaData = nullptr;
-    if ( ! metaData ) {
-        metaData = new MetaData();
-        metaData
-            // переменные объекта
-            ->append( "length",     VarMetaData("Int",true,false) );
-        metaData
-            // методы объекта
-            ->append( "toString",   FuncMetaData("String", false, true) )
-            .append( "isNull",      FuncMetaData("Bool", false, true) )
-            .append( "length",      FuncMetaData("Int", false, true) )
-            .append( "upper",       FuncMetaData("String", false, true) )
-            .append( "lower",       FuncMetaData("String", false, true) )
-            .append( "trim",        FuncMetaData("String", false, true) )
-            .append( "substr",      FuncMetaData("String", false, true)
-                                        << FuncArgMetaData("from","Int",false)
-                                        << FuncArgMetaData("len","Int",false,"null")
-            )
-            .append( "indexOf",     FuncMetaData("Int", false, true)
-                                        << FuncArgMetaData("str","String",false)
-                                        << FuncArgMetaData("pos","Int",false,"0")
-            )
-            .append( "contains",    FuncMetaData("Bool", false, true)
-                                        << FuncArgMetaData("str","String",false)
-            )
-            .append( "startsWith",  FuncMetaData("Bool", false, true)
-                                        << FuncArgMetaData("str","String",false)
-            )
-            .append( "endsWith",    FuncMetaData("Bool", false, true)
-                                        << FuncArgMetaData("str","String",false)
-            )
-            .append( "toReal",      FuncMetaData("Real", false, true) )
-            .append( "toInt",       FuncMetaData("Int", false, true) )
-            .append( "toBool",      FuncMetaData("Bool", false, true) )
-            .append( "isEmpty",     FuncMetaData("Bool", false, true) )
-        ;
-    }
-    return metaData;
-}
-
 bool BydaoString::callMethod(const QString& name,
                           const QVector<BydaoValue>& args,
                           BydaoValue& result) {
@@ -127,6 +137,16 @@ BydaoValue BydaoString::add(const BydaoValue& other) {
     }
     QString result = m_value + other.toString();
     return BydaoValue::fromString(result);
+}
+
+void    BydaoString::addToValue(const BydaoValue& other) {
+    if ( other.typeId() == TYPE_STRING ) {
+        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        m_value += otherStr->m_value;
+    }
+    else {
+        m_value += other.toString();
+    }
 }
 
 BydaoValue BydaoString::eq(const BydaoValue& other) {

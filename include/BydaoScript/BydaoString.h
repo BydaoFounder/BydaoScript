@@ -13,8 +13,10 @@
 // limitations under the License.
 #pragma once
 
-#include "BydaoNative.h"
 #include <QString>
+
+#include "BydaoNative.h"
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -29,7 +31,6 @@ protected:
     void release() override {
         if (s_cache.size() < MAX_CACHE_SIZE) {
             m_refCount = 0;  // сбрасываем для следующего использования
-            m_value.clear();
             s_cache.append(this);
         } else {
             delete this;
@@ -40,7 +41,7 @@ protected:
 public:
 
     static BydaoString* create( const QString& value) {
-        if (!s_cache.isEmpty()) {
+        if ( ! s_cache.isEmpty() ) {
             BydaoString* obj = s_cache.takeLast();
             obj->m_value = value;
             return obj;
@@ -49,7 +50,7 @@ public:
     }
 
     // Получить мета-данные
-    virtual MetaData*   metaData() override;
+    static MetaData*   metaData();
 
     QString typeName() const override { return "String"; }
     const QString& value() const { return m_value; }
@@ -59,10 +60,18 @@ public:
                     const QVector<BydaoValue>& args,
                     BydaoValue& result) override;
 
-    BydaoValue iter();  // создаёт итератор для строки
+    BydaoValue iter() override;  // создаёт итератор для строки
+
+    BydaoObject* copy() override {
+        return BydaoString::create( m_value );
+    }
 
     // Операции
+    void    assign( BydaoObject* obj ) override {
+        m_value = ((BydaoString*)obj)->m_value;
+    }
     BydaoValue add(const BydaoValue& other) override;   // сложение (конкатенация) строк
+    void       addToValue(const BydaoValue& other) override;
     BydaoValue eq(const BydaoValue& other) override;   // сравнение на равенство
     BydaoValue neq(const BydaoValue& other) override;   // сравнение на неравенство
     BydaoValue lt(const BydaoValue& other) override;   // лексикографическое сравнение

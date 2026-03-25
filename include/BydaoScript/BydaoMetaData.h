@@ -65,8 +65,8 @@ struct FuncArgMetaData {
 
     FuncArgMetaData();
     FuncArgMetaData( const FuncArgMetaData& funcArg );
-    FuncArgMetaData( const QString& name, const QString& type, bool isOut );
-    FuncArgMetaData( const QString& name, const QStringList& typeList, bool isOut );
+    FuncArgMetaData( const QString& name, const QString& type, bool isOut = false );
+    FuncArgMetaData( const QString& name, const QStringList& typeList, bool isOut = false );
     FuncArgMetaData( const QString& name, const QString& type, bool isOut, const QString& defVal );
 
     void    operator=( const FuncArgMetaData& funcArg );
@@ -115,6 +115,33 @@ struct FuncMetaData {
 typedef QMap< QString, FuncMetaData > FuncMetaDataDict;
 
 /**
+ * Свойства операции.
+ *
+ * Для типа операнда может быть использован тип "Any", которые означает,
+ * что операнд может быть любого типа, если он имеет функцию преобразования
+ * в тип левого операнда.
+ */
+struct OperMetaData {
+
+    /** Список результатов операции для разных типов операндов */
+    QMap< QString, QString > resultList;
+
+    OperMetaData();
+    OperMetaData( const QString& operandType, const QString& resultType );
+
+    OperMetaData&   append( const QString& operandType, const QString& resultType );
+
+    bool    hasOperandType( const QString& operandType ) {
+        return resultList.contains( operandType );
+    }
+
+    QString resultType( const QString& operandType ) {
+        return resultList[ operandType ];
+    }
+};
+typedef QMap< QString, OperMetaData > OperMetaDataDict;
+
+/**
  * Мета-данные.
  */
 struct MetaData {
@@ -122,23 +149,43 @@ struct MetaData {
     bool                external;
     VarMetaDataDict     vars;
     FuncMetaDataDict    funcs;
+    OperMetaDataDict    opers;
 
     MetaData();
     MetaData( const MetaData& data );
-//    MetaData( MetaData& data );
     MetaData( MetaData* data );
 
     MetaData&   operator=( MetaData* data );
 
     MetaData&   append( const QString& varName, const VarMetaData& var );
     MetaData&   append( const QString& funcName, const FuncMetaData& func );
+    MetaData&   append( const QString& operName, const OperMetaData& oper );
 
     bool        hasVar( const QString& name ) const;
     const VarMetaData   var( const QString& name ) const;
 
     bool        hasFunc( const QString& name ) const;
     const FuncMetaData  func( const QString& name ) const;
+
+    bool        hasOper( const QString& name ) const;
+    const OperMetaData  oper( const QString& name ) const;
 };
+
+/**
+ * Список используемых мета-данных.
+ */
+struct UsedMetaData {
+
+    QString     type;
+    MetaData*   metaData;
+
+    UsedMetaData( const QString& type, MetaData* metaData ) {
+        this->type = type;
+        this->metaData = metaData;
+    };
+};
+
+typedef QList< UsedMetaData >   UsedMetaDataList;
 
 }   // namespace
 

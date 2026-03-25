@@ -14,6 +14,7 @@
 #pragma once
 
 #include "BydaoIterator.h"
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -21,6 +22,10 @@ class BydaoIntRange : public BydaoNative {
     Q_OBJECT
 
 public:
+
+    // Получить мета-данные
+    static MetaData*   metaData();
+
     BydaoIntRange(qint64 start, qint64 end, QObject* parent = nullptr);
     virtual ~BydaoIntRange() = default;
 
@@ -31,7 +36,7 @@ public:
                     BydaoValue& result) override;
 
     // Метод, возвращающий итератор
-    BydaoValue iter();
+    BydaoValue iter() override;
 
     qint64 start() { return m_start; }
     qint64 end() { return m_end; }
@@ -52,6 +57,10 @@ private:
 class BydaoIntRangeIterator : public BydaoIterator {
     Q_OBJECT
 public:
+
+    // Получить мета-данные
+    static MetaData*   metaData();
+
     BydaoIntRangeIterator( BydaoIntRange* range );
 
     bool next() override;

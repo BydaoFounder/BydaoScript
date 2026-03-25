@@ -14,6 +14,7 @@
 #pragma once
 
 #include "BydaoNative.h"
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -47,6 +48,9 @@ public:
         return new BydaoBool(value);
     }
 
+    // Получить мета-данные
+    static MetaData*   metaData();
+
     QString typeName() const override { return "Bool"; }
     bool value() const { return m_value; }
 
@@ -54,6 +58,13 @@ public:
                     const QVector<BydaoValue>& args,
                     BydaoValue& result) override;
 
+    BydaoObject* copy() override {
+        return BydaoBool::create( m_value );
+    }
+
+    void    assign( BydaoObject* obj ) override {
+        m_value = ((BydaoBool*)obj)->m_value;
+    }
     BydaoValue eq(const BydaoValue& other) override;
     BydaoValue neq(const BydaoValue& other) override;
 
@@ -63,7 +74,6 @@ private:
     bool method_toInt(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toReal(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toBool(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_negate(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_isNull(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoBool::*)(const QVector<BydaoValue>&, BydaoValue&);

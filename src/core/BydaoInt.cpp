@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "BydaoScript/BydaoInt.h"
-#include "BydaoScript/BydaoIntRange.h"
 #include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoString.h"
-#include "BydaoScript/BydaoNull.h"
-//#include <cmath>
 
 namespace BydaoScript {
 
@@ -117,6 +114,22 @@ BydaoValue BydaoInt::add(const BydaoValue& other) {
     }
     default:
         return BydaoValue::fromInt(m_value + other.toInt());
+    }
+}
+
+void        BydaoInt::addToValue(const BydaoValue& other) {
+    switch (other.typeId()) {
+    case TYPE_INT: {
+        m_value += ((BydaoInt*)other.toObject())->m_value;
+        break;
+    }
+    case TYPE_REAL: {
+        const auto* otherReal = static_cast<const BydaoReal*>(other.toObject());
+        m_value += qint64( otherReal->value() );
+        break;
+    }
+    default:
+        m_value += other.toInt();
     }
 }
 
@@ -246,7 +259,7 @@ BydaoValue BydaoInt::lt(const BydaoValue& other) {
         return BydaoValue::fromBool(m_value < otherReal->value());
     }
     default:
-        return BydaoValue::fromBool(m_value < other.toReal());
+        return BydaoValue::fromBool(m_value < other.toInt());
     }
 }
 
@@ -261,7 +274,7 @@ BydaoValue BydaoInt::le(const BydaoValue& other) {
         return BydaoValue::fromBool(m_value <= otherReal->value());
     }
     default:
-        return BydaoValue::fromBool(m_value <= other.toReal());
+        return BydaoValue::fromBool(m_value <= other.toInt());
     }
 }
 
@@ -276,7 +289,7 @@ BydaoValue BydaoInt::gt(const BydaoValue& other) {
         return BydaoValue::fromBool(m_value > otherReal->value());
     }
     default:
-        return BydaoValue::fromBool(m_value > other.toReal());
+        return BydaoValue::fromBool(m_value > other.toInt());
     }
 }
 
@@ -291,7 +304,7 @@ BydaoValue BydaoInt::ge(const BydaoValue& other) {
         return BydaoValue::fromBool(m_value >= otherReal->value());
     }
     default:
-        return BydaoValue::fromBool(m_value >= other.toReal());
+        return BydaoValue::fromBool(m_value >= other.toInt());
     }
 }
 

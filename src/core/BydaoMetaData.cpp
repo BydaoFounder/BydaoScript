@@ -133,31 +133,45 @@ int             FuncMetaData::argCount() const {
 }
 
 /**
+ * Свойства операции.
+ */
+OperMetaData::OperMetaData() {
+}
+
+OperMetaData::OperMetaData( const QString& operandType, const QString& resultType ) {
+    resultList[ operandType ] = resultType;
+}
+
+OperMetaData&   OperMetaData::append( const QString& operandType, const QString& resultType ){
+    resultList[ operandType ] = resultType;
+    return *this;
+}
+
+/**
  * Мета-данные.
  *
  * VarMetaDataDict     vars;
  * FuncMetaDataDict    funcs;
+ * OperMetaDataDict    opers;
  */
-MetaData::MetaData(){
 
+MetaData::MetaData(){
+    external = false;
 }
 
 MetaData::MetaData( const MetaData& data ){
     external = false;
     vars = data.vars;
     funcs = data.funcs;
+    opers = data.opers;
 }
-
-// MetaData::MetaData( MetaData& data ){
-//     vars = data.vars;
-//     funcs = data.funcs;
-// }
 
 MetaData::MetaData( MetaData* data ){
     if ( data != nullptr ) {
         external = data->external;
         vars = data->vars;
         funcs = data->funcs;
+        opers = data->opers;
     }
 }
 
@@ -166,6 +180,7 @@ MetaData&   MetaData::operator=( MetaData* data ) {
         external = data->external;
         vars = data->vars;
         funcs = data->funcs;
+        opers = data->opers;
     }
     return *this;
 }
@@ -177,6 +192,11 @@ MetaData&   MetaData::append( const QString& varName, const VarMetaData& var ){
 
 MetaData&   MetaData::append( const QString& funcName, const FuncMetaData& func ){
     funcs.insert( funcName, func );
+    return *this;
+}
+
+MetaData&   MetaData::append( const QString& operName, const OperMetaData& oper ) {
+    opers.insert( operName, oper );
     return *this;
 }
 
@@ -194,6 +214,14 @@ bool        MetaData::hasFunc( const QString& name ) const {
 
 const FuncMetaData  MetaData::func( const QString& name ) const {
     return funcs[ name ];
+}
+
+bool        MetaData::hasOper( const QString& name ) const {
+    return opers.contains( name );
+}
+
+const OperMetaData  MetaData::oper( const QString& name ) const {
+    return opers[ name ];
 }
 
 }   // namespace

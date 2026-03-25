@@ -23,11 +23,6 @@ BydaoNative::BydaoNative(QObject* parent)
 BydaoNative::~BydaoNative() {
 }
 
-// Получить итератор
-BydaoValue BydaoNative::iter() {
-    return BydaoValue( BydaoNull::instance() );
-}
-
 // ========== Свойства ==========
 
 void BydaoNative::registerProperty(const QString& name,

@@ -11,13 +11,104 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "BydaoScript/BydaoIntClass.h"
-#include "BydaoScript/BydaoIntRange.h"
-#include "BydaoScript/BydaoInt.h"
-#include "BydaoScript/BydaoString.h"
 #include <QRandomGenerator>
 
+#include "BydaoScript/BydaoIntClass.h"
+#include "BydaoScript/BydaoIntRange.h"
+#include "BydaoScript/BydaoIntRange.h"  // для range
+
 namespace BydaoScript {
+
+
+// Получить мета-данные
+MetaData*   BydaoIntClass::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // Методы класса
+            ->append( "range",  FuncMetaData("IntRange", true, true)
+                                  << FuncArgMetaData("from","Int")
+                                  << FuncArgMetaData("to","Int")
+                     )
+            .append( "parse",   FuncMetaData("Int", true, true)
+                                 << FuncArgMetaData("str","String")
+                    )
+            .append( "max",     FuncMetaData("Int", true, true)
+                               << FuncArgMetaData("arg1","Int")
+                               << FuncArgMetaData("arg2","Int")
+                    )
+            .append( "min",     FuncMetaData("Int", true, true)
+                               << FuncArgMetaData("arg1","Int")
+                               << FuncArgMetaData("arg2","Int")
+                    )
+            .append( "random",  FuncMetaData("Int", true, true)
+                                  << FuncArgMetaData("from","Int")
+                                  << FuncArgMetaData("to","Int")
+                    )
+            // методы объекта
+            .append( "toString", FuncMetaData("String", false, true) << FuncArgMetaData("arg","Int",false) )
+            .append( "toReal",  FuncMetaData("Real", false, true) )
+            .append( "toBool",  FuncMetaData("Bool", false, true) )
+            .append( "abs",     FuncMetaData("Int", false, true) )
+            .append( "negate",  FuncMetaData("Int", false, true) )
+            .append( "isNull",  FuncMetaData("Bool", false, true) )
+            .append( "toHex",   FuncMetaData("String", false, true) )
+            .append( "toBin",   FuncMetaData("String", false, true) )
+            ;
+        metaData
+            // операции сравнения
+            ->append( "eq",     OperMetaData("Any", "Bool" ) )
+            .append( "neq",     OperMetaData("Any", "Bool" ) )
+            .append( "lt",      OperMetaData("Any", "Bool" ) )
+            .append( "le",      OperMetaData("Any", "Bool" ) )
+            .append( "gt",      OperMetaData("Any", "Bool" ) )
+            .append( "ge",      OperMetaData("Any", "Bool" ) )
+            // операции арифметические
+            .append( "add",     OperMetaData("Int", "Int" )
+                               .append( "Real", "Real" )
+                               .append( "String", "String" )
+                               .append( "Any", "Int" )
+                    )
+            .append( "addToValue",  OperMetaData("Int", "Void" )
+                               .append( "Real", "Void" )
+                               .append( "Any", "Void" )
+                    )
+            .append( "sub",     OperMetaData("Int", "Int" )
+                               .append( "Real", "Real" )
+                               .append( "String", "Int" )
+                               .append( "Any", "Int" )
+                    )
+            .append( "mul",     OperMetaData("Int", "Int" )
+                               .append( "Real", "Real" )
+                               .append( "Any", "Int" )
+                    )
+            .append( "div",     OperMetaData("Int", "Int" )
+                               .append( "Real", "Real" )
+                               .append( "Any", "Int" )
+                    )
+            .append( "mod",     OperMetaData("Any", "Int" ) )
+            .append( "neg",     OperMetaData("", "Int" ) )
+            ;
+    }
+    return metaData;
+}
+
+/**
+ * Вернуть список используемых типов.
+ */
+UsedMetaDataList    BydaoIntClass::usedMetaData() {
+    static UsedMetaDataList list;
+
+    if ( list.isEmpty() ) {
+        list << UsedMetaData( "IntRange", BydaoIntRange::metaData() );
+        list << UsedMetaData( "IntRangeIter", BydaoIntRangeIterator::metaData() );
+    }
+
+    return list;
+}
+
+//==============================================================================
 
 BydaoIntClass::BydaoIntClass(QObject* parent)
     : BydaoNative(parent)
@@ -43,47 +134,7 @@ bool BydaoIntClass::callMethod(const QString& name,
     return false;
 }
 
-// Получить мета-данные
-MetaData*   BydaoIntClass::metaData() {
-    static MetaData* metaData = nullptr;
-    if ( ! metaData ) {
-        metaData = new MetaData();
-        metaData
-            // Методы класса
-            ->append( "range",  FuncMetaData("IntRange", true, true)
-                                    << FuncArgMetaData("from","Int",false)
-                                    << FuncArgMetaData("to","Int",false)
-            )
-            .append( "parse",   FuncMetaData("Int", true, true)
-                                    << FuncArgMetaData("str","String",false)
-            )
-            .append( "max",     FuncMetaData("Int", true, true)
-                                    << FuncArgMetaData("arg1","Int",false)
-                                    << FuncArgMetaData("arg2","Int",false)
-            )
-            .append( "min",     FuncMetaData("Int", true, true)
-                                   << FuncArgMetaData("arg1","Int",false)
-                                   << FuncArgMetaData("arg2","Int",false)
-            )
-            .append( "range",   FuncMetaData("Int", true, true)
-                                    << FuncArgMetaData("from","Int",false)
-                                    << FuncArgMetaData("to","Int",false)
-            )
-            // методы объекта
-            .append( "toString", FuncMetaData("String", false, true)
-                                    << FuncArgMetaData("arg","Int",false)
-            )
-            .append( "toReal",  FuncMetaData("Real", false, true) )
-            .append( "toBool",  FuncMetaData("Bool", false, true) )
-            .append( "abs",     FuncMetaData("Int", false, true) )
-            .append( "negate",  FuncMetaData("Int", false, true) )
-            .append( "isNull",  FuncMetaData("Bool", false, true) )
-            .append( "toHex",   FuncMetaData("String", false, true) )
-            .append( "toBin",   FuncMetaData("String", false, true) )
-        ;
-    }
-    return metaData;
-}
+//==============================================================================
 
 // Int.range(start, end) -> возвращает итератор по числам от start до end-1
 bool BydaoIntClass::method_range(const QVector<BydaoValue>& args, BydaoValue& result) {

@@ -68,7 +68,6 @@ public:
 
     // Работа с модулями
     void addModulePath(const QString& path);
-    bool loadModuleInfo(const QString& name);
     bool loadMetaData(const QString& name);
 
 private:
@@ -106,13 +105,9 @@ private:
     VariableInfo resolveVariable(const QString& name);
     bool isVariableDeclared(const QString& name);
     bool removeVariable(const QString& name);
-    void setVariableType( const QString& name, const QString type );
+    void setVariableType( const QString& name, const QString type, bool isConst = false );
 
     // ===== Семантический анализ =====
-    void initBuiltinTypes();
-    bool isBuiltinTypeName(const QString& name) const;
-    bool isModule(const QString& name);
-    BydaoModuleInfo* getModuleInfo(const QString& name);
     bool isNameToken(BydaoTokenType type) const;
 
     // ===== Парсинг грамматики =====
@@ -159,7 +154,12 @@ private:
     // Составные конструкции
     bool parseArrayLiteral();
 
+    bool    checkTypeStack( int typeStackSize, const BydaoToken& statementToken );
     bool    checkTypeConvert( const QString& typeName, const BydaoToken& token );
+    bool    checkTypeConvert( const QString& fromType, const QString& toType, const BydaoToken& token );
+    bool    checkTypeOper( const QString& typeName, const QString& operName, const BydaoToken& token );
+    QString getResultType( const QString& leftType, const QString& rightType, const QString& operName, const BydaoToken& token );
+    QString getResultType( const QString& type, const QString& operName, const BydaoToken& token );
 
     // ===== Данные =====
     QVector<BydaoToken> m_tokens;

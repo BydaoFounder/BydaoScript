@@ -187,14 +187,14 @@ QString BydaoDisassembler::formatInstruction(int index,
         const BydaoDebugInfo* di = findDebugInfo(index, debugInfo);
         if (di) {
             if (m_colorOutput)
-                result += GRAY + QString("(%1:%2)").arg(di->line).arg(di->column) + RESET + " ";
+                result += GRAY + QString("(%1:%2)").arg(di->line, 4).arg(di->column,3) + RESET + " ";
             else
-                result += QString("(%1:%2) ").arg(di->line).arg(di->column);
+                result += QString("(%1:%2) ").arg(di->line, 4).arg(di->column, 3);
         } else if (instr.line != 0 && m_showLineNumbers) {
             if (m_colorOutput)
-                result += GRAY + QString("(%1:%2)").arg(instr.line).arg(instr.column) + RESET + " ";
+                result += GRAY + QString("(%1:%2)").arg(instr.line,4).arg(instr.column,3) + RESET + " ";
             else
-                result += QString("(%1:%2) ").arg(instr.line).arg(instr.column);
+                result += QString("(%1:%2) ").arg(instr.line,4).arg(instr.column,3);
         }
     }
 

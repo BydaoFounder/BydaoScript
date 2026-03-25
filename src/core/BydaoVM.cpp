@@ -60,7 +60,7 @@ bool BydaoVM::load(const QVector<BydaoConstant>& constants,
     m_constantValues.clear();
     m_constantValues.reserve(constants.size());
     
-    for (const auto& c : constants) {
+    foreach (const auto& c, constants) {
         switch (c.type) {
         case CONST_INT:
             m_constantValues.append(BydaoValue::fromInt(c.intValue));
@@ -233,7 +233,6 @@ void BydaoVM::setVariable(int scopeLevel, int varIndex, const BydaoValue& value,
         return;
     }
     
-//    RuntimeScope& scope = m_scopeStack[ m_scopeStack.size() - 1 - scopeLevel ];
     RuntimeScope& scope = m_scopeStack[ scopeLevel ];
 
     if (varIndex < 0 || varIndex >= scope.vars.size()) {
@@ -264,6 +263,39 @@ void BydaoVM::error(const QString& msg, const BydaoInstruction& instr) {
 bool BydaoVM::execute(const BydaoInstruction& instr) {
     switch (instr.op) {
 
+    case BydaoOpCode::Load: {
+        m_stack.push( getVariable(instr.arg1, instr.arg2, instr) );
+        break;
+    }
+
+    case BydaoOpCode::Store: {
+        setVariable(instr.arg1, instr.arg2, m_stack.pop(), instr);
+        break;
+    }
+
+    // ===== Области видимости =====
+    case BydaoOpCode::ScopeBegin:
+        // Ничего не делаем, метка для отладки
+        m_scopeStack.push(RuntimeScope());
+        break;
+
+    case BydaoOpCode::ScopeEnd:
+        // Ничего не делаем, метка для отладки
+        if (m_scopeStack.size() > 1) {  // защита от удаления глобальной области
+            m_scopeStack.pop();
+        }
+        break;
+
+    case BydaoOpCode::ScopePush:
+        m_scopeStack.push(RuntimeScope());
+        break;
+
+    case BydaoOpCode::ScopePop:
+        if (m_scopeStack.size() > 1) {  // защита от удаления глобальной области
+            m_scopeStack.pop();
+        }
+        break;
+
     // ===== Переходы =====
     case BydaoOpCode::Jump: {
         m_pc = instr.arg1;
@@ -286,29 +318,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
     
-    // ===== Области видимости =====
-    case BydaoOpCode::ScopeBegin:
-        // Ничего не делаем, метка для отладки
-        m_scopeStack.push(RuntimeScope());
-        break;
-        
-    case BydaoOpCode::ScopeEnd:
-        // Ничего не делаем, метка для отладки
-        if (m_scopeStack.size() > 1) {  // защита от удаления глобальной области
-            m_scopeStack.pop();
-        }
-        break;
-        
-    case BydaoOpCode::ScopePush:
-        m_scopeStack.push(RuntimeScope());
-        break;
-        
-    case BydaoOpCode::ScopePop:
-        if (m_scopeStack.size() > 1) {  // защита от удаления глобальной области
-            m_scopeStack.pop();
-        }
-        break;
-    
     // ===== Переменные =====
     case BydaoOpCode::VarDecl: {
         if (m_scopeStack.isEmpty()) {
@@ -324,8 +333,8 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             
             RuntimeVar var;
             var.name = name;
-            var.value = BydaoValue(BydaoNull::instance());
-            
+//            var.value = BydaoValue(BydaoNull::instance());
+
             scope.vars.append(var);
 //            scope.nameToIndex[name] = varIndex;
         } else {
@@ -346,48 +355,37 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         int scopeLevel = instr.arg1;
-        int varIndex = instr.arg2;
-        
-        int scopePos = m_scopeStack.size() - 1 - scopeLevel;
-        if (scopePos < 0 || scopePos >= m_scopeStack.size()) {
+        if (scopeLevel < 0 || scopeLevel >= m_scopeStack.size()) {
             error("Invalid scope level for Drop", instr);
             return false;
         }
-        
-        RuntimeScope& scope = m_scopeStack[scopePos];
+        RuntimeScope& scope = m_scopeStack[scopeLevel];
+
+        int varIndex = instr.arg2;
         if (varIndex >= 0 && varIndex < scope.vars.size()) {
             // Помечаем как удалённую (или реально удаляем, если это безопасно)
             scope.vars[varIndex].value = BydaoValue(BydaoNull::instance());
         }
         break;
     }
-    
-    case BydaoOpCode::Load: {
-        m_stack.push( getVariable(instr.arg1, instr.arg2, instr) );
-        break;
-    }
-    
-    case BydaoOpCode::Store: {
-        setVariable(instr.arg1, instr.arg2, m_stack.pop(), instr);
-        break;
-    }
 
     case BydaoOpCode::AddStore: {
         BydaoValue b = m_stack.pop();
-        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        BydaoValue& a = getVariable(instr.arg1, instr.arg2, instr);
         if (!a.isObject() || !b.isObject()) {
             error("'+=' operation on non-object", instr);
             return false;
         }
 
-        BydaoValue val = a.toObject()->add(b);
-        setVariable(instr.arg1, instr.arg2, val, instr);
+        a.toObject()->addToValue(b);
+        // BydaoValue val = a.toObject()->add(b);
+        // setVariable(instr.arg1, instr.arg2, val, instr);
         break;
     }
 
     case BydaoOpCode::SubStore: {
         BydaoValue b = m_stack.pop();
-        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        BydaoValue& a = getVariable(instr.arg1, instr.arg2, instr);
         if (!a.isObject() || !b.isObject()) {
             error("'-=' operation on non-object", instr);
             return false;
@@ -400,7 +398,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::MulStore: {
         BydaoValue b = m_stack.pop();
-        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        BydaoValue& a = getVariable(instr.arg1, instr.arg2, instr);
         if (!a.isObject() || !b.isObject()) {
             error("'*=' operation on non-object", instr);
             return false;
@@ -413,7 +411,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::DivStore: {
         BydaoValue b = m_stack.pop();
-        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        BydaoValue& a = getVariable(instr.arg1, instr.arg2, instr);
         if (!a.isObject() || !b.isObject()) {
             error("'/=' operation on non-object", instr);
             return false;
@@ -426,7 +424,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::ModStore: {
         BydaoValue b = m_stack.pop();
-        BydaoValue a = getVariable(instr.arg1, instr.arg2, instr);
+        BydaoValue& a = getVariable(instr.arg1, instr.arg2, instr);
         if (!a.isObject() || !b.isObject()) {
             error("'%=' operation on non-object", instr);
             return false;
@@ -439,9 +437,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     // ===== Константы =====
     case BydaoOpCode::PushConst: {
-        if (instr.arg1 >= 0 && instr.arg1 < m_constantValues.size()) {
-            m_stack.push(m_constantValues[instr.arg1]);
-        } else {
+        if ( instr.arg1 >= 0 && instr.arg1 < m_constantValues.size() ) {
+            m_stack.push( m_constantValues[instr.arg1].copy() );
+        }
+        else {
             error("Invalid constant index", instr);
             return false;
         }
@@ -638,13 +637,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     case BydaoOpCode::GetIter: {
         BydaoValue obj = m_stack.pop();
 
-        auto* native = dynamic_cast<BydaoNative*>(obj.toObject());
-        if (!native) {
-            error("GETITER on non-native object", instr);
+        if ( ! obj.isObject() ) {
+            error("GETITER on non-object", instr);
             return false;
         }
 
-        BydaoValue it = native->iter();
+        BydaoValue it = obj.toObject()->iter();
         if ( it.isNull() ) {
             error("Object does not have an iterator", instr);
             return false;
@@ -655,43 +653,33 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::ItNext: {
-        BydaoValue obj = m_stack.pop();
-        
-//        auto* iter = dynamic_cast<BydaoIterator*>(obj.toObject());
-        auto* iter = static_cast<BydaoIterator*>(obj.toObject());
+//        auto* iter = static_cast<BydaoIterator*>(m_stack.pop().toObject());
+        auto* iter = (BydaoIterator*)( m_stack.pop().toObject() );
         if (!iter) {
             error("ITNEXT on non-iterator", instr);
             return false;
         }
-        
-        m_stack.push(BydaoValue::fromBool(iter->next()));
+        m_stack.push( BydaoValue( BydaoBool::create( iter->next() ) ) ); // BydaoValue::fromBool( iter->next() ) );
         break;
     }
     
     case BydaoOpCode::ItValue: {
-        BydaoValue obj = m_stack.pop();
-        
-//        auto* iter = dynamic_cast<BydaoIterator*>(obj.toObject());
-        auto* iter = static_cast<BydaoIterator*>(obj.toObject());
+//        auto* iter = static_cast<BydaoIterator*>(m_stack.pop().toObject());
+        auto* iter = (BydaoIterator*)( m_stack.pop().toObject() );
         if (!iter) {
             error("ITVALUE on non-iterator", instr);
             return false;
         }
-        
         m_stack.push(iter->value());
         break;
     }
     
     case BydaoOpCode::ItKey: {
-        BydaoValue obj = m_stack.pop();
-        
-//        auto* iter = dynamic_cast<BydaoIterator*>(obj.toObject());
-        auto* iter = static_cast<BydaoIterator*>(obj.toObject());
+        auto* iter = static_cast<BydaoIterator*>(m_stack.pop().toObject());
         if (!iter) {
             error("ITKEY on non-iterator", instr);
             return false;
         }
-        
         m_stack.push(iter->key());
         break;
     }
@@ -815,14 +803,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         // Проверяем, что на стеке строка - имя метода
-        if (!m_stack.top().isObject() || m_stack.top().typeId() != TYPE_STRING) {
-            BydaoValue badValue = m_stack.top();
-            QString valueDesc;
-            if (badValue.isObject()) {
-                valueDesc = badValue.toObject()->typeName();
-            } else {
-                valueDesc = "non-object";
-            }
+        const BydaoValue& top = m_stack.pop();
+        if ( ! top.isObject() || top.typeId() != TYPE_STRING) {
+
+            QString valueDesc = top.isObject()
+                ? top.toObject()->typeName()
+                : "non-object";
 
             // Пытаемся определить, что хотели вызвать
             QString hint;
@@ -837,11 +823,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
                       .arg(valueDesc), instr);
             return false;
         }
+        QString methodName = top.toString();
 
-        QString methodName = m_stack.pop().toString();
         BydaoValue obj = m_stack.pop();
-
-        if (!obj.isObject()) {
+        if ( ! obj.isObject() ) {
             error("CALL on non-object", instr);
             return false;
         }

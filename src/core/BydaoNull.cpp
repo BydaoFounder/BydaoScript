@@ -26,6 +26,26 @@ BydaoNull* BydaoNull::instance() {
     return s_instance;
 }
 
+// Получить мета-данные
+MetaData*   BydaoNull::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы объекта
+            ->append( "toString",   FuncMetaData("String", false, true) )
+            .append( "toBool",      FuncMetaData("Bool", false, true) )
+            .append( "isNull",      FuncMetaData("Bool", false, true) )
+            .append( "isEmpty",     FuncMetaData("Bool", false, true) )
+            ;
+        metaData
+            ->append( "eq",     OperMetaData("Any", "Bool" ) )
+            .append( "neq",     OperMetaData("Any", "Bool" ) )
+            ;
+    }
+    return metaData;
+}
+
 //------------------------------------------------------------------------------
 
 BydaoNull::BydaoNull() {
@@ -39,22 +59,6 @@ BydaoNull::BydaoNull() {
 
 void BydaoNull::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
-}
-
-// Получить мета-данные
-MetaData*   BydaoNull::metaData() {
-    static MetaData* metaData = nullptr;
-    if ( ! metaData ) {
-        metaData = new MetaData();
-        metaData
-            // методы объекта
-            ->append( "toString",   FuncMetaData("String", false, true) )
-            .append( "toBool",      FuncMetaData("Bool", false, true) )
-            .append( "isNull",      FuncMetaData("Bool", false, true) )
-            .append( "isEmpty",     FuncMetaData("Bool", false, true) )
-            ;
-    }
-    return metaData;
 }
 
 bool BydaoNull::callMethod(const QString& name,

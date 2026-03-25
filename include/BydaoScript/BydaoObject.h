@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#pragma once
+#ifndef _BYDAOOBJECT_H_
+#define _BYDAOOBJECT_H_
 
 #include <QString>
 #include <QVector>
 #include <QDebug>
 
 #include "BydaoValue.h"
-#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -27,29 +27,44 @@ class BydaoObject {
 public:
     virtual ~BydaoObject() = default;
 
-    void ref() { m_refCount++; }
-    void unref() { if (--m_refCount == 0) release(); }
+    inline void ref() { m_refCount++; }
+    inline void unref() { if (--m_refCount == 0) release(); }
+    inline int getRef() { return m_refCount; }
 
     // Единственный метод вызова
     virtual bool callMethod(const QString& name,
                             const QVector<BydaoValue>& args,
                             BydaoValue& result) = 0;
 
-    // Получить мета-данные
-    virtual MetaData*   metaData() { return nullptr; };
-
     // Информация о типе
     virtual QString typeName() const = 0;
 
     // Получить итератор
-    virtual BydaoValue iter() = 0;
+    virtual BydaoValue iter(){
+        return BydaoValue();
+    };
+
+    virtual BydaoObject* copy() {
+        qWarning() << "copy not implemented for" << typeName();
+        return nullptr;
+    }
 
     // ========== Операции (с реализацией по умолчанию) ==========
+
+    virtual void    assign( BydaoObject* obj ) {
+        Q_UNUSED( obj );
+        qWarning() << "assign not implemented for" << typeName();
+    }
 
     virtual BydaoValue add(const BydaoValue& other) {
         Q_UNUSED( other );
         qWarning() << "add not supported for" << typeName();
         return BydaoValue();  // null
+    }
+
+    virtual void  addToValue(const BydaoValue& other) {
+        Q_UNUSED( other );
+        qWarning() << "addToValue not supported for" << typeName();
     }
 
     virtual BydaoValue sub(const BydaoValue& other) {
@@ -144,3 +159,5 @@ protected:
 };
 
 } // namespace BydaoScript
+
+#endif
