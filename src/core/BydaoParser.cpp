@@ -827,10 +827,6 @@ bool BydaoParser::parseAddAssign() {
             error( "Operation '+=' cannot be applied to a value of type '" + exprType + "'", exprToken );
             return false;
         }
-        // if ( resultType != varType ) {
-        //     error( "Invalid type of expression", exprToken );
-        //     return false;
-        // }
     }
 
     emitCode(BydaoOpCode::AddStore, info.varIndex, 0, nameToken);
