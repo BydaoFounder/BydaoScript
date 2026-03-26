@@ -35,8 +35,9 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     , m_inLoop(false)
     , m_iteratorCounter(0)
 {
-    if (!m_tokens.isEmpty())
+    if ( ! m_tokens.isEmpty() ) {
         m_current = m_tokens[0];
+    }
 
     // Добавляем пути поиска модулей
     m_modulePaths << ".";
@@ -231,20 +232,15 @@ void BydaoParser::patchJumps(const QVector<int>& jumps, int targetAddr) {
 // ============================================================
 
 void BydaoParser::enterScope() {
-    // Генерируем SCOPEPUSH
-    emitCode(BydaoOpCode::ScopePush, 0, 0);
-
-    // Добавляем пустой набор переменных в новую область видимости
-    m_varScopes.push( ScopeItem() );
+    m_scopeStart.push( m_varScopes.size() );
 }
 
 void BydaoParser::exitScope() {
-
-    // Забираем набор переменных в текущей области видимости
-    ScopeItem item = m_varScopes.pop();
-
-    // В области были переменные - генерируем SCOPEPOP
-    emitCode(BydaoOpCode::ScopePop, 0, 0);
+    if ( m_varScopes.size() > m_scopeStart.top() ) {
+        m_varScopes.resize( m_scopeStart.top() );
+        emitCode( BydaoOpCode::ScopeDrop, m_scopeStart.top() );
+    }
+    m_scopeStart.pop();
 }
 
 bool BydaoParser::appendVariable(const QString& name, bool isConstant, bool isPublic ) {
@@ -252,28 +248,26 @@ bool BydaoParser::appendVariable(const QString& name, bool isConstant, bool isPu
 //    qDebug() << "appendVariable:" << name << "isConstant =" << isConstant;  // ОТЛАДКА
 
     // Проверяем, не объявлена ли уже в этой области
-    if (m_varScopes.top().varInfo.contains(name)) {
-        error("Variable '" + name + "' already declared in this scope");
-        return false;
+
+    int scopeStart = m_scopeStart.top();
+    int index = m_varScopes.size();
+    while ( --index >= scopeStart ) {
+        if ( m_varScopes[ index ].name == name ) {
+            error("Variable '" + name + "' already declared in this scope");
+            return false;
+        }
     }
 
-    // Индекс области видимости
-    int scopeIndex = m_varScopes.size() - 1;
+    // Добавляем в список переменных
 
-    // Вычисляем индекс переменной в области видимости
-    int varIndex = m_varScopes.top().varList.size();
-
-    // Сохраняем в текущей области видимости
     VariableInfo info;
     info.name = name;
     info.type = "Null";
-    info.scopeDepth = scopeIndex;
-    info.varIndex = varIndex;
+    info.varIndex = m_varScopes.size();
     info.isConstant = isConstant;
     info.isPublic = isPublic;
 
-    m_varScopes.top().varList.insert( name );
-    m_varScopes.top().varInfo[name] = info;
+    m_varScopes.append( ScopeItem( name, info ) );
 
     return true;
 }
@@ -283,6 +277,7 @@ void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) 
     if ( appendVariable( name, false ) ) {
 
         // Генерируем VARDECL (имя переменной нужно только для отладки)
+
         qint16 nameIndex = addString(name);
         emitCode(BydaoOpCode::VarDecl, nameIndex, 0, token);
     }
@@ -290,19 +285,20 @@ void BydaoParser::declareVariable(const QString& name, const BydaoToken& token) 
 
 VariableInfo BydaoParser::resolveVariable(const QString& name) {
 
-    int stackSize = m_varScopes.size();
-    for ( int i = stackSize-1; i >= 0; --i ) {
-        if ( m_varScopes[ i ].varInfo.contains( name ) ) {
-            return m_varScopes[ i ].varInfo[name];
+    int index = m_varScopes.size();
+    while ( --index >= 0 ) {
+        if ( m_varScopes[ index ].name == name ) {
+            return m_varScopes[ index ].varInfo;
         }
     }
     return VariableInfo();
 }
 
 bool BydaoParser::isVariableDeclared(const QString& name) {
-    int stackSize = m_varScopes.size();
-    for ( int i = stackSize-1; i >= 0; --i ) {
-        if ( m_varScopes[ i ].varInfo.contains( name ) ) {
+
+    int index = m_varScopes.size();
+    while ( --index >= 0 ) {
+        if ( m_varScopes[ index ].name == name ) {
             return true;
         }
     }
@@ -310,11 +306,11 @@ bool BydaoParser::isVariableDeclared(const QString& name) {
 }
 
 bool BydaoParser::removeVariable(const QString& name ) {
-    int stackSize = m_varScopes.size();
-    for ( int i = stackSize-1; i >= 0; --i ) {
-        if ( m_varScopes[ i ].varInfo.contains( name ) ) {
-            m_varScopes[ i ].varList.remove( name );
-            m_varScopes[ i ].varInfo.remove( name );
+
+    int index = m_varScopes.size();
+    while ( --index >= 0 ) {
+        if ( m_varScopes[ index ].name == name ) {
+            m_varScopes.removeAt( index );
             return true;
         }
     }
@@ -323,12 +319,12 @@ bool BydaoParser::removeVariable(const QString& name ) {
 
 void BydaoParser::setVariableType(const QString& name, const QString type, bool isConst) {
 
-    int stackSize = m_varScopes.size();
-    for ( int i = stackSize-1; i >= 0; --i ) {
-        if ( m_varScopes[ i ].varInfo.contains( name ) ) {
-            m_varScopes[ i ].varInfo[name].type = type;
-            m_varScopes[ i ].varInfo[name].isConstant = isConst;
-            break;
+    int index = m_varScopes.size();
+    while ( --index >= 0 ) {
+        if ( m_varScopes[ index ].name == name ) {
+            m_varScopes[ index ].varInfo.type = type;
+            m_varScopes[ index ].varInfo.isConstant = isConst;
+            return;
         }
     }
 }
@@ -465,10 +461,11 @@ bool BydaoParser::parseBlock(bool requireBraces) {
 
     enterScope();  // новая область для блока
 
-    while (!match(BydaoTokenType::RBrace) && !match(BydaoTokenType::EndOfFile)) {
+    while ( ! match( BydaoTokenType::RBrace ) && ! match( BydaoTokenType::EndOfFile ) ) {
+
         BydaoToken statementToken = m_current;
         int typeStackSize = m_typeStack.size();
-        if (!parseStatement()) {
+        if ( ! parseStatement() ) {
             exitScope();
             return false;
         }
@@ -657,7 +654,7 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
         emitCode(BydaoOpCode::PushConst, nullConst, 0, token);
     }
 
-    emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
+    emitCode(BydaoOpCode::Store, info.varIndex, 0, nameToken);
 
     return true;
 }
@@ -700,9 +697,8 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
     // Обновляем значение в таблице
 
     VariableInfo info = resolveVariable(name);
-    info.constValue = constValue;
-    info.type = constValue.toObject()->typeName();
-    m_varScopes.top().varInfo[name] = info;
+    m_varScopes[ info.varIndex ].varInfo.type = constValue.toObject()->typeName();
+    m_varScopes[ info.varIndex ].varInfo.constValue = constValue;
 
     // Генерируем код
     qint16 nameIndex = addString(name);
@@ -732,7 +728,7 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
     emitCode(BydaoOpCode::PushConst, constIndex, 0, token);
 
 //    qDebug() << "  generating Store for" << name;
-    emitCode(BydaoOpCode::Store, info.scopeDepth, info.varIndex, nameToken);
+    emitCode(BydaoOpCode::Store, info.varIndex, 0, nameToken);
 
     return true;
 }
@@ -771,7 +767,7 @@ bool BydaoParser::parseAssign() {
     }
     setVariableType( name, exprType.type );
 
-    emitCode(BydaoOpCode::Store, varInfo.scopeDepth, varInfo.varIndex, nameToken);
+    emitCode(BydaoOpCode::Store, varInfo.varIndex, 0, nameToken);
     return true;
 }
 
@@ -837,7 +833,7 @@ bool BydaoParser::parseAddAssign() {
         // }
     }
 
-    emitCode(BydaoOpCode::AddStore, info.scopeDepth, info.varIndex, nameToken);
+    emitCode(BydaoOpCode::AddStore, info.varIndex, 0, nameToken);
     return true;
 }
 
@@ -867,7 +863,7 @@ bool BydaoParser::parseSubAssign() {
         return false;
     }
 
-    emitCode(BydaoOpCode::SubStore, info.scopeDepth, info.varIndex, nameToken);
+    emitCode(BydaoOpCode::SubStore, info.varIndex, 0, nameToken);
 
     return true;
 }
@@ -898,7 +894,7 @@ bool BydaoParser::parseMulAssign() {
         return false;
     }
 
-    emitCode(BydaoOpCode::MulStore, info.scopeDepth, info.varIndex, nameToken);
+    emitCode(BydaoOpCode::MulStore, info.varIndex, 0, nameToken);
 
     return true;
 }
@@ -929,7 +925,7 @@ bool BydaoParser::parseDivAssign() {
         return false;
     }
 
-    emitCode(BydaoOpCode::DivStore, info.scopeDepth, info.varIndex, nameToken);
+    emitCode(BydaoOpCode::DivStore, info.varIndex, 0, nameToken);
 
     return true;
 }
@@ -960,7 +956,7 @@ bool BydaoParser::parseModAssign() {
         return false;
     }
 
-    emitCode(BydaoOpCode::ModStore, info.scopeDepth, info.varIndex, nameToken);
+    emitCode(BydaoOpCode::ModStore, info.varIndex, 0, nameToken);
 
     return true;
 }
@@ -1152,12 +1148,12 @@ bool BydaoParser::parseIter() {
     // Сохраняем итератор во временную переменную
     declareVariable(iterName, iterToken);  // объявляем в текущей области
     VariableInfo iterInfo = resolveVariable(iterName);
-    emitCode(BydaoOpCode::Store, iterInfo.scopeDepth, iterInfo.varIndex, iterToken);
+    emitCode(BydaoOpCode::Store, iterInfo.varIndex, 0, iterToken);
 
     int loopStart = m_bytecode.size();
 
     // iter.next()
-    emitCode(BydaoOpCode::Load, iterInfo.scopeDepth, iterInfo.varIndex, iterToken);
+    emitCode(BydaoOpCode::Load, iterInfo.varIndex, 0, iterToken);
     emitCode(BydaoOpCode::ItNext, 0, 0, token);
 
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
@@ -1173,7 +1169,7 @@ bool BydaoParser::parseIter() {
     m_bytecode[condJump].arg1 = m_bytecode.size();
 
     // Очистка - удаляем переменную итератора
-    emitCode(BydaoOpCode::Drop, iterInfo.scopeDepth, iterInfo.varIndex, iterToken);
+    emitCode(BydaoOpCode::Drop, iterInfo.varIndex, 0, iterToken);
     removeVariable(iterName);
 
     return true;
@@ -1247,20 +1243,20 @@ bool BydaoParser::parseEnum() {
     declareVariable(tmpIterName, token);  // объявляем в текущей области
     VariableInfo iterInfo = resolveVariable(tmpIterName);
     setVariableType( tmpIterName, iterType );
-    emitCode(BydaoOpCode::Store, iterInfo.scopeDepth, iterInfo.varIndex, token);
+    emitCode(BydaoOpCode::Store, iterInfo.varIndex, 0, token);
 
     int loopStart = m_bytecode.size();
 
     // iter.next()
-    emitCode(BydaoOpCode::Load, iterInfo.scopeDepth, iterInfo.varIndex, token);
+    emitCode(BydaoOpCode::Load, iterInfo.varIndex, 0, token);
     emitCode(BydaoOpCode::ItNext, 0, 0, token);
 
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 
     // Получаем значение и сохраняем в переменную
-    emitCode(BydaoOpCode::Load, iterInfo.scopeDepth, iterInfo.varIndex, token);
+    emitCode(BydaoOpCode::Load, iterInfo.varIndex, 0, token);
     emitCode(BydaoOpCode::ItValue, 0, 0, token);
-    emitCode(BydaoOpCode::Store, varInfo.scopeDepth, varInfo.varIndex, varToken);
+    emitCode(BydaoOpCode::Store, varInfo.varIndex, 0, varToken);
 
     // Тело цикла - parseBlock сам создаст область видимости
     if (!parseBlock(true)) {
@@ -1273,11 +1269,11 @@ bool BydaoParser::parseEnum() {
     m_bytecode[condJump].arg1 = m_bytecode.size();
 
     // Очистка - удаляем временный итератор
-    emitCode(BydaoOpCode::Drop, iterInfo.scopeDepth, iterInfo.varIndex, token);
+    emitCode(BydaoOpCode::Drop, iterInfo.varIndex, 0, token);
     removeVariable(tmpIterName);
 
     // Удаляем переменную цикла
-    emitCode(BydaoOpCode::Drop, varInfo.scopeDepth, varInfo.varIndex, varToken);
+    emitCode(BydaoOpCode::Drop, varInfo.varIndex, 0, varToken);
     removeVariable(varName);
 
     return true;
@@ -1296,7 +1292,8 @@ bool BydaoParser::parseBreakNext() {
         loop.breaks.append(jumpInstr);
         nextToken();
         return true;
-    } else if (match(BydaoTokenType::Next)) {
+    }
+    else if (match(BydaoTokenType::Next)) {
         int jumpInstr = emitCode(BydaoOpCode::Jump, 0, 0, m_current);
         loop.nexts.append(jumpInstr);
         nextToken();
@@ -1324,7 +1321,6 @@ bool BydaoParser::parseUse() {
         }
 
         QString moduleName = m_current.text;
-//        if ( ! isModule( moduleName ) ) {
         if ( ! m_metaData.contains( moduleName ) ) {
 
             nextToken();
@@ -1340,15 +1336,9 @@ bool BydaoParser::parseUse() {
                 nextToken();
             }
 
-            // if (!loadModuleInfo(moduleName)) {
-            //     return false;
-            // }
             if ( ! loadMetaData( moduleName ) ) {
                 return false;
             }
-
-            // Сохраняем алиас в карту модулей
-//            m_moduleInfoCache[alias] = getModuleInfo(moduleName);
 
             // Добавляем переменную в текущую область видимости
             if ( ! appendVariable( alias ) ) {
@@ -1472,6 +1462,8 @@ bool BydaoParser::parseEquality() {
                 return false;
             }
         }
+
+        m_typeStack.push( TypeInfo("Bool") );
 
         emitCode(isEq ? BydaoOpCode::Eq : BydaoOpCode::Neq, 0, 0, op);
     }
@@ -1785,7 +1777,7 @@ bool BydaoParser::parsePrimary() {
                 }
                 nextToken(); // съедаем имя модуля
                 VariableInfo info = resolveVariable(name);
-                emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
+                emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
                 m_typeStack.push( TypeInfo( name ) );
             }
             else {                              // внутренний тип/класс
@@ -1799,7 +1791,7 @@ bool BydaoParser::parsePrimary() {
         else if (isVariableDeclared(name)) {    // обычная переменная?
             nextToken(); // съедаем имя переменной
             VariableInfo info = resolveVariable(name);
-            emitCode(BydaoOpCode::Load, info.scopeDepth, info.varIndex, nameToken);
+            emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
             m_typeStack.push( TypeInfo( info.type ) );
         }
         else {

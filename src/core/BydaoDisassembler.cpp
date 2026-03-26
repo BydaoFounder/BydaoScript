@@ -229,6 +229,9 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
 //        args << QString("c%1").arg(instr.arg1);
         break;
     }
+    case BydaoOpCode::ScopeDrop:
+        args << QString("%1").arg(instr.arg1);
+        break;
 
     case BydaoOpCode::Load:
     case BydaoOpCode::Store:

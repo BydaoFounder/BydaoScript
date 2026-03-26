@@ -28,10 +28,9 @@ struct RuntimeVar {
 };
 
 // Область видимости в runtime
-struct RuntimeScope {
-    QVector<RuntimeVar> vars;           // переменные в этой области
-//    QHash<QString, int> nameToIndex;    // имя -> индекс (для быстрого доступа при загрузке)
-};
+// struct RuntimeScope {
+//     QVector<RuntimeVar> vars;           // переменные в этой области
+// };
 
 class BydaoVM {
 public:
@@ -69,9 +68,9 @@ private:
 
     // Вспомогательные методы
     void error(const QString& msg, const BydaoInstruction& instr);
-    BydaoValue& getVariable(int scopeLevel, int varIndex, const BydaoInstruction& instr);
-    const BydaoValue& getVariable(int scopeLevel, int varIndex, const BydaoInstruction& instr) const;
-    void setVariable(int scopeLevel, int varIndex, const BydaoValue& value, const BydaoInstruction& instr);
+    BydaoValue& getVariable(int varIndex, const BydaoInstruction& instr);
+    const BydaoValue& getVariable(int varIndex, const BydaoInstruction& instr) const;
+    void setVariable(int varIndex, const BydaoValue& value, const BydaoInstruction& instr);
 
     void dumpStack(const QString& label = QString());
 
@@ -85,7 +84,7 @@ private:
     int m_pc;                    // program counter
     bool m_running;              // флаг выполнения
     QStack<BydaoValue> m_stack;  // стек значений
-    QStack<RuntimeScope> m_scopeStack;  // стек областей видимости
+    QList<RuntimeVar>  m_scopeStack;  // стек областей видимости
 
     // Ошибки
     QString m_lastError;

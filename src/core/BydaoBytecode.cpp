@@ -62,10 +62,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Jump] = "JUMP";
         names[BydaoOpCode::JumpIfFalse] = "JMPF";
         names[BydaoOpCode::JumpIfTrue] = "JMPT";
-        names[BydaoOpCode::ScopeBegin] = "SCOPEBEG";
-        names[BydaoOpCode::ScopeEnd] = "SCOPEEND";
-        names[BydaoOpCode::ScopePush] = "SCOPEPUSH";
-        names[BydaoOpCode::ScopePop] = "SCOPEPOP";
+        names[BydaoOpCode::ScopeDrop] = "SCOPEDROP";
         names[BydaoOpCode::UseModule] = "USE";
         names[BydaoOpCode::TypeClass] = "TYPECLASS";
         names[BydaoOpCode::PushArray] = "PUSHARRAY";

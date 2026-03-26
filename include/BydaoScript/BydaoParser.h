@@ -29,8 +29,7 @@ namespace BydaoScript {
 struct VariableInfo {
     QString     name;
     QString     type;
-    int         scopeDepth;     // глубина области, где объявлена
-    int         varIndex;       // индекс в этой области
+    int         varIndex;       // индекс в списке переменных
     bool        isConstant;     // true для констант
     bool        isPublic;       // true для pub-переменных/констант
     BydaoValue  constValue;     // значение константы для вычислителя
@@ -184,10 +183,19 @@ private:
     QMap<int, int> m_labels;
 
     struct ScopeItem {
-        QSet<QString>                varList;   // линейный список переменных в данной области видимости
-        QHash<QString, VariableInfo> varInfo;   // таблица с информацией о переменных
+        QString         name;
+        VariableInfo    varInfo;        // таблица с информацией о переменных
+
+        ScopeItem(){
+        }
+        ScopeItem( const QString& name, const VariableInfo& info ) {
+            this->name = name;
+            this->varInfo = info;
+        }
     };
-    QStack<ScopeItem> m_varScopes;      // стек областей видимости переменных
+    QList<ScopeItem>    m_varScopes;    // список переменных (плоская область видимости)
+    QStack< int >       m_scopeStart;   // стек начальных индексов областей видимости
+                                        // в списке m_varScopes
 
     // Циклы
     QStack<LoopInfo> m_loopStack;
