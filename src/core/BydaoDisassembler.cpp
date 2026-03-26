@@ -226,7 +226,6 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
     case BydaoOpCode::PushConst: {
         BydaoConstant val = constants[ instr.arg1 ];
         args << formatConstant( val, stringTable );
-//        args << QString("c%1").arg(instr.arg1);
         break;
     }
     case BydaoOpCode::ScopeDrop:
@@ -236,8 +235,12 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
     case BydaoOpCode::Load:
     case BydaoOpCode::Store:
     case BydaoOpCode::AddStore:
+    case SubStore:
+    case MulStore:
+    case DivStore:
+    case ModStore:
     case BydaoOpCode::Drop:
-        args << QString("s%1").arg(instr.arg1) << QString("v%1").arg(instr.arg2);
+        args << QString("v%1").arg(instr.arg1);
         break;
 
     case BydaoOpCode::VarDecl:
