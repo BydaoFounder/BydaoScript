@@ -40,8 +40,8 @@ MetaData*   BydaoBool::metaData() {
 
 QVector<BydaoBool*> BydaoBool::s_cache;
 
-BydaoBool::BydaoBool(bool value, QObject* parent)
-    : BydaoNative(parent)
+BydaoBool::BydaoBool(bool value)
+    : BydaoNative()
     , m_value(value)
 {
     registerMethod("toString", &BydaoBool::method_toString);

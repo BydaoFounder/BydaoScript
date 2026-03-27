@@ -19,7 +19,6 @@
 namespace BydaoScript {
 
 class BydaoBool : public BydaoNative {
-    Q_OBJECT
 
     static QVector<BydaoBool*> s_cache;
     static const int MAX_CACHE_SIZE = 1024;
@@ -35,7 +34,7 @@ protected:
         }
     }
 
-    explicit BydaoBool(bool value = false, QObject* parent = nullptr);
+    explicit BydaoBool(bool value = false);
 
 public:
 

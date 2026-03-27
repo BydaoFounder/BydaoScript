@@ -169,7 +169,7 @@ bool BydaoParser::expect(BydaoTokenType type) {
         return true;
     }
     error(QString("Expected %1, got '%2'")
-          .arg(static_cast<int>(type))
+          .arg(int(type))
           .arg(m_current.text));
     return false;
 }

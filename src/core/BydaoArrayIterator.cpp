@@ -17,8 +17,8 @@
 
 namespace BydaoScript {
 
-BydaoArrayIterator::BydaoArrayIterator(BydaoArray* array, QObject* parent)
-    : BydaoIterator(parent)
+BydaoArrayIterator::BydaoArrayIterator(BydaoArray* array)
+    : BydaoIterator()
     , m_array(array)
     , m_index(-1)
 {

@@ -17,8 +17,8 @@
 
 namespace BydaoScript {
 
-BydaoIterator::BydaoIterator(QObject* parent)
-    : BydaoNative(parent)
+BydaoIterator::BydaoIterator()
+    : BydaoNative()
 {
     registerMethod("next", &BydaoIterator::method_next);
     registerMethod("isValid", &BydaoIterator::method_isValid);

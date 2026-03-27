@@ -19,7 +19,6 @@
 namespace BydaoScript {
 
 class BydaoReal : public BydaoNative {
-    Q_OBJECT
 
     static QVector<BydaoReal*> s_cache;
     static const int MAX_CACHE_SIZE = 1024;
@@ -34,7 +33,7 @@ protected:
             delete this;
         }
     }
-    explicit BydaoReal(double value = 0.0, QObject* parent = nullptr);
+    explicit BydaoReal(double value = 0.0);
 
 public:
 

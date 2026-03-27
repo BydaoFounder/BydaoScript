@@ -33,8 +33,8 @@ BydaoModuleInfo* BydaoDirModule::info() const {
 
 // ========== BydaoDirModule ==========
 
-BydaoDirModule::BydaoDirModule(QObject* parent)
-    : BydaoModule(parent)
+BydaoDirModule::BydaoDirModule()
+    : BydaoModule()
 {
     registerMethod("open",    &BydaoDirModule::method_open);
     registerMethod("list",    &BydaoDirModule::method_list);
@@ -114,8 +114,8 @@ bool BydaoDirModule::method_rmdir(const QVector<BydaoValue>& args, BydaoValue& r
 
 // ========== BydaoDirObject ==========
 
-BydaoDirObject::BydaoDirObject(const QString& path, QObject* parent)
-    : BydaoModule(parent)
+BydaoDirObject::BydaoDirObject(const QString& path)
+    : BydaoModule()
 {
     if (path.isEmpty()) {
         m_dir = QDir::current();

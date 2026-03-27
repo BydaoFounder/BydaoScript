@@ -13,7 +13,6 @@
 // limitations under the License.
 #pragma once
 
-#include <QObject>
 #include <QHash>
 #include <QSet>
 #include <functional>
@@ -37,11 +36,10 @@ struct BydaoPropertyInfo {
     }
 };
 
-class BydaoNative : public QObject, public BydaoObject {
-    Q_OBJECT
+class BydaoNative : public BydaoObject {
 
 public:
-    explicit BydaoNative(QObject* parent = nullptr);
+    explicit BydaoNative();
     virtual ~BydaoNative();
 
     // ========== Методы ==========

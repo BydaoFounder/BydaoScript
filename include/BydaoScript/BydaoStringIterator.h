@@ -19,10 +19,9 @@
 namespace BydaoScript {
 
 class BydaoStringIterator : public BydaoIterator {
-    Q_OBJECT
 
 public:
-    explicit BydaoStringIterator(BydaoString* str, QObject* parent = nullptr);
+    explicit BydaoStringIterator(BydaoString* str);
     virtual ~BydaoStringIterator();
 
     QString typeName() const override { return "StringIterator"; }

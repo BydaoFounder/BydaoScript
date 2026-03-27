@@ -613,7 +613,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::ItNext: {
-//        auto* iter = static_cast<BydaoIterator*>(m_stack.pop().toObject());
         auto* iter = (BydaoIterator*)( m_stack.pop().toObject() );
         if (!iter) {
             error("ITNEXT on non-iterator", instr);
@@ -624,7 +623,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
     
     case BydaoOpCode::ItValue: {
-//        auto* iter = static_cast<BydaoIterator*>(m_stack.pop().toObject());
         auto* iter = (BydaoIterator*)( m_stack.pop().toObject() );
         if (!iter) {
             error("ITVALUE on non-iterator", instr);
@@ -635,7 +633,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
     
     case BydaoOpCode::ItKey: {
-        auto* iter = static_cast<BydaoIterator*>(m_stack.pop().toObject());
+        auto* iter = (BydaoIterator*)(m_stack.pop().toObject());
         if (!iter) {
             error("ITKEY on non-iterator", instr);
             return false;
@@ -648,7 +646,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoValue obj = m_stack.pop();
         BydaoValue index = m_stack.pop();
 
-        if (auto* array = dynamic_cast<BydaoArray*>(obj.toObject())) {
+        if (auto* array = (BydaoArray*)(obj.toObject())) {
             m_stack.push(array->get(index));
         } else {
             error("INDEX not supported for type: " + obj.toObject()->typeName(), instr);
@@ -685,7 +683,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         // Проверяем, является ли объект нативным со свойствами
-        if (auto* native = dynamic_cast<BydaoNative*>(obj.toObject())) {
+        if (auto* native = (BydaoNative*)(obj.toObject())) {
             if (native->hasProperty(memberName)) {
                 // Это свойство - возвращаем его значение
 //                qDebug() << "  -> property found, getting value";

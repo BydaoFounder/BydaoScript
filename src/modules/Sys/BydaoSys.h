@@ -15,10 +15,9 @@ namespace BydaoScript {
 namespace Modules {
 
 class BYDAOSYS_EXPORT BydaoSysModule : public BydaoModule {
-    Q_OBJECT
 
 public:
-    explicit BydaoSysModule(QObject* parent = nullptr);
+    explicit BydaoSysModule();
     ~BydaoSysModule();
 
     // Обязательные методы от BydaoObject

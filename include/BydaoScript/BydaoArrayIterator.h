@@ -19,10 +19,9 @@
 namespace BydaoScript {
 
 class BydaoArrayIterator : public BydaoIterator {
-    Q_OBJECT
 
 public:
-    explicit BydaoArrayIterator(BydaoArray* array, QObject* parent = nullptr);
+    explicit BydaoArrayIterator(BydaoArray* array);
     virtual ~BydaoArrayIterator();
 
     QString typeName() const override { return "ArrayIterator"; }

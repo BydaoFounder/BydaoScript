@@ -30,8 +30,8 @@ MetaData*   BydaoIntRange::metaData() {
     return metaData;
 }
 
-BydaoIntRange::BydaoIntRange(qint64 start, qint64 end, QObject* parent)
-    : BydaoNative(parent)
+BydaoIntRange::BydaoIntRange(qint64 start, qint64 end)
+    : BydaoNative()
     , m_start(start)
     , m_end(end)
 {

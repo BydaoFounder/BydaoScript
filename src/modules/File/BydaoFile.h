@@ -16,10 +16,9 @@ namespace Modules {
 
 // Объект файла
 class BYDAOFILE_EXPORT BydaoFileObject : public BydaoModule {
-    Q_OBJECT
 
 public:
-    explicit BydaoFileObject(const QString& path, QObject* parent = nullptr);
+    explicit BydaoFileObject(const QString& path);
     ~BydaoFileObject();
 
     // Обязательные методы от BydaoObject
@@ -74,10 +73,9 @@ private:
 
 // Модуль File
 class BYDAOFILE_EXPORT BydaoFileModule : public BydaoModule {
-    Q_OBJECT
 
 public:
-    explicit BydaoFileModule(QObject* parent = nullptr);
+    explicit BydaoFileModule();
     ~BydaoFileModule();
 
     // Обязательные методы от BydaoObject

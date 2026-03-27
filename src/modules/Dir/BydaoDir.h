@@ -14,12 +14,11 @@ namespace Modules {
 
 // Объект директории
 class BYDAODIR_EXPORT BydaoDirObject : public BydaoModule {
-    Q_OBJECT
     // Q_PROPERTY(QString path READ path)
     // Q_PROPERTY(QString name READ name)
 
 public:
-    explicit BydaoDirObject(const QString& path = QString(), QObject* parent = nullptr);
+    explicit BydaoDirObject(const QString& path = QString());
 
     // Обязательные методы от BydaoObject
     QString typeName() const override { return "DirObject"; }
@@ -57,10 +56,9 @@ private:
 
 // Модуль Dir
 class BYDAODIR_EXPORT BydaoDirModule : public BydaoModule {
-    Q_OBJECT
 
 public:
-    explicit BydaoDirModule(QObject* parent = nullptr);
+    explicit BydaoDirModule();
     ~BydaoDirModule();
 
     // Обязательные методы от BydaoObject

@@ -81,8 +81,8 @@ registerMethod(#name, [this](const QVector<BydaoValue>& args, BydaoValue& result
         return method_##name(args, result); \
 })
 
-BydaoSysModule::BydaoSysModule(QObject* parent)
-    : BydaoModule(parent)
+BydaoSysModule::BydaoSysModule()
+    : BydaoModule()
     , m_process(nullptr)
 {
     registerMethod("out",     &BydaoSysModule::method_out);
@@ -133,7 +133,7 @@ MetaData*   BydaoSysModule::metaData() {
 }
 
 bool BydaoSysModule::initialize() {
-    m_process = new QProcess(this);
+    m_process = new QProcess();
     return true;
 }
 
@@ -251,7 +251,7 @@ bool BydaoSysModule::method_exec(const QVector<BydaoValue>& args, BydaoValue& re
     if (args.size() < 1 || args.size() > 2) return false;
 
     if (!m_process) {
-        m_process = new QProcess(this);
+        m_process = new QProcess();
     }
 
     QString program = args[0].toString();
@@ -263,7 +263,7 @@ bool BydaoSysModule::method_exec(const QVector<BydaoValue>& args, BydaoValue& re
             return false;
         }
 
-        auto* array = dynamic_cast<BydaoArray*>(args[1].toObject());
+        auto* array = (BydaoArray*)(args[1].toObject());
         if (!array) return false;
 
         for (int i = 0; i < array->size(); i++) {
@@ -287,7 +287,7 @@ bool BydaoSysModule::method_shell(const QVector<BydaoValue>& args, BydaoValue& r
     if (args.size() != 1) return false;
 
     if (!m_process) {
-        m_process = new QProcess(this);
+        m_process = new QProcess();
     }
 
     m_process->startCommand(args[0].toString());

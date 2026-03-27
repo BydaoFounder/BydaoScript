@@ -19,10 +19,9 @@
 namespace BydaoScript {
 
 class BydaoArray : public BydaoNative {
-    Q_OBJECT
 
 public:
-    explicit BydaoArray(QObject* parent = nullptr);
+    explicit BydaoArray();
     virtual ~BydaoArray() override = default;
 
     QString typeName() const override { return "Array"; }

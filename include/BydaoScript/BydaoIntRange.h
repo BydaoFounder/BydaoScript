@@ -19,14 +19,13 @@
 namespace BydaoScript {
 
 class BydaoIntRange : public BydaoNative {
-    Q_OBJECT
 
 public:
 
     // Получить мета-данные
     static MetaData*   metaData();
 
-    BydaoIntRange(qint64 start, qint64 end, QObject* parent = nullptr);
+    BydaoIntRange(qint64 start, qint64 end);
     virtual ~BydaoIntRange() = default;
 
     QString typeName() const override { return "IntRange"; }
@@ -55,7 +54,7 @@ private:
 };
 
 class BydaoIntRangeIterator : public BydaoIterator {
-    Q_OBJECT
+
 public:
 
     // Получить мета-данные

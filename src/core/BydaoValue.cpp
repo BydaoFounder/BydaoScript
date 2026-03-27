@@ -135,23 +135,23 @@ QString BydaoValue::toString() const {
     // Быстрый путь для известных типов
     switch (m_typeId) {
         case TYPE_INT: {
-            const auto* i = static_cast<const BydaoInt*>(m_obj);
+            const auto* i = (const BydaoInt*)(m_obj);
             return QString::number(i->value());
         }
         case TYPE_REAL: {
-            const auto* r = static_cast<const BydaoReal*>(m_obj);
+            const auto* r = (const BydaoReal*)(m_obj);
             return QString::number(r->value());
         }
         case TYPE_BOOL: {
-            const auto* b = static_cast<const BydaoBool*>(m_obj);
+            const auto* b = (const BydaoBool*)(m_obj);
             return b->value() ? "true" : "false";
         }
         case TYPE_STRING: {
-            const auto* s = static_cast<const BydaoString*>(m_obj);
+            const auto* s = (const BydaoString*)(m_obj);
             return s->value();
         }
         case TYPE_ARRAY: {
-            const auto* a = static_cast<const BydaoArray*>(m_obj);
+            const auto* a = (const BydaoArray*)(m_obj);
             // Можно сделать красивое представление
             QStringList parts;
             for (int i = 0; i < a->size(); i++) {
@@ -183,23 +183,23 @@ bool BydaoValue::toBool() const {
 
     switch (m_typeId) {
         case TYPE_INT: {
-            const auto* i = static_cast<const BydaoInt*>(m_obj);
+            const auto* i = (const BydaoInt*)(m_obj);
             return i->value() != 0;
         }
         case TYPE_REAL: {
-            const auto* r = static_cast<const BydaoReal*>(m_obj);
+            const auto* r = (const BydaoReal*)(m_obj);
             return r->value() != 0.0;
         }
         case TYPE_BOOL: {
-            const auto* b = static_cast<const BydaoBool*>(m_obj);
+            const auto* b = (const BydaoBool*)(m_obj);
             return b->value();
         }
         case TYPE_STRING: {
-            const auto* s = static_cast<const BydaoString*>(m_obj);
+            const auto* s = (const BydaoString*)(m_obj);
             return !s->value().isEmpty();
         }
         case TYPE_ARRAY: {
-            const auto* a = static_cast<const BydaoArray*>(m_obj);
+            const auto* a = (const BydaoArray*)(m_obj);
             return a->size() > 0;
         }
         case TYPE_NULL:
@@ -220,19 +220,19 @@ qint64 BydaoValue::toInt() const {
     // Прямое преобразование в зависимости от типа
     switch (m_typeId) {
         case TYPE_INT: {
-            const auto* i = static_cast<const BydaoInt*>(m_obj);
+            const auto* i = (const BydaoInt*)(m_obj);
             return i->value();
         }
         case TYPE_REAL: {
-            const auto* r = static_cast<const BydaoReal*>(m_obj);
+            const auto* r = (const BydaoReal*)(m_obj);
             return (qint64)r->value();
         }
         case TYPE_BOOL: {
-            const auto* b = static_cast<const BydaoBool*>(m_obj);
+            const auto* b = (const BydaoBool*)(m_obj);
             return b->value() ? 1 : 0;
         }
         case TYPE_STRING: {
-            const auto* s = static_cast<const BydaoString*>(m_obj);
+            const auto* s = (const BydaoString*)(m_obj);
             return s->value().toLongLong();
         }
     }
@@ -257,19 +257,19 @@ double BydaoValue::toReal() const {
 
     switch (m_typeId) {
         case TYPE_INT: {
-            const auto* i = static_cast<const BydaoInt*>(m_obj);
+            const auto* i = (const BydaoInt*)(m_obj);
             return (double)i->value();
         }
         case TYPE_REAL: {
-            const auto* r = static_cast<const BydaoReal*>(m_obj);
+            const auto* r = (const BydaoReal*)(m_obj);
             return r->value();
         }
         case TYPE_BOOL: {
-            const auto* b = static_cast<const BydaoBool*>(m_obj);
+            const auto* b = (const BydaoBool*)(m_obj);
             return b->value() ? 1.0 : 0.0;
         }
         case TYPE_STRING: {
-            const auto* s = static_cast<const BydaoString*>(m_obj);
+            const auto* s = (const BydaoString*)(m_obj);
             return s->value().toDouble();
         }
     }
@@ -287,9 +287,7 @@ bool BydaoValue::isNull() const {
     BydaoValue result;
     if (m_obj->callMethod("isNull", {}, result)) {
         if (result.isObject()) {
-            if (auto* b = dynamic_cast<BydaoBool*>(result.toObject())) {
-                return b->value();
-            }
+            return result.toBool();
         }
     }
     return false;

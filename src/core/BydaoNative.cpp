@@ -16,8 +16,7 @@
 
 namespace BydaoScript {
 
-BydaoNative::BydaoNative(QObject* parent)
-    : QObject(parent){
+BydaoNative::BydaoNative() {
 }
 
 BydaoNative::~BydaoNative() {

@@ -73,10 +73,9 @@ public:
 
 // Базовый класс модуля
 class BydaoModule : public BydaoNative {
-    Q_OBJECT
 
 public:
-    explicit BydaoModule(QObject* parent = nullptr);
+    explicit BydaoModule();
     virtual ~BydaoModule();
 
     virtual QString name() const = 0;
@@ -104,7 +103,6 @@ public:
     static BydaoModuleManager& instance();
 
     BydaoModule* loadModule(const QString& name, QString* error = nullptr);
-    BydaoModuleInfo* loadModuleInfo(const QString& name, QString* error = nullptr);
     MetaData* loadMetaData(const QString& name, QString* error = nullptr);
 
     void addModulePath(const QString& path);

@@ -19,8 +19,8 @@ namespace BydaoScript {
 
 // ========== BydaoModule ==========
 
-BydaoModule::BydaoModule(QObject* parent)
-    : BydaoNative(parent)
+BydaoModule::BydaoModule()
+    : BydaoNative()
 {}
 
 BydaoModule::~BydaoModule() {
@@ -125,62 +125,6 @@ BydaoModule* BydaoModuleManager::loadModule(const QString& name, QString* error)
     m_libraries[name] = lib;
 
     return module;
-}
-
-BydaoModuleInfo* BydaoModuleManager::loadModuleInfo(const QString& name, QString* error) {
-    // Уже есть в кэше?
-    if (m_infoCache.contains(name)) {
-        return m_infoCache[name];
-    }
-
-    QString path = findModuleFile(name);
-    if (path.isEmpty()) {
-        if (error) *error = "Module not found: " + name;
-        return nullptr;
-    }
-
-    QLibrary lib(path);
-    if (!lib.load()) {
-        if (error) *error = lib.errorString();
-        return nullptr;
-    }
-
-    auto create = (BydaoModule* (*)())lib.resolve("createModule");
-    if (!create) {
-        if (error) *error = "No createModule()";
-        lib.unload();
-        return nullptr;
-    }
-
-    // ВРЕМЕННЫЙ модуль
-    BydaoModule* tempModule = create();
-    if (!tempModule) {
-        if (error) *error = "Failed to create module";
-        lib.unload();
-        return nullptr;
-    }
-
-    // Копируем информацию
-    BydaoModuleInfo* originalInfo = tempModule->info();
-    auto* infoCopy = new BydaoModuleInfoImpl();
-
-    if (auto* impl = dynamic_cast<BydaoModuleInfoImpl*>(originalInfo)) {
-        infoCopy->m_name = impl->m_name;
-        infoCopy->m_version = impl->m_version;
-        infoCopy->m_properties = impl->m_properties;
-        infoCopy->m_methods = impl->m_methods;
-    }
-
-    m_infoCache[name] = infoCopy;
-
-    // Удаляем ВРЕМЕННЫЙ модуль (он больше не нужен)
-    auto destroy = (void (*)(BydaoModule*))lib.resolve("destroyModule");
-    if (destroy) destroy(tempModule);
-    else delete tempModule;
-
-    lib.unload();
-
-    return infoCopy;
 }
 
 

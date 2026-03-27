@@ -78,8 +78,8 @@ MetaData*   BydaoString::metaData() {
 
 QVector<BydaoString*> BydaoString::s_cache;
 
-BydaoString::BydaoString(const QString& value, QObject* parent)
-    : BydaoNative(parent)
+BydaoString::BydaoString(const QString& value)
+    : BydaoNative()
     , m_value(value)
 {
     registerMethod("toString", &BydaoString::method_toString);
@@ -132,7 +132,7 @@ BydaoValue BydaoString::iter() {
 
 BydaoValue BydaoString::add(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        const auto* otherStr = (const BydaoString*)(other.toObject());
         return BydaoValue::fromString( m_value + otherStr->m_value );
     }
     QString result = m_value + other.toString();
@@ -141,7 +141,7 @@ BydaoValue BydaoString::add(const BydaoValue& other) {
 
 void    BydaoString::addToValue(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        const auto* otherStr = (const BydaoString*)(other.toObject());
         m_value += otherStr->m_value;
     }
     else {
@@ -151,7 +151,7 @@ void    BydaoString::addToValue(const BydaoValue& other) {
 
 BydaoValue BydaoString::eq(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        const auto* otherStr = (const BydaoString*)(other.toObject());
         return BydaoValue::fromBool( m_value == otherStr->m_value );
     }
     return BydaoValue::fromBool(m_value == other.toString());
@@ -159,7 +159,7 @@ BydaoValue BydaoString::eq(const BydaoValue& other) {
 
 BydaoValue BydaoString::neq(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        const auto* otherStr = (const BydaoString*)(other.toObject());
         return BydaoValue::fromBool( m_value != otherStr->m_value );
     }
     return BydaoValue::fromBool(m_value != other.toString());
@@ -167,7 +167,7 @@ BydaoValue BydaoString::neq(const BydaoValue& other) {
 
 BydaoValue BydaoString::lt(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        const auto* otherStr = (const BydaoString*)(other.toObject());
         return BydaoValue::fromBool( m_value < otherStr->m_value );
     }
     return BydaoValue::fromBool(m_value < other.toString());
@@ -175,7 +175,7 @@ BydaoValue BydaoString::lt(const BydaoValue& other) {
 
 BydaoValue BydaoString::le(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        const auto* otherStr = (const BydaoString*)(other.toObject());
         return BydaoValue::fromBool( m_value <= otherStr->m_value );
     }
     return BydaoValue::fromBool(m_value <= other.toString());
@@ -183,7 +183,7 @@ BydaoValue BydaoString::le(const BydaoValue& other) {
 
 BydaoValue BydaoString::gt(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        const auto* otherStr = (const BydaoString*)(other.toObject());
         return BydaoValue::fromBool( m_value > otherStr->m_value );
     }
     return BydaoValue::fromBool(m_value > other.toString());
@@ -191,7 +191,7 @@ BydaoValue BydaoString::gt(const BydaoValue& other) {
 
 BydaoValue BydaoString::ge(const BydaoValue& other) {
     if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = static_cast<const BydaoString*>(other.toObject());
+        const auto* otherStr = (const BydaoString*)(other.toObject());
         return BydaoValue::fromBool( m_value >= otherStr->m_value );
     }
     return BydaoValue::fromBool(m_value >= other.toString());

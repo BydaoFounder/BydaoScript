@@ -20,8 +20,8 @@
 
 namespace BydaoScript {
 
-BydaoArray::BydaoArray(QObject* parent)
-    : BydaoNative(parent)
+BydaoArray::BydaoArray()
+    : BydaoNative()
 {
     // Регистрация методов (без макросов)
     registerMethod("toString", &BydaoArray::method_toString);

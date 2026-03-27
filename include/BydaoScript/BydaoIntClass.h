@@ -19,10 +19,9 @@
 namespace BydaoScript {
 
 class BydaoIntClass : public BydaoNative {
-    Q_OBJECT
 
 public:
-    explicit BydaoIntClass(QObject* parent = nullptr);
+    explicit BydaoIntClass();
     virtual ~BydaoIntClass() = default;
 
     // Получить мета-данные

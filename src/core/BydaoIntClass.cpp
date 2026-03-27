@@ -110,8 +110,8 @@ UsedMetaDataList    BydaoIntClass::usedMetaData() {
 
 //==============================================================================
 
-BydaoIntClass::BydaoIntClass(QObject* parent)
-    : BydaoNative(parent)
+BydaoIntClass::BydaoIntClass()
+    : BydaoNative()
 {
     registerMethod("range",     &BydaoIntClass::method_range);
     registerMethod("parse",     &BydaoIntClass::method_parse);

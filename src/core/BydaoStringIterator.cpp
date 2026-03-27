@@ -18,8 +18,8 @@
 
 namespace BydaoScript {
 
-BydaoStringIterator::BydaoStringIterator(BydaoString* str, QObject* parent)
-    : BydaoIterator(parent)
+BydaoStringIterator::BydaoStringIterator(BydaoString* str)
+    : BydaoIterator()
     , m_string(str)
     , m_index(-1)
 {

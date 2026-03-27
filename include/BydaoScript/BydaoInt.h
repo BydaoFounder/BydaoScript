@@ -18,7 +18,6 @@
 namespace BydaoScript {
 
 class BydaoInt : public BydaoNative {
-    Q_OBJECT
 
     static QVector<BydaoInt*> s_cache;
     static const int MAX_CACHE_SIZE = 1024;
@@ -33,7 +32,7 @@ protected:
             delete this;
         }
     }
-    explicit BydaoInt(qint64 value = 0, QObject* parent = nullptr);
+    explicit BydaoInt(qint64 value = 0);
 
 public:
 

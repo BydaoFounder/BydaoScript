@@ -44,8 +44,8 @@ BydaoModuleInfo* BydaoFileModule::info() const {
 
 // ========== BydaoFileModule ==========
 
-BydaoFileModule::BydaoFileModule(QObject* parent)
-    : BydaoModule(parent)
+BydaoFileModule::BydaoFileModule()
+    : BydaoModule()
 {
     registerMethod("new",      &BydaoFileModule::method_new);
     registerMethod("exists",   &BydaoFileModule::method_exists);
@@ -165,8 +165,8 @@ bool BydaoFileModule::method_writeAll(const QVector<BydaoValue>& args, BydaoValu
 
 // ========== BydaoFileObject ==========
 
-BydaoFileObject::BydaoFileObject(const QString& path, QObject* parent)
-    : BydaoModule(parent)
+BydaoFileObject::BydaoFileObject(const QString& path)
+    : BydaoModule()
     , m_file(path)
     , m_stream(nullptr)
 {
