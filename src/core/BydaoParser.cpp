@@ -816,12 +816,12 @@ bool BydaoParser::parseAddAssign() {
 
     // Определить тип результат операции
 
-    if ( varType != exprTypeInfo.type ) {
+    QString exprType = exprTypeInfo.type;
+    if ( varType != exprType ) {
 
         // Проверить возможность использования правого операнда в операции
         // сложения с левым операндом
 
-        QString exprType = exprTypeInfo.type;
         QString resultType = getResultType( varType, exprType, operName, exprToken );
         if ( resultType.isEmpty() || resultType != "Void" ) {
             error( "Operation '+=' cannot be applied to a value of type '" + exprType + "'", exprToken );
@@ -829,7 +829,16 @@ bool BydaoParser::parseAddAssign() {
         }
     }
 
-    emitCode(BydaoOpCode::AddStore, info.varIndex, 0, nameToken);
+    int rightVarIndex = -1;
+    if ( exprTypeInfo.operand == Var ) {
+
+        int size = m_bytecode.size();
+        if ( m_bytecode[size-1].op == BydaoOpCode::Load ) {
+
+            rightVarIndex = m_bytecode.takeLast().arg1;
+        }
+    }
+    emitCode(BydaoOpCode::AddStore, info.varIndex, rightVarIndex, nameToken);
     return true;
 }
 
@@ -1459,7 +1468,7 @@ bool BydaoParser::parseEquality() {
             }
         }
 
-        m_typeStack.push( TypeInfo("Bool") );
+        m_typeStack.push( TypeInfo("Bool", Expr ) );
 
         emitCode(isEq ? BydaoOpCode::Eq : BydaoOpCode::Neq, 0, 0, op);
     }
@@ -1513,9 +1522,26 @@ bool BydaoParser::parseComparison() {
             }
         }
 
-        m_typeStack.push( TypeInfo("Bool") );
+        m_typeStack.push( TypeInfo("Bool", Expr) );
 
-        emitCode(opCode, 0, 0, op);
+        bool emitStd = true;
+        if ( leftTypeInfo.operand == Var && rightTypeInfo.operand == Var ) {
+
+            int size = m_bytecode.size();
+            if ( m_bytecode[size-1].op == BydaoOpCode::Load && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+
+                int rightVarIndex = m_bytecode.takeLast().arg1;
+                int leftVarIndex = m_bytecode.takeLast().arg1;
+                if ( opCode == BydaoOpCode::Lt ) {
+                    emitCode(BydaoOpCode::VarLt, leftVarIndex, rightVarIndex, op);
+                    emitStd = false;
+                }
+            }
+        }
+
+        if ( emitStd ) {
+            emitCode(opCode, 0, 0, op);
+        }
     }
 
     return true;
@@ -1561,7 +1587,7 @@ bool BydaoParser::parseAddition() {
                 return false;
             }
         }
-        m_typeStack.push( TypeInfo( resultType ) );
+        m_typeStack.push( TypeInfo( resultType, Expr ) );
 
         emitCode(isPlus ? BydaoOpCode::Add : BydaoOpCode::Sub, 0, 0, op);
     }
@@ -1615,7 +1641,7 @@ bool BydaoParser::parseTerm() {
                 return false;
             }
         }
-        m_typeStack.push( TypeInfo( resultType ) );
+        m_typeStack.push( TypeInfo( resultType, Expr ) );
 
         emitCode(opCode, 0, 0, op);
     }
@@ -1666,7 +1692,7 @@ bool BydaoParser::parseMinus() {
         error( "The '" + op.text + "' operation cannot be applied to a value of type '" + typeInfo.type + "'", token );
         return false;
     }
-    m_typeStack.push( TypeInfo( resultType ) );
+    m_typeStack.push( TypeInfo( resultType, Expr ) );
 
     emitCode(BydaoOpCode::Neg, 0, 0, op);
     return true;
@@ -1686,19 +1712,19 @@ bool BydaoParser::parsePrimaryBase() {
 
         if ( text.contains('x') || text.contains('X')) {
             constIndex = addConstant(text.toLongLong(nullptr,16));
-            m_typeStack.push( TypeInfo("Int") );
+            m_typeStack.push( TypeInfo("Int", Const) );
         }
         else if (text.contains('.') || text.contains('e') || text.contains('E')) {
             constIndex = addConstant(text.toDouble());
-            m_typeStack.push( TypeInfo("Real") );
+            m_typeStack.push( TypeInfo("Real", Const) );
         }
         else if ( text.contains('b') || text.contains('B')) {
             constIndex = addConstant(text.toLongLong(nullptr,2));
-            m_typeStack.push( TypeInfo("Int") );
+            m_typeStack.push( TypeInfo("Int", Const) );
         }
         else {
             constIndex = addConstant(text.toLongLong());
-            m_typeStack.push( TypeInfo("Int") );
+            m_typeStack.push( TypeInfo("Int", Const) );
         }
 
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
@@ -1710,7 +1736,7 @@ bool BydaoParser::parsePrimaryBase() {
         QString text = m_current.text;
         qint16 constIndex = addConstant(text);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
-        m_typeStack.push( TypeInfo("String") );
+        m_typeStack.push( TypeInfo("String", Const) );
         nextToken();
         return true;
     }
@@ -1728,7 +1754,7 @@ bool BydaoParser::parsePrimaryBase() {
     if (match(BydaoTokenType::False)) {
         qint16 constIndex = addConstant(false);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
-        m_typeStack.push( TypeInfo("Bool") );
+        m_typeStack.push( TypeInfo("Bool", Const) );
         nextToken();
         return true;
     }
@@ -1736,7 +1762,7 @@ bool BydaoParser::parsePrimaryBase() {
     if (match(BydaoTokenType::True)) {
         qint16 constIndex = addConstant(true);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
-        m_typeStack.push( TypeInfo("Bool") );
+        m_typeStack.push( TypeInfo("Bool", Const) );
         nextToken();
         return true;
     }
@@ -1744,7 +1770,7 @@ bool BydaoParser::parsePrimaryBase() {
     if (match(BydaoTokenType::Null)) {
         qint16 constIndex = addNullConstant();
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
-        m_typeStack.push( TypeInfo("Null") );
+        m_typeStack.push( TypeInfo("Null", Const) );
         nextToken();
         return true;
     }
@@ -1774,21 +1800,21 @@ bool BydaoParser::parsePrimary() {
                 nextToken(); // съедаем имя модуля
                 VariableInfo info = resolveVariable(name);
                 emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
-                m_typeStack.push( TypeInfo( name ) );
+                m_typeStack.push( TypeInfo( name, Module ) );
             }
             else {                              // внутренний тип/класс
                 // Встроенный тип: Int, String, Array и т.д.
                 nextToken(); // съедаем имя типа
                 qint16 typeIdx = addString(name);
                 emitCode(BydaoOpCode::TypeClass, typeIdx, 0, nameToken);
-                m_typeStack.push( TypeInfo( name ) );
+                m_typeStack.push( TypeInfo( name, Type ) );
             }
         }
         else if (isVariableDeclared(name)) {    // обычная переменная?
             nextToken(); // съедаем имя переменной
             VariableInfo info = resolveVariable(name);
             emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
-            m_typeStack.push( TypeInfo( info.type ) );
+            m_typeStack.push( TypeInfo( info.type, Var ) );
         }
         else {
             error("Undeclared identifier: " + name);
@@ -2050,7 +2076,7 @@ bool BydaoParser::parseArrayLiteral() {
 
     if (!expect(BydaoTokenType::RBracket)) return false;
 
-    m_typeStack.push( TypeInfo( "Array" ) );
+    m_typeStack.push( TypeInfo( "Array", Const ) );
 
     // Генерируем PushArray с количеством элементов
     // Элементы уже на стеке в правильном порядке (благодаря parseExpression)

@@ -47,6 +47,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Gt] = "GT";
         names[BydaoOpCode::Le] = "LE";
         names[BydaoOpCode::Ge] = "GE";
+        names[BydaoOpCode::VarLt] = "VARLT";
         names[BydaoOpCode::And] = "AND";
         names[BydaoOpCode::Or] = "OR";
         names[BydaoOpCode::Not] = "NOT";

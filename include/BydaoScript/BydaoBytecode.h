@@ -29,7 +29,7 @@ enum BydaoOpCode : quint8 {
     Drop,           // arg1 = индекс переменной
     Load,           // arg1 = индекс переменной
     Store,          // arg1 = индекс переменной
-    AddStore,       // arg1 = индекс переменной
+    AddStore,       // arg1 = индекс переменной, arg2 >= 0 - индекс второй переменной
     SubStore,       // arg1 = индекс переменной
     MulStore,       // arg1 = индекс переменной
     DivStore,       // arg1 = индекс переменной
@@ -44,6 +44,9 @@ enum BydaoOpCode : quint8 {
 
     // Сравнение
     Eq, Neq, Lt, Gt, Le, Ge,
+
+    // Сравнение переменных
+    VarLt,
 
     // Логические
     And, Or, Not,

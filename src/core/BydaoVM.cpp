@@ -309,16 +309,26 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::AddStore: {
-        BydaoValue b = m_stack.pop();
-        BydaoValue& a = getVariable(instr.arg1, instr);
-        if (!a.isObject() || !b.isObject()) {
-            error("'+=' operation on non-object", instr);
-            return false;
-        }
 
-        a.toObject()->addToValue(b);
-        // BydaoValue val = a.toObject()->add(b);
-        // setVariable(instr.arg1, instr.arg2, val, instr);
+        if ( instr.arg2 >= 0 ) {
+            BydaoValue& b = getVariable(instr.arg2, instr);
+            BydaoValue& a = getVariable(instr.arg1, instr);
+            if (!a.isObject() || !b.isObject()) {
+                error("'+=' operation on non-object", instr);
+                return false;
+            }
+            a.toObject()->addToValue(b);
+        }
+        else {
+            BydaoValue b = m_stack.pop();
+            BydaoValue& a = getVariable(instr.arg1, instr);
+            if (!a.isObject() || !b.isObject()) {
+                error("'+=' operation on non-object", instr);
+                return false;
+            }
+
+            a.toObject()->addToValue(b);
+        }
         break;
     }
 
@@ -493,20 +503,31 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_stack.push(a.toObject()->neq(b));
         break;
     }
-    
+
     case BydaoOpCode::Lt: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
-        
+
         if (!a.isObject() || !b.isObject()) {
             error("Comparison with non-object", instr);
             return false;
         }
-        
+
         m_stack.push(a.toObject()->lt(b));
         break;
     }
-    
+
+    case BydaoOpCode::VarLt: {
+        BydaoValue& a = getVariable( instr.arg1, instr );
+        BydaoValue& b = getVariable( instr.arg2, instr );
+        if (!a.isObject() || !b.isObject()) {
+            error("Comparison with non-object", instr);
+            return false;
+        }
+        m_stack.push(a.toObject()->lt(b));
+        break;
+    }
+
     case BydaoOpCode::Gt: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();

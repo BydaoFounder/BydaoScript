@@ -214,19 +214,37 @@ private:
     // Мета-данные типов данных
     QHash<QString, MetaData*>   m_metaData;
 
+    enum Operand {
+        Unknown,
+        Expr,
+        Var,
+        Const,
+        Type,
+        Module
+    };
+
     // Стек типов данных
     struct TypeInfo {
         QString type;
         QString member;
+        Operand operand;
 
         TypeInfo( const QString& type ) {
             this->type = type;
             this->member = QString();
+            this->operand = Unknown;
         }
 
-        TypeInfo( const QString& type, const QString& member ) {
+        TypeInfo( const QString& type, Operand operand ) {
+            this->type = type;
+            this->member = QString();
+            this->operand = operand;
+        }
+
+        TypeInfo( const QString& type, const QString& member, Operand operand ) {
             this->type = type;
             this->member = member;
+            this->operand = operand;
         }
     };
     QStack< TypeInfo >          m_typeStack;
