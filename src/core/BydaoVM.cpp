@@ -308,6 +308,18 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
+    case BydaoOpCode::VarAdd: {
+
+        BydaoValue& b = getVariable(instr.arg2, instr);
+        BydaoValue& a = getVariable(instr.arg1, instr);
+        if (!a.isObject() || !b.isObject()) {
+            error("'+' operation on non-object", instr);
+            return false;
+        }
+        m_stack.push( a.toObject()->add(b) );
+        break;
+    }
+
     case BydaoOpCode::AddStore: {
 
         if ( instr.arg2 >= 0 ) {

@@ -253,6 +253,10 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
         args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
         break;
 
+    case BydaoOpCode::VarAdd:
+        args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
+        break;
+
     case BydaoOpCode::VarDecl:
         if (instr.arg1 >= 0 && instr.arg1 < stringTable.size() && !stringTable[instr.arg1].isEmpty())
             args << "'" + formatString(stringTable[instr.arg1]) + "'";

@@ -767,6 +767,19 @@ bool BydaoParser::parseAssign() {
     }
     setVariableType( name, exprType.type );
 
+    int size = m_bytecode.size();
+    if ( m_bytecode[size-1].op == BydaoOpCode::VarAdd ) {
+
+        if ( m_bytecode[size-1].arg1 == varInfo.varIndex ) {
+
+            // Левый операнд сложения является переменной присвоения
+
+            int rightVarIndex = m_bytecode.takeLast().arg2;
+            emitCode(BydaoOpCode::AddStore, varInfo.varIndex, rightVarIndex, nameToken);
+            return true;
+        }
+    }
+
     emitCode(BydaoOpCode::Store, varInfo.varIndex, 0, nameToken);
     return true;
 }
@@ -1588,6 +1601,17 @@ bool BydaoParser::parseAddition() {
             }
         }
         m_typeStack.push( TypeInfo( resultType, Expr ) );
+
+        if ( isPlus ) {
+            int size = m_bytecode.size();
+            if ( m_bytecode[size-1].op == BydaoOpCode::Load && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+
+                int rightVarIndex = m_bytecode.takeLast().arg1;
+                int leftVarIndex = m_bytecode.takeLast().arg1;
+                emitCode( BydaoOpCode::VarAdd, leftVarIndex, rightVarIndex, op);
+                continue;
+            }
+        }
 
         emitCode(isPlus ? BydaoOpCode::Add : BydaoOpCode::Sub, 0, 0, op);
     }

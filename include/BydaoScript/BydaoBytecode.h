@@ -41,6 +41,7 @@ enum BydaoOpCode : quint8 {
     // Арифметика
     Add, Sub, Neg,
     Mul, Div, Mod,
+    VarAdd,         // сложение двух переменных: arg1 - левая, arg2 - правая
 
     // Сравнение
     Eq, Neq, Lt, Gt, Le, Ge,

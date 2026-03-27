@@ -41,6 +41,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Div] = "DIV";
         names[BydaoOpCode::Mod] = "MOD";
         names[BydaoOpCode::Neg] = "NEG";
+        names[BydaoOpCode::VarAdd] = "VARADD";
         names[BydaoOpCode::Eq] = "EQ";
         names[BydaoOpCode::Neq] = "NEQ";
         names[BydaoOpCode::Lt] = "LT";
