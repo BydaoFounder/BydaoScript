@@ -49,11 +49,11 @@ public:
 
     BydaoValue copy();
 
-    bool isObject() const { return m_obj != nullptr; }
-    BydaoObject* toObject() const { return m_obj; }
+    inline bool isObject() const { return m_obj != nullptr; }
+    inline BydaoObject* toObject() const { return m_obj; }
 
     // Быстрый доступ к типу
-    int typeId() const { return m_typeId; }
+    inline int typeId() const { return m_typeId; }
 
     // Удобные методы
     QString toString() const;

@@ -649,7 +649,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         if (auto* array = (BydaoArray*)(obj.toObject())) {
             m_stack.push(array->get(index));
         } else {
-            error("INDEX not supported for type: " + obj.toObject()->typeName(), instr);
+            error("INDEX not supported for Null value", instr);
             return false;
         }
         break;
