@@ -25,6 +25,7 @@ enum BydaoOpCode : quint8 {
     Nop = 0, Halt,
 
     // Переменные и области видимости
+    ConstDecl,      // определение константы: arg1 - индекс имени, arg2 - индекс константы
     VarDecl,        // arg1 = индекс в таблице строк (имя переменной)
     Drop,           // arg1 = индекс переменной
     Load,           // arg1 = индекс переменной
@@ -161,6 +162,8 @@ public:
                          const QVector<QString>& stringTable,
                          QString* error = nullptr);
 };
+
+#define SPECIAL_VAR     "__SelfData"
 
 } // namespace BydaoScript
 

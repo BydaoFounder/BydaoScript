@@ -76,9 +76,9 @@ QString BydaoDisassembler::disassembleConstants(const QVector<BydaoConstant>& co
 
         // Индекс
         if (m_colorOutput)
-            out << GREEN << QString("%1").arg(i, 4) << RESET << ": ";
+            out << GREEN << QString("%1: ").arg( QString("c%1").arg(i), 4) << RESET << ": ";
         else
-            out << QString("%1: ").arg(i, 4);
+            out << QString("%1: ").arg(QString("c%1").arg(i), 4);
 
         // Значение
         out << formatConstant(c, stringTable);
@@ -113,9 +113,9 @@ QString BydaoDisassembler::disassembleStringTable(const QVector<QString>& string
             continue;
 
         if (m_colorOutput)
-            out << GREEN << QString("%1").arg(i, 4) << RESET << ": ";
+            out << GREEN << QString("%1: ").arg(QString("s%1").arg(i), 4) << RESET << ": ";
         else
-            out << QString("%1: ").arg(i, 4);
+            out << QString("%1: ").arg(QString("s%1").arg(i), 4);
 
         out << "'" << formatString(stringTable[i]) << "'\n";
     }
@@ -246,20 +246,47 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
         if ( instr.arg2 >= 0 )
             args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
         else
-            args << QString("v%1").arg(instr.arg1);
+            args << QString("v%1 c%2").arg(instr.arg1).arg( -instr.arg2 );
         break;
 
     case BydaoOpCode::VarLt:
-        args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
+        if ( instr.arg2 >= 0 )  // сравнение двух переменных
+            args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
+        else                    // сравнение переменной и константы
+            args << QString("v%1 c%2").arg(instr.arg1).arg(-instr.arg2);
         break;
 
     case BydaoOpCode::VarAdd:
-        args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
+        if ( instr.arg2 >= 0 )
+            args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
+        else
+            args << QString("v%1 c%2").arg(instr.arg1).arg( -instr.arg2 );
         break;
 
     case BydaoOpCode::VarDecl:
-        if (instr.arg1 >= 0 && instr.arg1 < stringTable.size() && !stringTable[instr.arg1].isEmpty())
+        if (instr.arg1 >= 0 && instr.arg1 < stringTable.size() && !stringTable[instr.arg1].isEmpty()) {
             args << "'" + formatString(stringTable[instr.arg1]) + "'";
+            if ( instr.arg2 < 0 ) {
+                // инициализация константным значением
+                args << QString(" c%1").arg( -instr.arg2 );
+            }
+            else if ( instr.arg2 == 1 ) {
+                // инициализация значением со стека
+                args << " stack";
+            }
+        }
+        else if (instr.arg1 != 0)
+            args << QString("n%1").arg(instr.arg1);
+        break;
+
+    case BydaoOpCode::ConstDecl:
+        if (instr.arg1 >= 0 && instr.arg1 < stringTable.size() && !stringTable[instr.arg1].isEmpty()) {
+            args << "'" + formatString(stringTable[instr.arg1]) + "'";
+            if ( instr.arg2 >= 0 ) {
+                // создание переменной и инициализация константным значением
+                args << QString(" c%1").arg( instr.arg2 );
+            }
+        }
         else if (instr.arg1 != 0)
             args << QString("n%1").arg(instr.arg1);
         break;

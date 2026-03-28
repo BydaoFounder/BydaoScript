@@ -46,7 +46,18 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     m_modulePaths << QCoreApplication::applicationDirPath() + "/modules";
 
     // Добавляем пустую строку под индексом 0
+
     addString("");
+
+    // Добавляем константу NULL, чтобы все другие константы имели индекс > 0
+
+    addNullConstant();
+
+    // Добавляем служебную переменную, чтобы все индексы переменных были > 0.
+    // TODO: Служебная переменная специального типа, которая содержит информацию
+    // о выполняемом скрипте.
+
+    appendVariable(SPECIAL_VAR, true, false);
 
     // Инициализировать встроенные типы данных
 
@@ -249,12 +260,14 @@ bool BydaoParser::appendVariable(const QString& name, bool isConstant, bool isPu
 
     // Проверяем, не объявлена ли уже в этой области
 
-    int scopeStart = m_scopeStart.top();
     int index = m_varScopes.size();
-    while ( --index >= scopeStart ) {
-        if ( m_varScopes[ index ].name == name ) {
-            error("Variable '" + name + "' already declared in this scope");
-            return false;
+    if ( index > 0 ) {
+        int scopeStart = m_scopeStart.top();
+        while ( --index >= scopeStart ) {
+            if ( m_varScopes[ index ].name == name ) {
+                error("Variable '" + name + "' already declared in this scope");
+                return false;
+            }
         }
     }
 
@@ -629,8 +642,8 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
 
     // Генерируем код (как обычно)
     qint16 nameIndex = addString(name);
-    emitCode(BydaoOpCode::VarDecl, nameIndex, 0, token);
 
+    int valueIndex = 0;  // без инициализации
     if (match(BydaoTokenType::Assign)) {    // с инициализацией
 
         nextToken();
@@ -648,20 +661,28 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
             return false;
         }
         setVariableType( name, typeInfo.type );
-    }
-    else {                                  // со значением null
-        qint16 nullConst = addNullConstant();
-        emitCode(BydaoOpCode::PushConst, nullConst, 0, token);
+
+        int size = m_bytecode.size();
+        if ( m_bytecode[ size-1 ].op == BydaoOpCode::PushConst ) {
+
+            // Инициализация переменной константным значением
+
+            valueIndex = -m_bytecode.takeLast().arg1;
+        }
+        else {
+
+            // Инициализация значением со стека значений
+            valueIndex = 1;
+        }
     }
 
-    emitCode(BydaoOpCode::Store, info.varIndex, 0, nameToken);
+    emitCode(BydaoOpCode::VarDecl, nameIndex, valueIndex, token);
 
     return true;
 }
 
 bool BydaoParser::parseConstDecl( bool isPublic ) {
 //    qDebug() << "parseConstDecl: start at line" << m_current.line;
-    BydaoToken token = m_current;
     nextToken(); // const
 
     if (!match(BydaoTokenType::Identifier)) {
@@ -685,6 +706,7 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
     }
 
     // Пытаемся вычислить выражение
+    BydaoToken exprToken = m_current;
     BydaoConstantFolder folder(this);
     BydaoValue constValue = folder.evaluate();  // Один проход!
     if (constValue.isNull()) {
@@ -699,11 +721,6 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
     VariableInfo info = resolveVariable(name);
     m_varScopes[ info.varIndex ].varInfo.type = constValue.toObject()->typeName();
     m_varScopes[ info.varIndex ].varInfo.constValue = constValue;
-
-    // Генерируем код
-    qint16 nameIndex = addString(name);
-//    qDebug() << "  generating VarDecl for" << name << "index =" << nameIndex;
-    emitCode(BydaoOpCode::VarDecl, nameIndex, 0, token);
 
     // Добавляем значение в таблицу констант и генерируем PUSH
     qint16 constIndex;
@@ -721,14 +738,15 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
         constIndex = addConstant(constValue.toString());
         break;
     default:
-        constIndex = addNullConstant();
-        break;
+        removeVariable(name);
+        error("Invalid constant expression", exprToken);
+        return false;
     }
-//    qDebug() << "  generating PushConst for value" << constValue.toString() << "index =" << constIndex;
-    emitCode(BydaoOpCode::PushConst, constIndex, 0, token);
 
-//    qDebug() << "  generating Store for" << name;
-    emitCode(BydaoOpCode::Store, info.varIndex, 0, nameToken);
+    // Генерируем код
+    qint16 nameIndex = addString(name);
+    //    qDebug() << "  generating VarDecl for" << name << "index =" << nameIndex;
+    emitCode(BydaoOpCode::ConstDecl, nameIndex, constIndex, nameToken);
 
     return true;
 }
@@ -842,15 +860,17 @@ bool BydaoParser::parseAddAssign() {
         }
     }
 
-    int rightVarIndex = -1;
-    if ( exprTypeInfo.operand == Var ) {
+    int rightVarIndex = 0;
+    int size = m_bytecode.size();
+    if ( m_bytecode[size-1].op == BydaoOpCode::Load ) {
 
-        int size = m_bytecode.size();
-        if ( m_bytecode[size-1].op == BydaoOpCode::Load ) {
-
-            rightVarIndex = m_bytecode.takeLast().arg1;
-        }
+        rightVarIndex = m_bytecode.takeLast().arg1;
     }
+    else if ( m_bytecode[size-1].op == BydaoOpCode::PushConst ) {
+
+        rightVarIndex = -m_bytecode.takeLast().arg1;
+    }
+
     emitCode(BydaoOpCode::AddStore, info.varIndex, rightVarIndex, nameToken);
     return true;
 }
@@ -1537,24 +1557,27 @@ bool BydaoParser::parseComparison() {
 
         m_typeStack.push( TypeInfo("Bool", Expr) );
 
-        bool emitStd = true;
-        if ( leftTypeInfo.operand == Var && rightTypeInfo.operand == Var ) {
+        int size = m_bytecode.size();
+        if ( m_bytecode[size-1].op == BydaoOpCode::Load && m_bytecode[size-2].op == BydaoOpCode::Load ) {
 
-            int size = m_bytecode.size();
-            if ( m_bytecode[size-1].op == BydaoOpCode::Load && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+            int rightVarIndex = m_bytecode.takeLast().arg1;
+            int leftVarIndex = m_bytecode.takeLast().arg1;
+            if ( opCode == BydaoOpCode::Lt ) {
+                emitCode(BydaoOpCode::VarLt, leftVarIndex, rightVarIndex, op);
+                continue;
+            }
+        }
+        else if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
 
-                int rightVarIndex = m_bytecode.takeLast().arg1;
-                int leftVarIndex = m_bytecode.takeLast().arg1;
-                if ( opCode == BydaoOpCode::Lt ) {
-                    emitCode(BydaoOpCode::VarLt, leftVarIndex, rightVarIndex, op);
-                    emitStd = false;
-                }
+            int rightVarIndex = m_bytecode.takeLast().arg1;
+            int leftVarIndex = m_bytecode.takeLast().arg1;
+            if ( opCode == BydaoOpCode::Lt ) {
+                emitCode(BydaoOpCode::VarLt, leftVarIndex, -rightVarIndex, op);
+                continue;
             }
         }
 
-        if ( emitStd ) {
-            emitCode(opCode, 0, 0, op);
-        }
+        emitCode(opCode, 0, 0, op);
     }
 
     return true;
@@ -1609,6 +1632,13 @@ bool BydaoParser::parseAddition() {
                 int rightVarIndex = m_bytecode.takeLast().arg1;
                 int leftVarIndex = m_bytecode.takeLast().arg1;
                 emitCode( BydaoOpCode::VarAdd, leftVarIndex, rightVarIndex, op);
+                continue;
+            }
+            if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+
+                int constIndex = m_bytecode.takeLast().arg1;
+                int leftVarIndex = m_bytecode.takeLast().arg1;
+                emitCode( BydaoOpCode::VarAdd, leftVarIndex, -constIndex, op);
                 continue;
             }
         }

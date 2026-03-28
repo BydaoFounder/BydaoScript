@@ -1,19 +1,21 @@
 use Sys
 
-var sum = 0
+const cnt = 1000000
+const one = 1
 var t1 = Sys.time()
 var i = 0
+var sum = 0
 while i < 1000000 next i = i + 1 {
     sum = sum + i
 }
 t1 = Sys.time() - t1
-Sys.outln( '1. time: ' + t1 + ' msec, sum = ' + sum )
+Sys.outln( 'time: ' + t1 + ' msec, sum = ' + sum )
 
-sum = 0
 t1 = Sys.time()
 i = 0
-while i < 1000000 next i += 1 {
+sum = 0
+while i < cnt next i += one {
     sum += i
 }
 t1 = Sys.time() - t1
-Sys.outln( '2. time: ' + t1 + ' msec, sum = ' + sum )
+Sys.outln( 'time: ' + t1 + ' msec, sum = ' + sum )

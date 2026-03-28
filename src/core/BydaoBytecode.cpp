@@ -25,6 +25,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
     if (names.isEmpty()) {
         names[BydaoOpCode::Nop] = "NOP";
         names[BydaoOpCode::Halt] = "HALT";
+        names[BydaoOpCode::ConstDecl] = "CONSTDECL";
         names[BydaoOpCode::VarDecl] = "VARDECL";
         names[BydaoOpCode::Drop] = "DROP";
         names[BydaoOpCode::Load] = "LOAD";

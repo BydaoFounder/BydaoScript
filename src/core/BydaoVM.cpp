@@ -91,7 +91,14 @@ bool BydaoVM::load(const QVector<BydaoConstant>& constants,
     m_pc = 0;
     m_stack.clear();
     m_scopeStack.clear();
-    
+
+    // В стек значений добавим специальную переменную
+
+    RuntimeVar var;
+    var.name = SPECIAL_VAR;
+    var.value = BydaoValue();
+    m_scopeStack.append( var );
+
     return true;
 }
 
@@ -247,7 +254,8 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::Store: {
-        setVariable(instr.arg1, m_stack.pop(), instr);
+        BydaoValue val = m_stack.pop();
+        setVariable(instr.arg1, val, instr);
         break;
     }
 
@@ -280,12 +288,30 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
     
     // ===== Переменные =====
+
+    case BydaoOpCode::ConstDecl: {
+        QString name = m_stringTable[instr.arg1];
+        RuntimeVar var;
+        var.name = name;
+        var.value = m_constantValues[ instr.arg2 ];
+        m_scopeStack.append(var);
+        break;
+    }
+
     case BydaoOpCode::VarDecl: {
-        if (instr.arg1 >= 0 && instr.arg1 < m_stringTable.size()) {
-            QString name = m_stringTable[instr.arg1];
-            
+        if ( instr.arg1 >= 0 ) {    // задано название переменной
+
             RuntimeVar var;
-            var.name = name;
+            var.name = m_stringTable[instr.arg1];
+
+            if ( instr.arg2 < 0 ) {
+                // создание переменной и инициализация константным значением
+                var.value = m_constantValues[ -instr.arg2 ].copy();
+            }
+            else if ( instr.arg2 == 1 ) {
+                // инициализация значением со стека
+                var.value = m_stack.pop();
+            }
             m_scopeStack.append(var);
         }
         else {
@@ -294,7 +320,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             int varIndex = m_scopeStack.size();
             RuntimeVar var;
             var.name = QString("__tmp_%1").arg(varIndex);
-            var.value = BydaoValue(BydaoNull::instance());
             m_scopeStack.append(var);
         }
         break;
@@ -310,19 +335,29 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::VarAdd: {
 
-        BydaoValue& b = getVariable(instr.arg2, instr);
-        BydaoValue& a = getVariable(instr.arg1, instr);
-        if (!a.isObject() || !b.isObject()) {
-            error("'+' operation on non-object", instr);
-            return false;
+        if ( instr.arg2 < 0 ) { // сложение с константой
+            BydaoValue& a = getVariable(instr.arg1, instr);
+            if (!a.isObject()) {
+                error("'+' operation on non-object", instr);
+                return false;
+            }
+            m_stack.push( a.toObject()->add( m_constantValues[ -instr.arg2 ] ) );
         }
-        m_stack.push( a.toObject()->add(b) );
+        else {                  // сложение двух переменных
+            BydaoValue& b = getVariable(instr.arg2, instr);
+            BydaoValue& a = getVariable(instr.arg1, instr);
+            if (!a.isObject() || !b.isObject()) {
+                error("'+' operation on non-object", instr);
+                return false;
+            }
+            m_stack.push( a.toObject()->add(b) );
+        }
         break;
     }
 
     case BydaoOpCode::AddStore: {
 
-        if ( instr.arg2 >= 0 ) {
+        if ( instr.arg2 > 0 ) {         // прибавить к переменной значение переменной
             BydaoValue& b = getVariable(instr.arg2, instr);
             BydaoValue& a = getVariable(instr.arg1, instr);
             if (!a.isObject() || !b.isObject()) {
@@ -331,14 +366,21 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             }
             a.toObject()->addToValue(b);
         }
-        else {
+        else if ( instr.arg2 < 0 ) {    // прибавить к переменной значение константы
+            BydaoValue& a = getVariable(instr.arg1, instr);
+            if ( ! a.isObject() ) {
+                error("'+=' operation on non-object", instr);
+                return false;
+            }
+            a.toObject()->addToValue( m_constantValues[ -instr.arg2 ] );
+        }
+        else {                          // прибавить к переменной значение со стека
             BydaoValue b = m_stack.pop();
             BydaoValue& a = getVariable(instr.arg1, instr);
             if (!a.isObject() || !b.isObject()) {
                 error("'+=' operation on non-object", instr);
                 return false;
             }
-
             a.toObject()->addToValue(b);
         }
         break;
@@ -399,7 +441,8 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     // ===== Константы =====
     case BydaoOpCode::PushConst: {
         if ( instr.arg1 >= 0 && instr.arg1 < m_constantValues.size() ) {
-            m_stack.push( m_constantValues[instr.arg1].copy() );
+//            m_stack.push( m_constantValues[instr.arg1].copy() );
+            m_stack.push( m_constantValues[instr.arg1] );
         }
         else {
             error("Invalid constant index", instr);
@@ -530,13 +573,29 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::VarLt: {
-        BydaoValue& a = getVariable( instr.arg1, instr );
-        BydaoValue& b = getVariable( instr.arg2, instr );
-        if (!a.isObject() || !b.isObject()) {
-            error("Comparison with non-object", instr);
-            return false;
+        if ( instr.arg2 < 0 ) {
+
+            // Сравнение переменной с константой
+            BydaoValue& a = getVariable( instr.arg1, instr );
+            BydaoValue& b = m_constantValues[ -instr.arg2 ];
+            if (!a.isObject() || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push(a.toObject()->lt(b));
+
         }
-        m_stack.push(a.toObject()->lt(b));
+        else {
+
+            // Сравнение двух переменных
+            BydaoValue& a = getVariable( instr.arg1, instr );
+            BydaoValue& b = getVariable( instr.arg2, instr );
+            if (!a.isObject() || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push(a.toObject()->lt(b));
+        }
         break;
     }
 
