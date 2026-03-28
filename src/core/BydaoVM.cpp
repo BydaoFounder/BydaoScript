@@ -254,8 +254,15 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::Store: {
-        BydaoValue val = m_stack.pop();
-        setVariable(instr.arg1, val, instr);
+        if ( instr.arg2 > 0 ) {
+            setVariable(instr.arg1, getVariable( instr.arg2, instr ), instr);
+        }
+        else if ( instr.arg2 < 0 ) {
+            setVariable(instr.arg1, m_constantValues[ -instr.arg2 ], instr);
+        }
+        else {
+            setVariable(instr.arg1, m_stack.pop(), instr);
+        }
         break;
     }
 

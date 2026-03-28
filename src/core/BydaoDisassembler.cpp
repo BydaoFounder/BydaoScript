@@ -233,13 +233,21 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
         break;
 
     case BydaoOpCode::Load:
-    case BydaoOpCode::Store:
     case SubStore:
     case MulStore:
     case DivStore:
     case ModStore:
     case BydaoOpCode::Drop:
         args << QString("v%1").arg(instr.arg1);
+        break;
+
+    case BydaoOpCode::Store:
+        if ( instr.arg2 > 0 )
+            args << QString("v%1 v%2").arg(instr.arg1).arg( instr.arg2 );
+        else if ( instr.arg2 < 0 )
+            args << QString("v%1 c%2").arg(instr.arg1).arg( -instr.arg2 );
+        else
+            args << QString("v%1").arg(instr.arg1);
         break;
 
     case BydaoOpCode::AddStore:

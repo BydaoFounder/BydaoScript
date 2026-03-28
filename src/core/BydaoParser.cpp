@@ -785,6 +785,7 @@ bool BydaoParser::parseAssign() {
     }
     setVariableType( name, exprType.type );
 
+    int rightIndex = 0;
     int size = m_bytecode.size();
     if ( m_bytecode[size-1].op == BydaoOpCode::VarAdd ) {
 
@@ -797,8 +798,20 @@ bool BydaoParser::parseAssign() {
             return true;
         }
     }
+    else if ( m_bytecode[size-1].op == BydaoOpCode::Load ) {
 
-    emitCode(BydaoOpCode::Store, varInfo.varIndex, 0, nameToken);
+        // Присвение переменной
+
+        rightIndex = m_bytecode.takeLast().arg1;
+    }
+    else if ( m_bytecode[size-1].op == BydaoOpCode::PushConst ) {
+
+        // Присвение константы
+
+        rightIndex = -m_bytecode.takeLast().arg1;
+    }
+
+    emitCode(BydaoOpCode::Store, varInfo.varIndex, rightIndex, nameToken);
     return true;
 }
 
