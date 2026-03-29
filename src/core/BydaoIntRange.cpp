@@ -31,7 +31,7 @@ MetaData*   BydaoIntRange::metaData() {
 }
 
 BydaoIntRange::BydaoIntRange(qint64 start, qint64 end)
-    : BydaoNative()
+    : BydaoObject()
     , m_start(start)
     , m_end(end)
 {
@@ -83,7 +83,6 @@ MetaData*   BydaoIntRangeIterator::metaData() {
     }
     return metaData;
 }
-
 
 BydaoIntRangeIterator::BydaoIntRangeIterator( BydaoIntRange* range ) {
     m_start = range->start();

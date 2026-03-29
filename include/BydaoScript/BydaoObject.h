@@ -36,6 +36,20 @@ public:
                             const QVector<BydaoValue>& args,
                             BydaoValue& result) = 0;
 
+    virtual bool    getVar( const QString& varName, BydaoValue& value ) {
+        Q_UNUSED( varName );
+        Q_UNUSED( value );
+        qWarning() << "'getVar' not implemented for" << typeName();
+        return false;
+    };
+
+    virtual bool    setVar( const QString& varName, const BydaoValue& value ) {
+        Q_UNUSED( varName );
+        Q_UNUSED( value );
+        qWarning() << "'setVar' not implemented for" << typeName();
+        return false;
+    };
+
     // Информация о типе
     virtual QString typeName() const = 0;
 

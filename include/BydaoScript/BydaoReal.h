@@ -13,12 +13,12 @@
 // limitations under the License.
 #pragma once
 
-#include "BydaoNative.h"
+#include "BydaoObject.h"
 #include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
-class BydaoReal : public BydaoNative {
+class BydaoReal : public BydaoObject {
 
     static QVector<BydaoReal*> s_cache;
     static const int MAX_CACHE_SIZE = 1024;

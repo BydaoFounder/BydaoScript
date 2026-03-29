@@ -15,12 +15,14 @@
 
 #include <QString>
 
-#include "BydaoNative.h"
+#include "BydaoObject.h"
+#include "BydaoArray.h"
+#include "BydaoArrayIterator.h"
 #include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
-class BydaoString : public BydaoNative {
+class BydaoString : public BydaoObject {
 
     static QVector<BydaoString*> s_cache;
     static const int MAX_CACHE_SIZE = 1024;
@@ -50,6 +52,9 @@ public:
 
     // Получить мета-данные
     static MetaData*   metaData();
+
+    // Получить список используемых мета-данных
+    static UsedMetaDataList usedMetaData();
 
     QString typeName() const override { return "String"; }
     const QString& value() const { return m_value; }
@@ -109,6 +114,38 @@ private:
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
 
     QString m_value;
+};
+
+class BydaoStringArray: public BydaoArray {
+public:
+    explicit BydaoStringArray();
+    virtual ~BydaoStringArray() override = default;
+
+    // Получить мета-данные
+    static MetaData*   metaData();
+
+    // Получить список используемых мета-данных
+    static UsedMetaDataList usedMetaData();
+
+    QString typeName() const override { return "StringArray"; }
+
+    BydaoValue  iter() override;  // создаёт итератор для массива
+
+};
+
+class BydaoStringArrayIterator : public BydaoArrayIterator {
+
+public:
+    explicit BydaoStringArrayIterator(BydaoArray* array);
+    virtual ~BydaoStringArrayIterator();
+
+    // Получить мета-данные
+    static MetaData*   metaData();
+
+    QString typeName() const override { return "StringArrayIter"; }
+
+    // Реализация методов итератора
+    //    BydaoValue value() const override;
 };
 
 } // namespace BydaoScript

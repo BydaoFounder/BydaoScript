@@ -10,7 +10,7 @@ LIBS += -L../../../bin -lBydaoCore
 
 HEADERS += \
     ../../../include/BydaoScript/BydaoModule.h \
-    ../../../include/BydaoScript/BydaoNative.h \
+    ../../../include/BydaoScript/BydaoObject.h \
     ../../../include/BydaoScript/BydaoValue.h \
     BydaoDir.h \
     BydaoDir.h \

@@ -19,7 +19,6 @@
 
 namespace BydaoScript {
 
-
 // Получить мета-данные
 MetaData*   BydaoIntClass::metaData() {
     static MetaData* metaData = nullptr;
@@ -111,7 +110,7 @@ UsedMetaDataList    BydaoIntClass::usedMetaData() {
 //==============================================================================
 
 BydaoIntClass::BydaoIntClass()
-    : BydaoNative()
+    : BydaoObject()
 {
     registerMethod("range",     &BydaoIntClass::method_range);
     registerMethod("parse",     &BydaoIntClass::method_parse);

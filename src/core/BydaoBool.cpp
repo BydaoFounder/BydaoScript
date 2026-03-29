@@ -41,14 +41,14 @@ MetaData*   BydaoBool::metaData() {
 QVector<BydaoBool*> BydaoBool::s_cache;
 
 BydaoBool::BydaoBool(bool value)
-    : BydaoNative()
+    : BydaoObject()
     , m_value(value)
 {
     registerMethod("toString", &BydaoBool::method_toString);
-    registerMethod("toInt",  &BydaoBool::method_toInt);
-    registerMethod("toReal", &BydaoBool::method_toReal);
-    registerMethod("toBool", &BydaoBool::method_toBool);
-    registerMethod("isNull", &BydaoBool::method_isNull);
+    registerMethod("toInt",    &BydaoBool::method_toInt);
+    registerMethod("toReal",   &BydaoBool::method_toReal);
+    registerMethod("toBool",   &BydaoBool::method_toBool);
+    registerMethod("isNull",   &BydaoBool::method_isNull);
 }
 
 void BydaoBool::registerMethod(const QString& name, MethodPtr method) {

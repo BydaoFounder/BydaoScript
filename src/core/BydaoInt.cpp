@@ -21,7 +21,7 @@ namespace BydaoScript {
 QVector<BydaoInt*> BydaoInt::s_cache;
 
 BydaoInt::BydaoInt(qint64 value)
-    : BydaoNative()
+    : BydaoObject()
     , m_value(value)
 {
     registerMethod("toString", &BydaoInt::method_toString);

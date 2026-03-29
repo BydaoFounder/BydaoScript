@@ -20,8 +20,43 @@
 
 namespace BydaoScript {
 
+// Получить мета-данные
+MetaData*   BydaoArray::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // переменные объекта
+            ->append( "length",     VarMetaData("Int",true,false) );
+        metaData
+            // методы объекта
+            ->append( "iter",        FuncMetaData("ArrayIter", false, true) )
+            .append( "toString",   FuncMetaData("String", false, true) )
+            .append( "length",      FuncMetaData("Int", false, true) )
+            .append( "get",         FuncMetaData("Int", false, true) << FuncArgMetaData("pos","Int",false) )
+            .append( "set",         FuncMetaData("Void", false, true)
+                                    << FuncArgMetaData("pos","Int",false)
+                                    << FuncArgMetaData("obj","Any",false) )
+            ;
+    }
+    return metaData;
+}
+
+/**
+ * Вернуть список используемых типов.
+ */
+UsedMetaDataList    BydaoArray::usedMetaData() {
+    static UsedMetaDataList list;
+
+    if ( list.isEmpty() ) {
+        list << UsedMetaData( "ArrayIter", BydaoArrayIterator::metaData() );
+    }
+
+    return list;
+}
+
 BydaoArray::BydaoArray()
-    : BydaoNative()
+    : BydaoObject()
 {
     // Регистрация методов (без макросов)
     registerMethod("toString", &BydaoArray::method_toString);
@@ -39,10 +74,10 @@ BydaoArray::BydaoArray()
 
     // Регистрация свойства length (ReadOnly)
     // Свойства
-    registerProperty("length",
-                     [this]() { return BydaoValue::fromInt(m_elements.size()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("length",
+    //                  [this]() { return BydaoValue::fromInt(m_elements.size()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 }
 
 void BydaoArray::registerMethod(const QString& name, MethodPtr method) {
@@ -120,7 +155,7 @@ bool BydaoArray::method_iter(const QVector<BydaoValue>& args, BydaoValue& result
 bool BydaoArray::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
     QStringList parts;
-    for (const auto& elem : m_elements) {
+    foreach (const auto& elem, m_elements) {
         parts << elem.toString();
     }
     result = BydaoValue::fromString("[" + parts.join(", ") + "]");
@@ -143,7 +178,7 @@ bool BydaoArray::method_get(const QVector<BydaoValue>& args, BydaoValue& result)
 bool BydaoArray::method_set(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 2) return false;
     set(args[0].toInt(), args[1]);
-    result = BydaoValue(BydaoNull::instance());
+    result = BydaoValue();
     return true;
 }
 

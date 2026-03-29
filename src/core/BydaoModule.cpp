@@ -20,7 +20,7 @@ namespace BydaoScript {
 // ========== BydaoModule ==========
 
 BydaoModule::BydaoModule()
-    : BydaoNative()
+    : BydaoObject()
 {}
 
 BydaoModule::~BydaoModule() {
@@ -127,65 +127,29 @@ BydaoModule* BydaoModuleManager::loadModule(const QString& name, QString* error)
     return module;
 }
 
+void    BydaoModuleManager::unloadModule(const QString& name ) {
 
-MetaData*   BydaoModuleManager::loadMetaData(const QString& name, QString* error) {
-    // Уже есть в кэше?
-    if (m_metaData.contains(name)) {
-        return m_metaData[name];
+    if ( m_modules.contains(name) ) {
+        BydaoModule* module = m_modules[ name ];
+        if ( module ) {
+            module->shutdown();  // вызываем shutdown
+            delete module;
+            m_modules.remove( name );
+        }
+        QLibrary* lib = m_libraries[ name ];
+        if ( lib ) {
+            lib->unload();
+            delete lib;
+            m_libraries.remove( name );
+        }
     }
-
-    QString path = findModuleFile(name);
-    if (path.isEmpty()) {
-        if (error) *error = "Module not found: " + name;
-        return nullptr;
-    }
-
-    QLibrary lib(path);
-    if (!lib.load()) {
-        if (error) *error = lib.errorString();
-        return nullptr;
-    }
-
-    auto create = (BydaoModule* (*)())lib.resolve("createModule");
-    if (!create) {
-        if (error) *error = "No createModule()";
-        lib.unload();
-        return nullptr;
-    }
-
-    // ВРЕМЕННЫЙ модуль
-    BydaoModule* tempModule = create();
-    if (!tempModule) {
-        if (error) *error = "Failed to create module";
-        lib.unload();
-        return nullptr;
-    }
-
-    // Сохраняем мета-данные модуля
-    MetaData* moduleMetaData = tempModule->metaData();
-    if ( ! moduleMetaData ) {
-        if (error) *error = "Metadata is NULL for module '" + name + "'";
-        lib.unload();
-        return nullptr;
-    }
-    MetaData* metaData = new MetaData( moduleMetaData );
-    m_metaData[ name ] = metaData;
-
-    // Удаляем ВРЕМЕННЫЙ модуль (он больше не нужен)
-    auto destroy = (void (*)(BydaoModule*))lib.resolve("destroyModule");
-    if (destroy) destroy(tempModule);
-    else delete tempModule;
-
-    lib.unload();
-
-    return metaData;
 }
 
 void BydaoModuleManager::unloadAllModules() {
     // qDebug() << "Unloading all modules, count:" << m_modules.size();
 
     // 1. Сначала вызываем shutdown для всех
-    for (auto* module : m_modules) {
+    foreach (auto* module, m_modules) {
         module->shutdown();  // вызываем shutdown
     }
 
@@ -197,7 +161,7 @@ void BydaoModuleManager::unloadAllModules() {
     m_modules.clear();
 
     // 3. Выгружаем библиотеки
-    for (auto* lib : m_libraries) {
+    foreach (auto* lib, m_libraries) {
         lib->unload();
         delete lib;
     }

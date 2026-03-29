@@ -26,9 +26,8 @@ public:
     // Обязательные методы от BydaoModule
     QString name() const override { return "Sys"; }
     QString version() const override { return "1.0.0"; }
-    BydaoModuleInfo* info() const override;
 
-    MetaData*   metaData();
+    MetaData*   metaData() override;
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,
@@ -67,8 +66,6 @@ private:
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
-
-    static BydaoModuleInfoImpl* createInfo();
 
     QProcess* m_process;
     QElapsedTimer m_timer;

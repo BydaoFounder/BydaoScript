@@ -24,7 +24,6 @@ HEADERS += \
     ../../include/BydaoScript/BydaoTypeRegistry.h \
     ../../include/BydaoScript/BydaoValue.h \
     ../../include/BydaoScript/BydaoArray.h \
-    ../../include/BydaoScript/BydaoNative.h \
     ../../include/BydaoScript/BydaoModule.h \
     ../../include/BydaoScript/BydaoBytecode.h \
     ../../include/BydaoScript/BydaoLexer.h \
@@ -49,7 +48,6 @@ SOURCES += \
     BydaoTypeRegistry.cpp \
     BydaoValue.cpp \
     BydaoArray.cpp \
-    BydaoNative.cpp \
     BydaoModule.cpp \
     BydaoBytecode.cpp \
     BydaoLexer.cpp \

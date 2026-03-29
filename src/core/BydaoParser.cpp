@@ -18,6 +18,7 @@
 
 #include "BydaoScript/BydaoParser.h"
 #include "BydaoScript/BydaoIntClass.h"
+#include "BydaoScript/BydaoArray.h"
 #include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoString.h"
 #include "BydaoScript/BydaoBool.h"
@@ -69,17 +70,28 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
         }
     }
 
-    m_metaData["Real"] = new MetaData( BydaoReal::metaData() );
-
     m_metaData["String"] = new MetaData( BydaoString::metaData() );
+    UsedMetaDataList usedStringList = BydaoString::usedMetaData();
+    foreach ( const UsedMetaData& used, usedStringList ) {
+        if ( ! m_metaData.contains( used.type ) ) {
+            m_metaData[ used.type ] = new MetaData( used.metaData );
+        }
+    }
 
-    m_metaData["Bool"] = new MetaData( BydaoBool::metaData() );
+    m_metaData["Real"]   = new MetaData( BydaoReal::metaData() );
+    m_metaData["Bool"]   = new MetaData( BydaoBool::metaData() );
+    m_metaData["Null"]   = new MetaData( BydaoNull::metaData() );
 
-    m_metaData["Null"] = new MetaData( BydaoNull::metaData() );
+    m_metaData["Array"]  = new MetaData( BydaoArray::metaData() );
+    UsedMetaDataList usedArrayList = BydaoArray::usedMetaData();
+    foreach ( const UsedMetaData& used, usedArrayList ) {
+        if ( ! m_metaData.contains( used.type ) ) {
+            m_metaData[ used.type ] = new MetaData( used.metaData );
+        }
+    }
 }
 
 BydaoParser::~BydaoParser() {
-    qDeleteAll( m_moduleInfoCache );
     qDeleteAll( m_metaData );
 }
 
@@ -108,20 +120,18 @@ qint16 BydaoParser::addString(const QString& str) {
 qint16 BydaoParser::addConstant(const BydaoConstant& c) {
     // Для строк используем специальный ключ
     QString key;
-    if (c.type == CONST_STRING) {
-        key = "s:" + QString::number(c.stringIndex);
-    }
-    else {
-        switch (c.type) {
-        case CONST_INT: key = "i:" + QString::number(c.intValue); break;
-        case CONST_REAL: key = "r:" + QString::number(c.realValue); break;
-        case CONST_BOOL: key = "b:" + QString::number(c.boolValue); break;
-        case CONST_NULL: key = "null"; break;
-        default: break;
-        }
+    switch (c.type) {
+    case CONST_STRING: key = "s:" + QString::number(c.stringIndex); break;
+    case CONST_INT:    key = "i:" + QString::number(c.intValue); break;
+    case CONST_REAL:   key = "r:" + QString::number(c.realValue); break;
+    case CONST_BOOL:   key = "b:" + QString::number(c.boolValue); break;
+    case CONST_NULL:   key = "null"; break;
+    default:
+        error("Invalid type of constant");
+        break;
     }
 
-    if (!key.isEmpty()) {
+    if ( ! key.isEmpty() ) {
         auto it = m_constantIndex.find(key);
         if (it != m_constantIndex.end())
             return it.value();
@@ -158,6 +168,18 @@ qint16 BydaoParser::addConstant(const QString& strValue) {
 
 qint16 BydaoParser::addNullConstant() {
     return addConstant(BydaoConstant());
+}
+
+qint16 BydaoParser::addConstant( const BydaoValue& val ) {
+    switch ( val.typeId() ) {
+    case TYPE_STRING: return addConstant( val.toString() );
+    case TYPE_INT:    return addConstant( val.toInt() );
+    case TYPE_REAL:   return addConstant( val.toReal() );
+    case TYPE_BOOL:   return addConstant( val.toBool() );
+    case TYPE_NULL:   return addNullConstant();
+    }
+    error("Invalid type of constant");
+    return 0;
 }
 
 // ============================================================
@@ -378,14 +400,31 @@ bool BydaoParser::loadMetaData(const QString& name) {
     }
 
     QString errorMsg;
-    MetaData* metaData = BydaoModuleManager::instance().loadMetaData(name, &errorMsg);
-    if ( metaData ) {
-        m_metaData[name] = new MetaData( metaData );
-        return true;
+    BydaoModule* module = BydaoModuleManager::instance().loadModule( name, &errorMsg );
+    if ( ! module ) {
+        error("Cannot load module '" + name + "': " + errorMsg);
+        return false;
     }
 
-    error("Cannot load module '" + name + "': " + errorMsg);
-    return false;
+    // Сохраняем мета-данные модуля
+    MetaData* metaData = module->metaData();
+    if ( ! metaData ) {
+        BydaoModuleManager::instance().unloadModule( name );
+        error( "Metadata is NULL for module '" + name + "'" );
+        return false;
+    }
+    m_metaData[name] = new MetaData( metaData );
+
+    // Сохраняем мета-данные используемых типов
+    UsedMetaDataList usedList = module->usedMetaData();
+    foreach ( const UsedMetaData& used, usedList ) {
+        if ( ! m_metaData.contains( used.type ) ) {
+            m_metaData[ used.type ] = new MetaData( used.metaData );
+        }
+    }
+
+    BydaoModuleManager::instance().unloadModule( name );
+    return true;
 }
 
 // ============================================================
@@ -709,8 +748,7 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
     BydaoToken exprToken = m_current;
     BydaoConstantFolder folder(this);
     BydaoValue constValue = folder.evaluate();  // Один проход!
-    if (constValue.isNull()) {
-        // Если получили null - значит выражение не константное
+    if ( ! constValue.isObject() ) {
         removeVariable(name);
         error("Constant expression expected");
         return false;
@@ -723,21 +761,8 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
     m_varScopes[ info.varIndex ].varInfo.constValue = constValue;
 
     // Добавляем значение в таблицу констант и генерируем PUSH
-    qint16 constIndex;
-    switch (constValue.typeId()) {
-    case TYPE_INT:
-        constIndex = addConstant(constValue.toInt());
-        break;
-    case TYPE_REAL:
-        constIndex = addConstant(constValue.toReal());
-        break;
-    case TYPE_BOOL:
-        constIndex = addConstant(constValue.toBool());
-        break;
-    case TYPE_STRING:
-        constIndex = addConstant(constValue.toString());
-        break;
-    default:
+    qint16 constIndex = addConstant( constValue );
+    if ( constIndex == 0 ) {
         removeVariable(name);
         error("Invalid constant expression", exprToken);
         return false;
@@ -1939,6 +1964,11 @@ bool BydaoParser::parseCallSuffix() {
     if (!match(BydaoTokenType::RParen)) {
         do {
 
+            if ( argCount >= func.argCount() ) {
+                error( QString( "Invalid argument count for function '%1'").arg( memberName ) );
+                return false;
+            }
+
             BydaoToken argToken = m_current;
 
             if (!parseExpression()) {
@@ -1984,9 +2014,38 @@ bool BydaoParser::parseCallSuffix() {
 
     // TODO: Добавить недостающие аргументы значениями по умолчанию
 
-    if ( argCount != func.argCount() ) {
-        error("Insufficient argument number for " + memberName );
-        return false;
+    if ( argCount < func.argCount() ) {
+
+        for ( ; argCount < func.argCount(); ++argCount ) {
+
+            QString defaultExpr = func.argList[ argCount ].defVal;
+            if ( defaultExpr.isEmpty() ) {
+                error( QString( "No default value specified for argument %1 of function '%2'" ).arg( argCount + 1 ).arg(  memberName ), token );
+                return false;
+            }
+
+            BydaoLexer lexer( defaultExpr );
+            auto tokens = lexer.tokenize();
+
+            if ( ! lexer.errorMessage().isEmpty() ) {
+                error( QString( "Error on compile default value  for argument %1 of function '%2': " + lexer.errorMessage() ).arg( argCount + 1 ).arg(  memberName ), token );
+                return false;
+            }
+
+            BydaoParser parser(tokens);
+
+            BydaoConstantFolder folder( &parser );
+            BydaoValue constValue = folder.evaluate();  // Один проход!
+            if ( constValue.isObject() ) {
+                qint64 constIndex = addConstant( constValue );
+                if ( constIndex > 0 ) {
+                    emitCode( BydaoOpCode::PushConst, constIndex, 0, token );
+                    continue;
+                }
+            }
+            error( QString( "Invalid default value specified for argument %1 of function '%2'" ).arg( argCount + 1 ).arg(  memberName ), token );
+            return false;
+        }
     }
 
     // Ожидаем закрывающую скобку
@@ -2035,9 +2094,9 @@ bool BydaoParser::parseMemberSuffix() {
 
     // Проверим наличие текущего типа данных
     TypeInfo& typeInfo = m_typeStack.top();
-    if ( ! m_metaData.contains( typeInfo.type ) ) {
-        qDebug() << "Check member for type" + typeInfo.type;
-        error("Not found metadata for " + typeInfo.type);
+    if ( /* typeInfo.type != "Any" && */ ! m_metaData.contains( typeInfo.type ) ) {
+//        qDebug() << "Check member for type" + typeInfo.type;
+        error("Not found metadata for " + typeInfo.type, memberToken );
         return false;
     }
     MetaData* metaData = m_metaData[ typeInfo.type ];
@@ -2053,8 +2112,8 @@ bool BydaoParser::parseMemberSuffix() {
 
         // Проверим, что у текущего типа есть такая функция
 
-        if ( ! metaData->hasFunc( memberName ) ) {
-            error("Type " + typeInfo.type + " does not have function " + memberName);
+        if ( /* typeInfo.type != "Any" && */ ! metaData->hasFunc( memberName ) ) {
+            error("Type '" + typeInfo.type + "' does not have function '" + memberName + "'", memberToken);
             return false;
         }
 
@@ -2070,7 +2129,7 @@ bool BydaoParser::parseMemberSuffix() {
 
         // Проверим, что у текущего типа есть такая переменная
 
-        if ( ! metaData->hasVar( memberName ) ) {
+        if ( /* typeInfo.type != "Any" && */ ! metaData->hasVar( memberName ) ) {
             error("Type '" + typeInfo.type + "' does not have member '" + memberName + "'", memberToken );
             return false;
         }
@@ -2078,7 +2137,7 @@ bool BydaoParser::parseMemberSuffix() {
         // Сохраним тип переменной
 
         m_typeStack.pop();
-        m_typeStack.push( metaData->var( memberName ).type );
+        m_typeStack.push( typeInfo.type != "Any" ? metaData->var( memberName ).type : "Any" );
 
         // Это доступ к свойству - используем MEMBER
         emitCode(BydaoOpCode::Member, memberIdx, 0, memberToken);

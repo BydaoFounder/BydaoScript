@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "BydaoScript/BydaoVM.h"
-#include "BydaoScript/BydaoNative.h"
+#include "BydaoScript/BydaoObject.h"
 #include "BydaoScript/BydaoModule.h"
 #include "BydaoScript/BydaoString.h"
 #include "BydaoScript/BydaoInt.h"
@@ -755,27 +755,21 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         if (instr.arg1 >= 0 && instr.arg1 < m_stringTable.size()) {
             memberName = m_stringTable[instr.arg1];
 //            qDebug() << "  memberName:" << memberName;
-        } else {
+        }
+        else {
             error("Invalid member name index", instr);
             return false;
         }
 
-        // Проверяем, является ли объект нативным со свойствами
-        if (auto* native = (BydaoNative*)(obj.toObject())) {
-            if (native->hasProperty(memberName)) {
-                // Это свойство - возвращаем его значение
-//                qDebug() << "  -> property found, getting value";
-                m_stack.push(native->getProperty(memberName));
-                if ( m_traceMode ) {
-                    dumpStack("After MEMBER (property)");
-                }
-                break;
-            }
+        BydaoValue value;
+        if ( obj.toObject()->getVar( memberName, value ) ) {
+            m_stack.push( value );
+            return true;
         }
 
         // Свойство не найдено
-        QString objType = obj.isObject() ? obj.toObject()->typeName() : "non-object";
-        error(QString("Property not found: '%1' on object of type '%2'").arg(memberName, objType), instr);
+        QString objType = obj.toObject()->typeName();
+        error(QString("Object of type '%1' does not have variable '%2'").arg(objType, memberName), instr);
         return false;
     }
 
@@ -981,7 +975,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         
         QString errorMsg;
         BydaoModule* module = BydaoModuleManager::instance().loadModule(moduleName, &errorMsg);
-        
         if (!module) {
             error("Cannot load module: " + errorMsg, instr);
             return false;
@@ -989,13 +982,13 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         
         // Добавляем модуль как переменную в глобальной области
 
+        int varIndex = m_scopeStack.size();
+
         RuntimeVar var;
         var.name = alias;
         var.value = BydaoValue(module);
-        
-        int varIndex = m_scopeStack.size();
         m_scopeStack.append(var);
-//        m_scopeStack.append( BydaoValue(module) );
+
         m_moduleName[alias] = varIndex;
         
         break;

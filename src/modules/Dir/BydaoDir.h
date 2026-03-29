@@ -1,7 +1,9 @@
 #pragma once
 
-#include "../../../include/BydaoScript/BydaoModule.h"
 #include <QDir>
+
+#include "../../../include/BydaoScript/BydaoModule.h"
+#include "../../../include/BydaoScript/BydaoArrayIterator.h"
 
 #ifdef BYDAODIR_LIBRARY
 #include "BydaoDir_global.h"
@@ -26,7 +28,6 @@ public:
     // Обязательные методы от BydaoModule
     QString name() const override { return "DirObject"; }  // не модуль, но метод нужен
     QString version() const override { return "1.0.0"; }
-    BydaoModuleInfo* info() const override { return nullptr; }  // у объекта нет info
 
     // Доступ к директории
     QString path() const { return m_dir.path(); }
@@ -67,7 +68,11 @@ public:
     // Обязательные методы от BydaoModule
     QString name() const override { return "Dir"; }
     QString version() const override { return "1.0.0"; }
-    BydaoModuleInfo* info() const override;
+
+    MetaData*   metaData() override;
+
+    // Получить список используемых мета-данных
+    UsedMetaDataList usedMetaData() override;
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,
@@ -90,9 +95,6 @@ private:
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
-
-    static BydaoModuleInfoImpl* createInfo();
-    static BydaoModuleInfoImpl* s_info;
 };
 
 } // namespace Modules

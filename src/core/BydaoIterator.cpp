@@ -18,7 +18,7 @@
 namespace BydaoScript {
 
 BydaoIterator::BydaoIterator()
-    : BydaoNative()
+    : BydaoObject()
 {
     registerMethod("next", &BydaoIterator::method_next);
     registerMethod("isValid", &BydaoIterator::method_isValid);
@@ -26,15 +26,15 @@ BydaoIterator::BydaoIterator()
     registerMethod("value", &BydaoIterator::method_value);
 
     // Регистрируем свойства для доступа через точку
-    registerProperty("key",
-                     [this]() { return this->getKey(); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("key",
+    //                  [this]() { return this->getKey(); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 
-    registerProperty("value",
-                     [this]() { return this->getValue(); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("value",
+    //                  [this]() { return this->getValue(); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 }
 
 BydaoIterator::~BydaoIterator() {}

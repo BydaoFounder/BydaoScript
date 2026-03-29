@@ -67,7 +67,7 @@ MetaData*   BydaoReal::metaData() {
 QVector<BydaoReal*> BydaoReal::s_cache;
 
 BydaoReal::BydaoReal(double value)
-    : BydaoNative()
+    : BydaoObject()
     , m_value(value)
 {
     registerMethod("toString", &BydaoReal::method_toString);

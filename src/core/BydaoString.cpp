@@ -76,10 +76,24 @@ MetaData*   BydaoString::metaData() {
     return metaData;
 }
 
+/**
+ * Вернуть список используемых типов.
+ */
+UsedMetaDataList    BydaoString::usedMetaData() {
+    static UsedMetaDataList list;
+
+    if ( list.isEmpty() ) {
+        list << UsedMetaData( "StringArray",     BydaoStringArray::metaData() );
+        list << UsedMetaData( "StringArrayIter", BydaoStringArrayIterator::metaData() );
+    }
+
+    return list;
+}
+
 QVector<BydaoString*> BydaoString::s_cache;
 
 BydaoString::BydaoString(const QString& value)
-    : BydaoNative()
+    : BydaoObject()
     , m_value(value)
 {
     registerMethod("toString", &BydaoString::method_toString);
@@ -106,10 +120,10 @@ BydaoString::BydaoString(const QString& value)
     registerMethod("iter", &BydaoString::method_iter);
 
     // Свойства
-    registerProperty("length",
-                     [this]() { return BydaoValue::fromInt(m_value.length()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("length",
+    //                  [this]() { return BydaoValue::fromInt(m_value.length()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 }
 
 void BydaoString::registerMethod(const QString& name, MethodPtr method) {
@@ -367,5 +381,74 @@ bool BydaoString::method_md5(const QVector<BydaoValue>& args, BydaoValue& result
     return true;
 }
 #endif
+
+//==============================================================================
+
+// Получить мета-данные
+MetaData*   BydaoStringArray::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // переменные объекта
+            ->append( "length",     VarMetaData("Int",true,false) );
+        metaData
+            // методы объекта
+            ->append( "iter",      FuncMetaData("StringArrayIter", false, true) )
+            .append( "toString",   FuncMetaData("String", false, true) )
+            .append( "length",     FuncMetaData("Int", false, true) )
+            .append( "get",        FuncMetaData("String", false, true)
+                                    << FuncArgMetaData("pos","Int",false) )
+            .append( "set",        FuncMetaData("Void", false, true)
+                                    << FuncArgMetaData("pos","Int",false)
+                                    << FuncArgMetaData("val","String",false) )
+            ;
+    }
+    return metaData;
+}
+
+BydaoStringArray::BydaoStringArray()
+    : BydaoArray() {
+}
+
+BydaoValue BydaoStringArray::iter() {
+    return BydaoValue(new BydaoStringArrayIterator(this));
+}
+
+//==============================================================================
+
+// Получить мета-данные
+MetaData*   BydaoStringArrayIterator::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы объекта
+            ->append( "next",    FuncMetaData("Bool", false, false) )
+            .append( "isValid",  FuncMetaData("Bool", false, false) )
+            ;
+        metaData
+            // переменные объекта
+            ->append( "key",     VarMetaData("Int",true,false) )
+            .append( "value",    VarMetaData("String",true,false) )
+            ;
+    }
+    return metaData;
+}
+
+BydaoStringArrayIterator::BydaoStringArrayIterator(BydaoArray* array)
+    : BydaoArrayIterator( array )
+{
+}
+
+BydaoStringArrayIterator::~BydaoStringArrayIterator() {
+}
+
+// BydaoValue BydaoStringArrayIterator::value() const {
+//     if ( ! isValid() ) {
+//         return BydaoValue(BydaoNull::instance());
+//     }
+//     return m_array->at(m_index).toString();
+// }
 
 } // namespace BydaoScript

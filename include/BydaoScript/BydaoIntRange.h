@@ -18,7 +18,7 @@
 
 namespace BydaoScript {
 
-class BydaoIntRange : public BydaoNative {
+class BydaoIntRange : public BydaoObject {
 
 public:
 

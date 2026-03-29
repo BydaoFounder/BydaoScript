@@ -9,39 +9,6 @@
 namespace BydaoScript {
 namespace Modules {
 
-// ========== Статический info ==========
-BydaoModuleInfoImpl* BydaoFileModule::s_info = nullptr;
-
-BydaoModuleInfoImpl* BydaoFileModule::createInfo() {
-    auto* info = new BydaoModuleInfoImpl();
-    info->m_name = "File";
-    info->m_version = "1.0.0";
-
-    info->m_properties = {"name", "path", "size", "exists",
-                          "isOpen", "isReadable", "isWritable"};
-
-    info->m_methods = {
-        {"new",       {"path"}},
-        {"exists",    {"path"}},
-        {"copy",      {"src", "dst"}},
-        {"move",      {"src", "dst"}},
-        {"rename",    {"oldPath", "newPath"}},
-        {"remove",    {"path"}},
-        {"size",      {"path"}},
-        {"readAll",   {"path"}},
-        {"writeAll",  {"path", "content"}}
-    };
-
-    return info;
-}
-
-BydaoModuleInfo* BydaoFileModule::info() const {
-    if (!s_info) {
-        s_info = createInfo();
-    }
-    return s_info;
-}
-
 // ========== BydaoFileModule ==========
 
 BydaoFileModule::BydaoFileModule()
@@ -59,7 +26,49 @@ BydaoFileModule::BydaoFileModule()
 }
 
 BydaoFileModule::~BydaoFileModule() {
-    shutdown();
+}
+
+MetaData*   BydaoFileModule::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData->external = true;
+        metaData
+            ->append( "new",     FuncMetaData("File", true, true)
+                                    << FuncArgMetaData("fileName","String",false)
+                                    )
+            .append( "exists",   FuncMetaData("Bool", true, true)
+                                    << FuncArgMetaData("fileName","String",false,"\"\"")
+                                    )
+            .append( "copy",     FuncMetaData("Bool", true, true)
+                                    << FuncArgMetaData("fromName","String",false)
+                                    << FuncArgMetaData("toName","String",false)
+                                    )
+            .append( "move",     FuncMetaData("Bool", true, true)
+                                    << FuncArgMetaData("fromName","String",false)
+                                    << FuncArgMetaData("toName","String",false)
+                                    )
+            .append( "rename",   FuncMetaData("Bool", true, true)
+                                    << FuncArgMetaData("fromName","String",false)
+                                    << FuncArgMetaData("toName","String",false)
+                                    )
+            .append( "remove",   FuncMetaData("Bool", true, true)
+                                    << FuncArgMetaData("fileName","String",false)
+                                    )
+            .append( "size",     FuncMetaData("Int", true, true)
+                                    << FuncArgMetaData("fileName","String",false)
+                                    )
+            .append( "readAll",  FuncMetaData("String", true, true)
+                                    << FuncArgMetaData("fileName","String",false)
+                                    )
+            .append( "writeAll", FuncMetaData("Bool", true, true)
+                                    << FuncArgMetaData("fileName","String",false)
+                                    << FuncArgMetaData("data","String",false)
+                                    )
+            ;
+        // TODO: Добавить мета-данные для объекта файла (методы и переменные)
+    }
+    return metaData;
 }
 
 bool BydaoFileModule::initialize() {
@@ -188,40 +197,40 @@ BydaoFileObject::BydaoFileObject(const QString& path)
     registerMethod("atEnd",     &BydaoFileObject::method_atEnd);
 
     // Регистрация свойств (ReadOnly)
-    registerProperty("name",
-                     [this]() { return BydaoValue::fromString(this->fileName()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("name",
+    //                  [this]() { return BydaoValue::fromString(this->fileName()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 
-    registerProperty("path",
-                     [this]() { return BydaoValue::fromString(this->filePath()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("path",
+    //                  [this]() { return BydaoValue::fromString(this->filePath()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 
-    registerProperty("size",
-                     [this]() { return BydaoValue::fromInt((int)this->fileSize()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("size",
+    //                  [this]() { return BydaoValue::fromInt((int)this->fileSize()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 
-    registerProperty("exists",
-                     [this]() { return BydaoValue::fromBool(this->fileExists()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("exists",
+    //                  [this]() { return BydaoValue::fromBool(this->fileExists()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 
-    registerProperty("isOpen",
-                     [this]() { return BydaoValue::fromBool(this->isOpen()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("isOpen",
+    //                  [this]() { return BydaoValue::fromBool(this->isOpen()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 
-    registerProperty("isReadable",
-                     [this]() { return BydaoValue::fromBool(this->isReadable()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("isReadable",
+    //                  [this]() { return BydaoValue::fromBool(this->isReadable()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 
-    registerProperty("isWritable",
-                     [this]() { return BydaoValue::fromBool(this->isWritable()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("isWritable",
+    //                  [this]() { return BydaoValue::fromBool(this->isWritable()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 }
 
 BydaoFileObject::~BydaoFileObject() {

@@ -13,12 +13,12 @@
 // limitations under the License.
 #pragma once
 
-#include "BydaoNative.h"
+#include "BydaoObject.h"
 #include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
-class BydaoNull : public BydaoNative {
+class BydaoNull : public BydaoObject {
 public:
     static BydaoNull* instance();
 

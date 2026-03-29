@@ -24,7 +24,10 @@ public:
     explicit BydaoArrayIterator(BydaoArray* array);
     virtual ~BydaoArrayIterator();
 
-    QString typeName() const override { return "ArrayIterator"; }
+    // Получить мета-данные
+    static MetaData*   metaData();
+
+    QString typeName() const override { return "ArrayIter"; }
 
     // Реализация методов итератора
     bool next() override;
@@ -32,7 +35,7 @@ public:
     BydaoValue key() const override;
     BydaoValue value() const override;
 
-private:
+protected:
     BydaoArray* m_array;
     int m_index;
 };

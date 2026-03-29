@@ -33,46 +33,38 @@ extern "C" {
 
 // ==========================================
 
-BydaoModuleInfoImpl* BydaoSysModule::createInfo() {
-    auto* info = new BydaoModuleInfoImpl();
-    info->m_name = "Sys";
-    info->m_version = "1.0.0";
+// BydaoModuleInfoImpl* BydaoSysModule::createInfo() {
+//     auto* info = new BydaoModuleInfoImpl();
+//     info->m_name = "Sys";
+//     info->m_version = "1.0.0";
 
-    info->m_methods = {
-        {"out",         {"text"}},
-        {"outln",       {"text"}},
-        {"in",          {"prompt"}},
-        {"err",         {"text"}},
-        {"errln",       {"text"}},
-        {"run",         {"command"}},
-        {"exec",        {"program", "args"}},
-        {"shell",       {"command"}},
-        {"getenv",      {"name"}},
-        {"setenv",      {"name", "value"}},
-        {"unsetenv",    {"name"}},
-        {"env",         {}},
-        {"sleep",       {"ms"}},
-        {"time",        {}},
-        {"date",        {}},
-        {"datetime",    {}},
-        {"platform",    {}},
-        {"currentDir",  {}},
-        {"setCurrentDir", {"path"}},
-        {"tempDir",     {}},
-        {"homeDir",     {}},
-        {"drives",      {}}
-    };
+//     info->m_methods = {
+//         {"out",         {"text"}},
+//         {"outln",       {"text"}},
+//         {"in",          {"prompt"}},
+//         {"err",         {"text"}},
+//         {"errln",       {"text"}},
+//         {"run",         {"command"}},
+//         {"exec",        {"program", "args"}},
+//         {"shell",       {"command"}},
+//         {"getenv",      {"name"}},
+//         {"setenv",      {"name", "value"}},
+//         {"unsetenv",    {"name"}},
+//         {"env",         {}},
+//         {"sleep",       {"ms"}},
+//         {"time",        {}},
+//         {"date",        {}},
+//         {"datetime",    {}},
+//         {"platform",    {}},
+//         {"currentDir",  {}},
+//         {"setCurrentDir", {"path"}},
+//         {"tempDir",     {}},
+//         {"homeDir",     {}},
+//         {"drives",      {}}
+//     };
 
-    return info;
-}
-
-BydaoModuleInfo* BydaoSysModule::info() const {
-    static BydaoModuleInfoImpl* s_info = nullptr;  // статический внутри функции
-    if (!s_info) {
-        s_info = createInfo();
-    }
-    return s_info;
-}
+//     return info;
+// }
 
 // ========== BydaoSysModule ==========
 

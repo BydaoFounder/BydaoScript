@@ -89,6 +89,7 @@ private:
     qint16 addConstant(bool value);
     qint16 addConstant(const QString& strValue);
     qint16 addNullConstant();
+    qint16 addConstant( const BydaoValue& val );
 
     // ===== Генерация кода =====
     qint16 emitCode(BydaoOpCode op, qint16 arg1 = 0, qint16 arg2 = 0);
@@ -202,7 +203,6 @@ private:
     bool m_inLoop;
 
     // Модули и типы
-    QHash<QString, BydaoModuleInfo*> m_moduleInfoCache;
     QStringList m_modulePaths;
 
     // Информация о встроенном типе

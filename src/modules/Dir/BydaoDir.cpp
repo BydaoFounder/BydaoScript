@@ -1,35 +1,11 @@
-#include "../include/BydaoScript/BydaoBool.h"
 #include "../include/BydaoScript/BydaoArray.h"
 #include "../include/BydaoScript/BydaoString.h"
+#include "../include/BydaoScript/BydaoNull.h"
 #include "BydaoDir.h"
 //#include "BydaoDir_global.h"
 
 namespace BydaoScript {
 namespace Modules {
-
-// ========== Статический info ==========
-BydaoModuleInfoImpl* BydaoDirModule::s_info = nullptr;
-
-BydaoModuleInfoImpl* BydaoDirModule::createInfo() {
-    auto* info = new BydaoModuleInfoImpl();
-    info->m_name = "Dir";
-    info->m_version = "1.0.0";
-    info->m_properties = {"path", "name"};
-    info->m_methods = {
-        {"open",    {"path"}},
-        {"list",    {"filter"}},
-        {"cd",      {"path"}},
-        {"current", {}},
-        {"mkdir",   {"path"}},
-        {"rmdir",   {"path"}}
-    };
-    return info;
-}
-
-BydaoModuleInfo* BydaoDirModule::info() const {
-    if (!s_info) s_info = createInfo();
-    return s_info;
-}
 
 // ========== BydaoDirModule ==========
 
@@ -46,6 +22,34 @@ BydaoDirModule::BydaoDirModule()
 
 BydaoDirModule::~BydaoDirModule() {
 //    shutdown();
+}
+
+MetaData*   BydaoDirModule::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData->external = true;
+        metaData
+            ->append( "open",   FuncMetaData("Dir", true, true)   << FuncArgMetaData("path","String",false) )
+            .append( "list",    FuncMetaData("StringArray", true, true) << FuncArgMetaData("path","String",false,"\".\"") )
+            .append( "cd",      FuncMetaData("Bool", true, true)  << FuncArgMetaData("path","String",false,"") )
+            .append( "current", FuncMetaData("String", true, true) )
+            ;
+    }
+    return metaData;
+}
+
+/**
+ * Вернуть список используемых типов.
+ */
+UsedMetaDataList    BydaoDirModule::usedMetaData() {
+    static UsedMetaDataList list;
+
+    // if ( list.isEmpty() ) {
+    //     list << UsedMetaData( "DirListIter", BydaoDirListIterator::metaData() );
+    // }
+
+    return list;
 }
 
 bool BydaoDirModule::initialize() { return true; }
@@ -78,7 +82,7 @@ bool BydaoDirModule::method_list(const QVector<BydaoValue>& args, BydaoValue& re
     QDir dir(path);
     auto entries = dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
     auto* array = new BydaoArray();
-    for (const QString& entry : entries) {
+    foreach (const QString& entry, entries) {
         array->append(BydaoValue(BydaoString::create(entry)));
     }
     result = BydaoValue(array);
@@ -131,15 +135,15 @@ BydaoDirObject::BydaoDirObject(const QString& path)
     registerMethod("current",&BydaoDirObject::method_current);
 
     // Свойства (ReadOnly)
-    registerProperty("path",
-                     [this]() { return BydaoValue::fromString(m_dir.path()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("path",
+    //                  [this]() { return BydaoValue::fromString(m_dir.path()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 
-    registerProperty("name",
-                     [this]() { return BydaoValue::fromString(m_dir.dirName()); },
-                     nullptr,
-                     BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    // registerProperty("name",
+    //                  [this]() { return BydaoValue::fromString(m_dir.dirName()); },
+    //                  nullptr,
+    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 }
 
 void BydaoDirObject::registerMethod(const QString& name, MethodPtr method) {

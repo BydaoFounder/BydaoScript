@@ -13,16 +13,24 @@
 // limitations under the License.
 #pragma once
 
-#include "BydaoNative.h"
 #include <QVector>
+
+#include "BydaoObject.h"
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
-class BydaoArray : public BydaoNative {
+class BydaoArray : public BydaoObject {
 
 public:
     explicit BydaoArray();
     virtual ~BydaoArray() override = default;
+
+    // Получить мета-данные
+    static MetaData*   metaData();
+
+    // Получить список используемых мета-данных
+    static UsedMetaDataList usedMetaData();
 
     QString typeName() const override { return "Array"; }
 
@@ -30,16 +38,16 @@ public:
                     const QVector<BydaoValue>& args,
                     BydaoValue& result) override;
 
-    int         size() const { return m_elements.size(); }
-    BydaoValue  at(qint64 index) const;
-    void        set(qint64 index, const BydaoValue& value);
-    BydaoValue  get(const BydaoValue& index);
-    void        append(const BydaoValue& value);
-    void        insert(qint64 index, const BydaoValue& value);
-    void        removeAt(qint64 index);
-    void        clear();
+    virtual int         size() const { return m_elements.size(); }
+    virtual BydaoValue  at(qint64 index) const;
+    virtual void        set(qint64 index, const BydaoValue& value);
+    virtual BydaoValue  get(const BydaoValue& index);
+    virtual void        append(const BydaoValue& value);
+    virtual void        insert(qint64 index, const BydaoValue& value);
+    virtual void        removeAt(qint64 index);
+    virtual void        clear();
 
-    BydaoValue  iter();  // создаёт итератор для массива
+    BydaoValue  iter() override;  // создаёт итератор для массива
 
 private:
 

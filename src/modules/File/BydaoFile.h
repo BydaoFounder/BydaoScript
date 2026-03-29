@@ -27,7 +27,6 @@ public:
     // Обязательные методы от BydaoModule (для объекта они не нужны, но должны быть)
     QString name() const override { return "FileObject"; }
     QString version() const override { return "1.0.0"; }
-    BydaoModuleInfo* info() const override { return nullptr; }
 
     // Свойства (только чтение)
     QString fileName() const { return QFileInfo(m_file).fileName(); }
@@ -84,7 +83,8 @@ public:
     // Обязательные методы от BydaoModule
     QString name() const override { return "File"; }
     QString version() const override { return "1.0.0"; }
-    BydaoModuleInfo* info() const override;
+
+    MetaData*   metaData() override;
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,
@@ -110,9 +110,6 @@ private:
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
-
-    static BydaoModuleInfoImpl* createInfo();
-    static BydaoModuleInfoImpl* s_info;
 };
 
 } // namespace Modules

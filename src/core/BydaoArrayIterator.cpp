@@ -17,6 +17,25 @@
 
 namespace BydaoScript {
 
+// Получить мета-данные
+MetaData*   BydaoArrayIterator::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы объекта
+            ->append( "next",    FuncMetaData("Bool", false, false) )
+            .append( "isValid",  FuncMetaData("Bool", false, false) )
+            ;
+        metaData
+            // переменные объекта
+            ->append( "key",     VarMetaData("Int",true,false) )
+            .append( "value",    VarMetaData("Any",true,false) )
+            ;
+    }
+    return metaData;
+}
+
 BydaoArrayIterator::BydaoArrayIterator(BydaoArray* array)
     : BydaoIterator()
     , m_array(array)
@@ -50,13 +69,11 @@ BydaoValue BydaoArrayIterator::key() const {
 }
 
 BydaoValue BydaoArrayIterator::value() const {
-    if (!isValid()) {
+    if ( ! isValid() ) {
 //        qDebug() << "Iterator not valid, index:" << m_index;
         return BydaoValue(BydaoNull::instance());
     }
-    BydaoValue val = m_array->at(m_index);
-//    qDebug() << "Iterator value at index" << m_index << ":" << val.toString() << "type:" << val.typeId();
-    return val;
+    return m_array->at(m_index);
 }
 
 } // namespace BydaoScript
