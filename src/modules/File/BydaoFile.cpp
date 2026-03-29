@@ -67,6 +67,9 @@ MetaData*   BydaoFileModule::metaData() {
                                     )
             ;
         // TODO: Добавить мета-данные для объекта файла (методы и переменные)
+        metaData
+            // переменные объекта
+            ->append( "name",     VarMetaData("String",false,false) );
     }
     return metaData;
 }

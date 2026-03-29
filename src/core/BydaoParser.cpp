@@ -501,7 +501,7 @@ bool BydaoParser::parseStatement() {
 
     if ( parseExpression() ) return true;
 
-    error( "Unknown token '" + m_current.text + "'", m_current );
+//    error( "Unknown token '" + m_current.text + "'", m_current );
     return false;
 }
 
@@ -1931,6 +1931,9 @@ bool BydaoParser::parsePrimary() {
         }
         else if (match(BydaoTokenType::Dot)) {
             if (!parseMemberSuffix()) return false;
+            if ( match(  BydaoTokenType::Assign ) ) {
+                return parseMemberAssing();
+            }
         }
         else if (match(BydaoTokenType::LBracket)) {
             if (!parseIndexSuffix()) return false;
@@ -2093,13 +2096,14 @@ bool BydaoParser::parseMemberSuffix() {
     BydaoToken memberToken = m_current;
 
     // Проверим наличие текущего типа данных
-    TypeInfo& typeInfo = m_typeStack.top();
-    if ( /* typeInfo.type != "Any" && */ ! m_metaData.contains( typeInfo.type ) ) {
+    TypeInfo& objTypeInfo = m_typeStack.top();
+    QString objType = objTypeInfo.type;
+    if ( /* typeInfo.type != "Any" && */ ! m_metaData.contains( objType ) ) {
 //        qDebug() << "Check member for type" + typeInfo.type;
-        error("Not found metadata for " + typeInfo.type, memberToken );
+        error("Not found metadata for " + objType, memberToken );
         return false;
     }
-    MetaData* metaData = m_metaData[ typeInfo.type ];
+    MetaData* objMetaData = m_metaData[ objType ];
 
     // Добавляем имя члена в таблицу строк
     qint16 memberIdx = addString(memberName);
@@ -2108,41 +2112,106 @@ bool BydaoParser::parseMemberSuffix() {
     nextToken();
 
     // Смотрим, что идёт после имени члена
-    if (match(BydaoTokenType::LParen)) {
+    if (match(BydaoTokenType::LParen)) {            // это вызов метода
 
         // Проверим, что у текущего типа есть такая функция
 
-        if ( /* typeInfo.type != "Any" && */ ! metaData->hasFunc( memberName ) ) {
-            error("Type '" + typeInfo.type + "' does not have function '" + memberName + "'", memberToken);
+        if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasFunc( memberName ) ) {
+            error("Type '" + objType + "' does not have function '" + memberName + "'", memberToken);
             return false;
         }
 
         // Запомним название метода
 
-        typeInfo.member = memberName;
+        objTypeInfo.member = memberName;
 
         // Это вызов метода - используем METHOD
 
         emitCode(BydaoOpCode::Method, memberIdx, 0, memberToken);
     }
-    else {
+    else if ( match( BydaoTokenType::Assign ) ) {   // это присвоение переменной
+
+        // Проверим, что у текущего типа есть такая переменная и ей можно присвоить значение
+
+        if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasVar( memberName ) ) {
+            error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+            return false;
+        }
+
+        nextToken();    // забрали '='
+
+        BydaoToken exprToken = m_current;
+        if (!parseExpression()) {
+            return false;
+        }
+        TypeInfo exprTypeInfo = m_typeStack.pop();
+        QString exprType = exprTypeInfo.type;
+
+        const VarMetaData varMetaData = objMetaData->var( memberName );
+        if ( varMetaData.isConst ) {
+            error( QString( "Member '%1' of '%2' is read only" ).arg( memberName, objType ), memberToken );
+            return false;
+        }
+        // TODO: Проверить использование переменной для объекта или типа/модуля
+        // if ( varMetaData.isStatic && objTypeInfo.operand ==  ) {
+
+        // }
+
+        QString memberType = varMetaData.type;
+        if ( memberType != exprType ) {
+            error( "Cannot assign value of type '" + exprType + "' to member of type '" + memberType + "'", exprToken );
+            return false;
+        }
+
+        m_typeStack.pop();
+        emitCode(BydaoOpCode::SetMember, memberIdx, 0, exprToken);
+
+    }
+    else {                                          // это чтение переменной
 
         // Проверим, что у текущего типа есть такая переменная
 
-        if ( /* typeInfo.type != "Any" && */ ! metaData->hasVar( memberName ) ) {
-            error("Type '" + typeInfo.type + "' does not have member '" + memberName + "'", memberToken );
+        if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasVar( memberName ) ) {
+            error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
             return false;
         }
 
         // Сохраним тип переменной
 
         m_typeStack.pop();
-        m_typeStack.push( typeInfo.type != "Any" ? metaData->var( memberName ).type : "Any" );
+        m_typeStack.push( objType != "Any" ? objMetaData->var( memberName ).type : "Any" );
 
         // Это доступ к свойству - используем MEMBER
+
         emitCode(BydaoOpCode::Member, memberIdx, 0, memberToken);
     }
 
+    return true;
+}
+
+bool    BydaoParser::parseMemberAssing() {
+
+    TypeInfo memberTypeInfo = m_typeStack.pop();
+    BydaoInstruction memberInst = m_bytecode.takeLast();
+
+    // Символ '=' уже забрали.
+
+    nextToken();
+
+    BydaoToken exprToken = m_current;
+    if (!parseExpression()) {
+        return false;
+    }
+    TypeInfo exprTypeInfo = m_typeStack.pop();
+    QString exprType = exprTypeInfo.type;
+
+    QString memberType = memberTypeInfo.type;
+    if ( memberType != exprType ) {
+        error( "Cannot assign value of type '" + exprType + "' to member of type '" + memberType + "'", exprToken );
+        return false;
+    }
+
+    emitCode(BydaoOpCode::SetMember, memberInst.arg1, memberInst.arg2, exprToken);
     return true;
 }
 
@@ -2180,7 +2249,6 @@ bool BydaoParser::parseIndexSuffix() {
 
     return true;
 }
-
 
 bool BydaoParser::parseArrayLiteral() {
     BydaoToken token = m_current;

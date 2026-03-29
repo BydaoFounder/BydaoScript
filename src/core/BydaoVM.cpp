@@ -734,6 +734,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     // ===== Доступ к членам =====
+
     case BydaoOpCode::Member: {
         if (m_traceMode ) {
             dumpStack("Before MEMBER at PC " + QString::number(m_pc-1));
@@ -762,15 +763,52 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         BydaoValue value;
-        if ( obj.toObject()->getVar( memberName, value ) ) {
-            m_stack.push( value );
-            return true;
+        if ( ! obj.toObject()->getVar( memberName, value ) ) {
+            // Свойство не найдено
+            QString objType = obj.toObject()->typeName();
+            error(QString("Object of type '%1' does not have variable '%2'").arg(objType, memberName), instr);
+            return false;
         }
 
-        // Свойство не найдено
-        QString objType = obj.toObject()->typeName();
-        error(QString("Object of type '%1' does not have variable '%2'").arg(objType, memberName), instr);
-        return false;
+        m_stack.push( value );
+        break;
+    }
+
+    case BydaoOpCode::SetMember: {
+        if (m_traceMode ) {
+            dumpStack("Before SETMEMBER at PC " + QString::number(m_pc-1));
+        }
+
+        if (m_stack.isEmpty()) {
+            error("Stack underflow in SETMEMBER", instr);
+            return false;
+        }
+
+        BydaoValue val = m_stack.pop();
+        BydaoValue obj = m_stack.pop();
+
+        if (!obj.isObject()) {
+            error("MEMBER on non-object", instr);
+            return false;
+        }
+
+        QString memberName;
+        if (instr.arg1 >= 0 && instr.arg1 < m_stringTable.size()) {
+            memberName = m_stringTable[instr.arg1];
+            //            qDebug() << "  memberName:" << memberName;
+        }
+        else {
+            error("Invalid member name index", instr);
+            return false;
+        }
+
+        if ( ! obj.toObject()->setVar( memberName, val ) ) {
+            QString objType = obj.toObject()->typeName();
+            error(QString("Cannot set value to member '%1' of object type '%2'").arg(memberName,objType), instr);
+            return false;
+        }
+
+        break;
     }
 
     case BydaoOpCode::Method: {

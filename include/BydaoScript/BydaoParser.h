@@ -120,6 +120,7 @@ private:
     bool parseVarDecl( bool isPublic = false );
     bool parseConstDecl( bool isPublic = false );
     bool parseAssign();
+    bool parseMemberAssing();
     bool parseAddAssign();
     bool parseSubAssign();
     bool parseMulAssign();
@@ -220,7 +221,7 @@ private:
         Var,
         Const,
         Type,
-        Module
+        Module,
     };
 
     // Стек типов данных

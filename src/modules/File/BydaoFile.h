@@ -22,11 +22,30 @@ public:
     ~BydaoFileObject();
 
     // Обязательные методы от BydaoObject
-    QString typeName() const override { return "FileObject"; }
+    QString typeName() const override { return "File"; }
 
     // Обязательные методы от BydaoModule (для объекта они не нужны, но должны быть)
     QString name() const override { return "FileObject"; }
     QString version() const override { return "1.0.0"; }
+
+    virtual bool    getVar( const QString& varName, BydaoValue& value ) override {
+        if ( varName == "name" ) {
+            value = BydaoValue::fromString( m_file.fileName() );
+            return true;
+        }
+        qWarning() << QString("Member '%1' not exists in file object").arg( varName );
+        return false;
+    };
+
+    virtual bool    setVar( const QString& varName, const BydaoValue& value ) override {
+        if ( varName == "name" ) {
+            m_file.setFileName( value.toString() );
+            return true;
+        }
+        qWarning() << QString("Member '%1' not exists in file object").arg( varName );
+        return false;
+    };
+
 
     // Свойства (только чтение)
     QString fileName() const { return QFileInfo(m_file).fileName(); }
