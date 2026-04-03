@@ -54,9 +54,9 @@ enum BydaoOpCode : quint8 {
     And, Or, Not,
 
     // Итераторы
-    GetIter,     // obj.iter() - получение итератора
-    ItNext,      // вызов iter.next() -> bool
-    ItValue,     // iter.value -> значение
+    GetIter,     // obj.iter() - получение итератора, arg1 - индекс переменной для итератора
+    ItNext,      // вызов iter.next() -> bool, arg1 - индекс переменной итератора
+    ItValue,     // iter.value -> значение, arg1 - индекс переменной итератора, arg2 - индекс переменной значения
     ItKey,       // iter.key -> ключ
 
     // Доступ к членам

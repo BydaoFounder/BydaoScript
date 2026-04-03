@@ -258,7 +258,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             setVariable(instr.arg1, getVariable( instr.arg2, instr ), instr);
         }
         else if ( instr.arg2 < 0 ) {
-            setVariable(instr.arg1, m_constantValues[ -instr.arg2 ], instr);
+            setVariable(instr.arg1, m_constantValues[ -instr.arg2 ].copy(), instr);
         }
         else {
             setVariable(instr.arg1, m_stack.pop(), instr);
@@ -686,12 +686,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             return false;
         }
 
-        m_stack.push( it );
+        setVariable( instr.arg1, it, instr );
         break;
     }
 
     case BydaoOpCode::ItNext: {
-        auto* iter = (BydaoIterator*)( m_stack.pop().toObject() );
+        auto* iter = (BydaoIterator*)( getVariable( instr.arg1,instr).toObject() );
         if (!iter) {
             error("ITNEXT on non-iterator", instr);
             return false;
@@ -701,12 +701,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
     
     case BydaoOpCode::ItValue: {
-        auto* iter = (BydaoIterator*)( m_stack.pop().toObject() );
+        auto* iter = (BydaoIterator*)( getVariable( instr.arg1,instr).toObject() );
         if (!iter) {
             error("ITVALUE on non-iterator", instr);
             return false;
         }
-        m_stack.push(iter->value());
+        setVariable( instr.arg2, iter->value(), instr );
         break;
     }
     

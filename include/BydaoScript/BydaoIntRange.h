@@ -67,6 +67,18 @@ public:
     BydaoValue key() const override;
     BydaoValue value() const override;
 
+    bool    getVar( const QString& varName, BydaoValue& value ) override {
+        if ( varName == "value" ) {
+            value = this->value();
+            return true;
+        }
+        if ( varName == "key" ) {
+            value = this->key();
+            return true;
+        }
+        return BydaoIterator::getVar( varName, value );
+    };
+
 private:
 
     qint64 m_start;

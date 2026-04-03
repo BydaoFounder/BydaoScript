@@ -1200,7 +1200,25 @@ bool BydaoParser::parseIter() {
     BydaoToken token = m_current;
     nextToken(); // iter
 
+    BydaoToken exprToken = m_current;
     if (!parseExpression()) {
+        return false;
+    }
+    TypeInfo exprTypeInfo = m_typeStack.pop();
+    MetaData* exprMetaData = m_metaData[ exprTypeInfo.type ];
+    if ( ! exprMetaData ) {
+        error("Unknown type '" + exprTypeInfo.type + "'", exprToken );
+        return false;
+    }
+    if ( ! exprMetaData->hasFunc("iter") ) {
+        error("Type '" + exprTypeInfo.type + "' does not have function 'iter'", exprToken );
+        return false;
+    }
+    const FuncMetaData funcIter = exprMetaData->func("iter");
+    QString iterType = funcIter.retType;
+    MetaData* iterMetaData = m_metaData[ iterType ];
+    if ( ! iterMetaData ) {
+        error("Unknown type '" + iterType + "'", exprToken );
         return false;
     }
 
@@ -1215,22 +1233,16 @@ bool BydaoParser::parseIter() {
     BydaoToken iterToken = m_current;
     nextToken();
 
-    // Получаем итератор: collection.iter()
-    // qint16 iterMethodIdx = addString("iter");
-    // emitCode(BydaoOpCode::Method, iterMethodIdx, 0, token);
-    // emitCode(BydaoOpCode::Call, 0, 0, token);
-    emitCode(BydaoOpCode::GetIter, 0, 0, token);
-
-    // Сохраняем итератор во временную переменную
+    // Получить итератор и сохранить в переменной
     declareVariable(iterName, iterToken);  // объявляем в текущей области
     VariableInfo iterInfo = resolveVariable(iterName);
-    emitCode(BydaoOpCode::Store, iterInfo.varIndex, 0, iterToken);
+    setVariableType( iterName, iterType, true );
+    emitCode(BydaoOpCode::GetIter, iterInfo.varIndex, 0, iterToken);
 
     int loopStart = m_bytecode.size();
 
     // iter.next()
-    emitCode(BydaoOpCode::Load, iterInfo.varIndex, 0, iterToken);
-    emitCode(BydaoOpCode::ItNext, 0, 0, token);
+    emitCode(BydaoOpCode::ItNext, iterInfo.varIndex, 0, token);
 
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 
@@ -1307,9 +1319,6 @@ bool BydaoParser::parseEnum() {
     VarMetaData varMetaData = iterMetaData->var("value");
     setVariableType( varName, varMetaData.type, varMetaData.isConst );
 
-    // Получаем итератор: collection.iter()
-    emitCode(BydaoOpCode::GetIter, 0, 0, token);
-
     // Создаём временный итератор
     if ( ! iterMetaData->hasFunc("next") ) {
         error("Iterator of type '" + iterType + "' does not have func 'next'", exprToken );
@@ -1319,20 +1328,19 @@ bool BydaoParser::parseEnum() {
     declareVariable(tmpIterName, token);  // объявляем в текущей области
     VariableInfo iterInfo = resolveVariable(tmpIterName);
     setVariableType( tmpIterName, iterType );
-    emitCode(BydaoOpCode::Store, iterInfo.varIndex, 0, token);
+
+    // Сохраняем итератор во временной переменной
+    emitCode(BydaoOpCode::GetIter, iterInfo.varIndex, 0, token);
 
     int loopStart = m_bytecode.size();
 
     // iter.next()
-    emitCode(BydaoOpCode::Load, iterInfo.varIndex, 0, token);
-    emitCode(BydaoOpCode::ItNext, 0, 0, token);
+    emitCode(BydaoOpCode::ItNext, iterInfo.varIndex, 0, token);
 
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 
     // Получаем значение и сохраняем в переменную
-    emitCode(BydaoOpCode::Load, iterInfo.varIndex, 0, token);
-    emitCode(BydaoOpCode::ItValue, 0, 0, token);
-    emitCode(BydaoOpCode::Store, varInfo.varIndex, 0, varToken);
+    emitCode(BydaoOpCode::ItValue, iterInfo.varIndex, varInfo.varIndex, token);
 
     // Тело цикла - parseBlock сам создаст область видимости
     if (!parseBlock(true)) {
