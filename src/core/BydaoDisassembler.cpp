@@ -233,10 +233,10 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
         break;
 
     case BydaoOpCode::Load:
-    case SubStore:
-    case MulStore:
-    case DivStore:
-    case ModStore:
+    case BydaoOpCode::SubStore:
+    case BydaoOpCode::MulStore:
+    case BydaoOpCode::DivStore:
+    case BydaoOpCode::ModStore:
     case BydaoOpCode::Drop:
         args << QString("v%1").arg(instr.arg1);
         break;
@@ -251,24 +251,32 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
         break;
 
     case BydaoOpCode::AddStore:
-        if ( instr.arg2 >= 0 )
+        if ( instr.arg2 > 0 )
             args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
-        else
+        else if ( instr.arg2 > 0 )
             args << QString("v%1 c%2").arg(instr.arg1).arg( -instr.arg2 );
+        else
+            args << QString("v%1").arg(instr.arg1);
         break;
 
     case BydaoOpCode::VarLt:
-        if ( instr.arg2 >= 0 )  // сравнение двух переменных
-            args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
-        else                    // сравнение переменной и константы
-            args << QString("v%1 c%2").arg(instr.arg1).arg(-instr.arg2);
+        if ( instr.arg1 > 0 ) { // сравнение переменной
+            if ( instr.arg2 > 0 )       // с переменной
+                args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
+            else if ( instr.arg2 < 0 )  // с константой
+                args << QString("v%1 c%2").arg(instr.arg1).arg(-instr.arg2);
+            else                        // со значением на стеке
+                args << QString("v%1 stk");
+        }
         break;
 
     case BydaoOpCode::VarAdd:
-        if ( instr.arg2 >= 0 )
+        if ( instr.arg2 > 0 )
             args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
-        else
+        else if ( instr.arg2 < 0 )
             args << QString("v%1 c%2").arg(instr.arg1).arg( -instr.arg2 );
+        else
+            args << QString("v%1 stk");
         break;
 
     case BydaoOpCode::VarDecl:
@@ -280,7 +288,7 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
             }
             else if ( instr.arg2 == 1 ) {
                 // инициализация значением со стека
-                args << " stack";
+                args << " stk";
             }
         }
         else if (instr.arg1 != 0)
@@ -300,6 +308,18 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
         break;
 
     case BydaoOpCode::Member:
+        if (instr.arg1 >= 0 && instr.arg1 < stringTable.size() && !stringTable[instr.arg1].isEmpty()) {
+            if ( instr.arg2 > 0 ) {
+                args << QString("'%1', v%2").arg( formatString(stringTable[instr.arg1]) ).arg( instr.arg2 );
+            }
+            else {
+                args << "'" + formatString(stringTable[instr.arg1]) + "'";
+            }
+        }
+        else if (instr.arg1 != 0)
+            args << QString("idx%1").arg(instr.arg1);
+        break;
+
     case BydaoOpCode::Method:
     case BydaoOpCode::TypeClass:
         if (instr.arg1 >= 0 && instr.arg1 < stringTable.size() && !stringTable[instr.arg1].isEmpty())
@@ -329,6 +349,18 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
     case BydaoOpCode::JumpIfFalse:
     case BydaoOpCode::JumpIfTrue:
         args << QString("%1").arg(instr.arg1);
+        break;
+
+    case BydaoOpCode::GetIter:
+    case BydaoOpCode::ItNext:
+        if ( instr.arg1 > 0 ) {
+            args << QString("%1").arg(instr.arg1);
+        }
+        break;
+
+    case BydaoOpCode::ItValue:
+    case BydaoOpCode::ItKey:
+        args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
         break;
 
     default:
