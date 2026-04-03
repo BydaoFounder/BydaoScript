@@ -161,6 +161,7 @@ MetaData::MetaData(){
 
 MetaData::MetaData( const MetaData& data ){
     external = false;
+    extend = data.extend;
     vars = data.vars;
     funcs = data.funcs;
     opers = data.opers;
@@ -169,6 +170,7 @@ MetaData::MetaData( const MetaData& data ){
 MetaData::MetaData( MetaData* data ){
     if ( data != nullptr ) {
         external = data->external;
+        extend = data->extend;
         vars = data->vars;
         funcs = data->funcs;
         opers = data->opers;
@@ -178,6 +180,7 @@ MetaData::MetaData( MetaData* data ){
 MetaData&   MetaData::operator=( MetaData* data ) {
     if ( data != nullptr ) {
         external = data->external;
+        extend = data->extend;
         vars = data->vars;
         funcs = data->funcs;
         opers = data->opers;

@@ -23,7 +23,7 @@ public:
     explicit BydaoIterator();
     virtual ~BydaoIterator();
 
-    QString typeName() const override { return "Iterator"; }
+    QString typeName() const override { return "Iter"; }
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,

@@ -159,6 +159,7 @@ private:
     bool    checkTypeConvert( const QString& typeName, const BydaoToken& token );
     bool    checkTypeConvert( const QString& fromType, const QString& toType, const BydaoToken& token );
     bool    checkTypeOper( const QString& typeName, const QString& operName, const BydaoToken& token );
+    bool    isTypeExtend( const QString& typeName, const QString& extendTypeName, const BydaoToken& token );
     QString getResultType( const QString& leftType, const QString& rightType, const QString& operName, const BydaoToken& token );
     QString getResultType( const QString& type, const QString& operName, const BydaoToken& token );
 

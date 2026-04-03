@@ -70,6 +70,7 @@ MetaData*   BydaoIntRangeIterator::metaData() {
     static MetaData* metaData = nullptr;
     if ( ! metaData ) {
         metaData = new MetaData();
+        metaData->extend = "Iter";
         metaData
             // методы объекта
             ->append( "next",    FuncMetaData("Bool", false, false) )

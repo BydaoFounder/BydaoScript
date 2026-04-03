@@ -585,6 +585,24 @@ bool    BydaoParser::checkTypeOper( const QString& typeName, const QString& oper
     return true;
 }
 
+bool    BydaoParser::isTypeExtend( const QString& typeName, const QString& extendTypeName, const BydaoToken& token ) {
+    MetaData* metaData = m_metaData[ typeName ];
+    if ( ! metaData) {
+        error( "Unknown type '" + typeName + "'" , token );
+        return false;
+    }
+    while ( metaData->extend != extendTypeName ) {
+        if ( metaData->extend.isEmpty() ) {
+            return false;
+        }
+        metaData = m_metaData[ metaData->extend ];
+        if ( ! metaData ) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  * Получить тип результата операции с двумя операндами.
  *
@@ -2211,13 +2229,27 @@ bool BydaoParser::parseMemberSuffix() {
 
         // Это доступ к свойству - используем MEMBER
 
-        int rightVarIndex = 0;
-        if ( m_bytecode[m_bytecode.size()-1].op == BydaoOpCode::Load ) {
+        int varIndex = 0;
+        if ( m_bytecode[m_bytecode.size()-1].op == BydaoOpCode::Load ) {    // это член переменной
 
-            // член переменной
-            rightVarIndex = m_bytecode.takeLast().arg1;
+            varIndex = m_bytecode.takeLast().arg1;
+            if ( isTypeExtend( objType, "Iter", memberToken ) ) {       // объект является типом итегратора
+
+                if ( memberName == "value" ) {
+
+                    // Получаем значение итератора и сохраняем на стеке
+                    emitCode(BydaoOpCode::ItValue, varIndex, 0, memberToken);
+                    return true;
+                }
+                if ( memberName == "key" ) {
+
+                    // Получаем значение итератора и сохраняем на стеке
+                    emitCode(BydaoOpCode::ItKey, varIndex, 0, memberToken);
+                    return true;
+                }
+            }
         }
-        emitCode(BydaoOpCode::Member, memberIdx, rightVarIndex, memberToken);
+        emitCode(BydaoOpCode::Member, memberIdx, varIndex, memberToken);
     }
 
     return true;

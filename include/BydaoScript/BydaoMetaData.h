@@ -146,10 +146,11 @@ typedef QMap< QString, OperMetaData > OperMetaDataDict;
  */
 struct MetaData {
 
-    bool                external;
-    VarMetaDataDict     vars;
-    FuncMetaDataDict    funcs;
-    OperMetaDataDict    opers;
+    bool                external;   // флаг внешнего модуля, загружаемого оператором use
+    QString             extend;     // название расширяемого типа (класса)
+    VarMetaDataDict     vars;       // общедоступные (публичные) переменные типа
+    FuncMetaDataDict    funcs;      // общедоступные (публичные) функции типа
+    OperMetaDataDict    opers;      // операции, поддерживаемые типом
 
     MetaData();
     MetaData( const MetaData& data );

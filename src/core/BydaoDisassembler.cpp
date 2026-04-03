@@ -237,6 +237,9 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
     case BydaoOpCode::MulStore:
     case BydaoOpCode::DivStore:
     case BydaoOpCode::ModStore:
+        args << QString("v%1 stk").arg(instr.arg1);
+        break;
+
     case BydaoOpCode::Drop:
         args << QString("v%1").arg(instr.arg1);
         break;
@@ -247,16 +250,16 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
         else if ( instr.arg2 < 0 )
             args << QString("v%1 c%2").arg(instr.arg1).arg( -instr.arg2 );
         else
-            args << QString("v%1").arg(instr.arg1);
+            args << QString("v%1 stk").arg(instr.arg1);
         break;
 
     case BydaoOpCode::AddStore:
         if ( instr.arg2 > 0 )
             args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
-        else if ( instr.arg2 > 0 )
+        else if ( instr.arg2 < 0 )
             args << QString("v%1 c%2").arg(instr.arg1).arg( -instr.arg2 );
         else
-            args << QString("v%1").arg(instr.arg1);
+            args << QString("v%1 stk").arg(instr.arg1);
         break;
 
     case BydaoOpCode::VarLt:
@@ -354,13 +357,16 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
     case BydaoOpCode::GetIter:
     case BydaoOpCode::ItNext:
         if ( instr.arg1 > 0 ) {
-            args << QString("%1").arg(instr.arg1);
+            args << QString("%v1").arg(instr.arg1);
         }
         break;
 
     case BydaoOpCode::ItValue:
     case BydaoOpCode::ItKey:
-        args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
+        if ( instr.arg2 > 0 )
+            args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
+        else
+            args << QString("v%1 stk").arg(instr.arg1);
         break;
 
     default:

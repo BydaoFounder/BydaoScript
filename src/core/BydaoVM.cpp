@@ -720,17 +720,27 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             error("ITVALUE on non-iterator", instr);
             return false;
         }
-        setVariable( instr.arg2, iter->value(), instr );
+        if ( instr.arg2 == 0 ) {
+            m_stack.push( iter->value() );
+        }
+        else {
+            setVariable( instr.arg2, iter->value(), instr );
+        }
         break;
     }
     
     case BydaoOpCode::ItKey: {
-        auto* iter = (BydaoIterator*)(m_stack.pop().toObject());
+        auto* iter = (BydaoIterator*)( getVariable( instr.arg1,instr).toObject() );
         if (!iter) {
             error("ITKEY on non-iterator", instr);
             return false;
         }
-        m_stack.push(iter->key());
+        if ( instr.arg2 == 0 ) {
+            m_stack.push( iter->key() );
+        }
+        else {
+            setVariable( instr.arg2, iter->key(), instr );
+        }
         break;
     }
 
