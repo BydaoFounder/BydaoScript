@@ -30,14 +30,15 @@ public:
     QString typeName() const override { return "ArrayIter"; }
 
     // Реализация методов итератора
-    bool next() override;
-    bool isValid() const override;
-    BydaoValue key() const override;
-    BydaoValue value() const override;
+    bool        next() override;
+    bool        isValid() const override;
+    BydaoValue* key() const override;
+    BydaoValue* value() const override;
 
 protected:
+
     BydaoArray* m_array;
-    int m_index;
+    int         m_index;
 };
 
 } // namespace BydaoScript

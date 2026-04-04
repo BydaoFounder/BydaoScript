@@ -14,7 +14,6 @@
 #include "BydaoScript/BydaoStringIterator.h"
 #include "BydaoScript/BydaoInt.h"
 #include "BydaoScript/BydaoString.h"
-#include "BydaoScript/BydaoNull.h"
 
 namespace BydaoScript {
 
@@ -45,14 +44,14 @@ bool BydaoStringIterator::isValid() const {
     return m_string && m_index >= 0 && m_index < m_string->length();
 }
 
-BydaoValue BydaoStringIterator::key() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
-    return BydaoValue::fromInt(m_index);
+BydaoValue* BydaoStringIterator::key() const {
+    if (!isValid()) return BydaoValue::get();
+    return BydaoValue::get( BydaoInt::create(m_index) );
 }
 
-BydaoValue BydaoStringIterator::value() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
-    return BydaoValue::fromString(QString(m_string->value().at(m_index)));
+BydaoValue* BydaoStringIterator::value() const {
+    if (!isValid()) return BydaoValue::get();
+    return BydaoValue::get( BydaoString::create( QString(m_string->value().at(m_index)) ) );
 }
 
 } // namespace BydaoScript

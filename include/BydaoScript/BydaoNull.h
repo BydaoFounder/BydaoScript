@@ -31,25 +31,23 @@ public:
         return BydaoNull::instance();
     }
 
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+    bool callMethod(const QString& name, const BydaoValueList& args, BydaoValue* result) override;
 
     void    assign( BydaoObject* obj ) override {
         Q_UNUSED( obj );
     }
-    BydaoValue eq(const BydaoValue& other) override;
-    BydaoValue neq(const BydaoValue& other) override;
+    BydaoValue* eq(const BydaoValue* other) override;
+    BydaoValue* neq(const BydaoValue* other) override;
 
 private:
 
     BydaoNull();
     
-    bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toBool(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_isNull(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toString(const BydaoValueList& args, BydaoValue* result);
+    bool method_toBool(const BydaoValueList& args, BydaoValue* result);
+    bool method_isNull(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoNull::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoNull::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;

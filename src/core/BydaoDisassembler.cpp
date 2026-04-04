@@ -31,10 +31,10 @@ BydaoDisassembler::BydaoDisassembler() {}
 
 // ========== Основные методы ==========
 
-QString BydaoDisassembler::disassemble(const QVector<BydaoConstant>& constants,
-                                       const QVector<QString>& stringTable,
-                                       const QVector<BydaoInstruction>& code,
-                                       const QVector<BydaoDebugInfo>* debugInfo) {
+QString BydaoDisassembler::disassemble(const QList<BydaoConstant>& constants,
+                                       const QList<QString>& stringTable,
+                                       const QList<BydaoInstruction>& code,
+                                       const QList<BydaoDebugInfo>* debugInfo) {
     QString result;
     QTextStream out(&result);
     disassemble(out, constants, stringTable, code, debugInfo);
@@ -42,10 +42,10 @@ QString BydaoDisassembler::disassemble(const QVector<BydaoConstant>& constants,
 }
 
 void BydaoDisassembler::disassemble(QTextStream& out,
-                                    const QVector<BydaoConstant>& constants,
-                                    const QVector<QString>& stringTable,
-                                    const QVector<BydaoInstruction>& code,
-                                    const QVector<BydaoDebugInfo>* debugInfo) {
+                                    const QList<BydaoConstant>& constants,
+                                    const QList<QString>& stringTable,
+                                    const QList<BydaoInstruction>& code,
+                                    const QList<BydaoDebugInfo>* debugInfo) {
 
     if (m_showConstants && !constants.isEmpty()) {
         out << "\n" << (m_colorOutput ? CYAN : "") << "=== CONSTANTS TABLE ==="
@@ -66,8 +66,8 @@ void BydaoDisassembler::disassemble(QTextStream& out,
 
 // ========== Дизассемблирование таблиц ==========
 
-QString BydaoDisassembler::disassembleConstants(const QVector<BydaoConstant>& constants,
-                                                const QVector<QString>& stringTable) {
+QString BydaoDisassembler::disassembleConstants(const QList<BydaoConstant>& constants,
+                                                const QList<QString>& stringTable) {
     QString result;
     QTextStream out(&result);
 
@@ -104,7 +104,7 @@ QString BydaoDisassembler::disassembleConstants(const QVector<BydaoConstant>& co
     return result;
 }
 
-QString BydaoDisassembler::disassembleStringTable(const QVector<QString>& stringTable) {
+QString BydaoDisassembler::disassembleStringTable(const QList<QString>& stringTable) {
     QString result;
     QTextStream out(&result);
 
@@ -123,10 +123,10 @@ QString BydaoDisassembler::disassembleStringTable(const QVector<QString>& string
     return result;
 }
 
-QString BydaoDisassembler::disassembleCode(const QVector<BydaoInstruction>& code,
-                                           const QVector<BydaoConstant>& constants,
-                                           const QVector<QString>& stringTable,
-                                           const QVector<BydaoDebugInfo>* debugInfo) {
+QString BydaoDisassembler::disassembleCode(const QList<BydaoInstruction>& code,
+                                           const QList<BydaoConstant>& constants,
+                                           const QList<QString>& stringTable,
+                                           const QList<BydaoDebugInfo>* debugInfo) {
     QString result;
     QTextStream out(&result);
 
@@ -166,9 +166,9 @@ QString BydaoDisassembler::disassembleCode(const QVector<BydaoInstruction>& code
 
 QString BydaoDisassembler::formatInstruction(int index,
                                              const BydaoInstruction& instr,
-                                             const QVector<BydaoConstant>& constants,
-                                             const QVector<QString>& stringTable,
-                                             const QVector<BydaoDebugInfo>* debugInfo) {
+                                             const QList<BydaoConstant>& constants,
+                                             const QList<QString>& stringTable,
+                                             const QList<BydaoDebugInfo>* debugInfo) {
     QString result;
 
     // Отступ
@@ -218,8 +218,8 @@ QString BydaoDisassembler::formatInstruction(int index,
 }
 
 QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
-                                     const QVector<BydaoConstant>& constants,
-                                     const QVector<QString>& stringTable) {
+                                     const QList<BydaoConstant>& constants,
+                                     const QList<QString>& stringTable) {
     QStringList args;
 
     switch (instr.op) {
@@ -357,7 +357,7 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
     case BydaoOpCode::GetIter:
     case BydaoOpCode::ItNext:
         if ( instr.arg1 > 0 ) {
-            args << QString("%v1").arg(instr.arg1);
+            args << QString("v%1").arg(instr.arg1);
         }
         break;
 
@@ -381,7 +381,7 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
 }
 
 QString BydaoDisassembler::formatConstant(const BydaoConstant& c,
-                                          const QVector<QString>& stringTable) {
+                                          const QList<QString>& stringTable) {
     switch (c.type) {
     case CONST_INT:
         return QString::number(c.intValue);
@@ -437,7 +437,7 @@ QString BydaoDisassembler::formatString(const QString& str) {
 // ========== Поиск отладочной информации ==========
 
 const BydaoDebugInfo* BydaoDisassembler::findDebugInfo(int instructionIndex,
-                                                       const QVector<BydaoDebugInfo>* debugInfo) const {
+                                                       const QList<BydaoDebugInfo>* debugInfo) const {
     if (!debugInfo) return nullptr;
 
     // Бинарный поиск (debugInfo отсортирован по instructionIndex)

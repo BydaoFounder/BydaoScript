@@ -17,7 +17,7 @@
 
 namespace BydaoScript {
 
-QHash<QString, BydaoValue> BydaoTypeRegistry::s_classes;
+QHash<QString, BydaoValue*> BydaoTypeRegistry::s_classes;
 
 void BydaoTypeRegistry::ensureInitialized() {
     if (!s_classes.isEmpty()) return;
@@ -25,7 +25,7 @@ void BydaoTypeRegistry::ensureInitialized() {
     // Инициализация встроенных классов
     auto* intClass = new BydaoIntClass();
     intClass->ref();
-    s_classes["Int"] = BydaoValue(intClass);
+    s_classes["Int"] = BydaoValue::get( intClass );
     
     // TODO: добавить другие классы
     // s_classes["String"] = BydaoValue(new BydaoStringClass());
@@ -33,7 +33,7 @@ void BydaoTypeRegistry::ensureInitialized() {
     // s_classes["Array"] = BydaoValue(new BydaoArrayClass());
 }
 
-BydaoValue BydaoTypeRegistry::getClass(const QString& name) {
+BydaoValue* BydaoTypeRegistry::getClass(const QString& name) {
     ensureInitialized();
     return s_classes.value(name);
 }

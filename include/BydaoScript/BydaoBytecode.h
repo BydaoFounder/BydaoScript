@@ -14,7 +14,7 @@
 #pragma once
 
 #include <QString>
-#include <QVector>
+#include <QList>
 #include <QMetaType>
 
 namespace BydaoScript {
@@ -150,24 +150,24 @@ public:
     static QString opcodeToString(BydaoOpCode op);
     
     // Сохранение
-    static bool save(const QVector<BydaoConstant>& constants,
-                     const QVector<QString>& stringTable,
-                     const QVector<BydaoInstruction>& code,
+    static bool save(const QList<BydaoConstant>& constants,
+                     const QList<QString>& stringTable,
+                     const QList<BydaoInstruction>& code,
                      const QString& filename,
-                     const QVector<BydaoDebugInfo>* debugInfo = nullptr);
+                     const QList<BydaoDebugInfo>* debugInfo = nullptr);
     
     // Загрузка
     static bool load(const QString& filename,
-                     QVector<BydaoConstant>& constants,
-                     QVector<QString>& stringTable,
-                     QVector<BydaoInstruction>& code,
-                     QVector<BydaoDebugInfo>* debugInfo = nullptr,
+                     QList<BydaoConstant>& constants,
+                     QList<QString>& stringTable,
+                     QList<BydaoInstruction>& code,
+                     QList<BydaoDebugInfo>* debugInfo = nullptr,
                      QString* error = nullptr);
     
     // Валидация
-    static bool validate(const QVector<BydaoInstruction>& code,
-                         const QVector<BydaoConstant>& constants,
-                         const QVector<QString>& stringTable,
+    static bool validate(const QList<BydaoInstruction>& code,
+                         const QList<BydaoConstant>& constants,
+                         const QList<QString>& stringTable,
                          QString* error = nullptr);
 };
 

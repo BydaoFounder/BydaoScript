@@ -24,13 +24,13 @@ public:
     explicit BydaoStringIterator(BydaoString* str);
     virtual ~BydaoStringIterator();
 
-    QString typeName() const override { return "StringIterator"; }
+    QString typeName() const override { return "StringIter"; }
 
     // Реализация методов итератора
-    bool next() override;
-    bool isValid() const override;
-    BydaoValue key() const override;
-    BydaoValue value() const override;
+    bool        next() override;
+    bool        isValid() const override;
+    BydaoValue* key() const override;
+    BydaoValue* value() const override;
 
 private:
     BydaoString* m_string;

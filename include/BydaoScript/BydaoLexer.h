@@ -14,7 +14,7 @@
 #pragma once
 
 #include <QString>
-#include <QVector>
+#include <QList>
 #include <QHash>
 
 namespace BydaoScript {
@@ -59,7 +59,7 @@ struct BydaoToken {
 class BydaoLexer {
 public:
     explicit BydaoLexer(const QString& source);
-    QVector<BydaoToken> tokenize();
+    QList<BydaoToken> tokenize();
     QString errorMessage() const { return m_error; }
 
 private:

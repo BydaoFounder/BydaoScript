@@ -21,6 +21,90 @@
 
 namespace BydaoScript {
 
+#define CACHE_MAX_SIZE      1024
+
+/** Список используемых значений */
+QList< BydaoValue* > BydaoValue::s_used;
+
+/** Список свободных значений */
+QList< BydaoValue* > BydaoValue::s_free;
+
+BydaoValue* BydaoValue::get() {
+    BydaoValue* val = ( s_free.size() > 0 ) ? s_free.takeLast() : new BydaoValue();
+    return val;
+}
+
+BydaoValue*  BydaoValue::get( BydaoValue* other ) {
+    BydaoValue* val = ( s_free.size() > 0 ) ? s_free.takeLast() : new BydaoValue();
+    if ( other ) {
+        val->m_typeId = other->m_typeId;
+        val->m_obj = other->m_obj;
+        if ( val->m_obj ) {
+            val->m_obj->ref();
+        }
+    }
+    return val;
+}
+
+BydaoValue*  BydaoValue::get( BydaoObject* obj ) {
+    BydaoValue* val = ( s_free.size() > 0 ) ? s_free.takeLast() : new BydaoValue();
+    val->set( obj );
+    return val;
+}
+
+void         BydaoValue::free( BydaoValue* val ) {
+    if ( val ) {
+        if ( val->m_obj ) {
+            val->m_obj->unref();
+            val->m_obj = nullptr;
+        }
+        val->m_typeId = TYPE_UNKNOWN;
+
+        if ( s_free.size() < CACHE_MAX_SIZE ) {
+            s_free.append( val );
+        }
+        else {
+            delete val;
+        }
+    }
+}
+
+void        BydaoValue::set( BydaoObject* obj ) {
+    if ( m_obj ) {
+        m_obj->unref();
+    }
+    m_obj = obj;
+    if ( m_obj ) {
+        m_obj->ref();
+        QString typeName = m_obj->typeName();
+        if (typeName == "Int")                m_typeId = TYPE_INT;
+        else if (typeName == "Real")          m_typeId = TYPE_REAL;
+        else if (typeName == "Bool")          m_typeId = TYPE_BOOL;
+        else if (typeName == "String")        m_typeId = TYPE_STRING;
+        else if (typeName == "Array")         m_typeId = TYPE_ARRAY;
+        else if (typeName == "Null")          m_typeId = TYPE_NULL;
+        else if (typeName.endsWith("Module")) m_typeId = TYPE_MODULE;
+        else                                  m_typeId = TYPE_OBJECT;
+    }
+}
+
+void        BydaoValue::shutdown() {
+    s_free.clear();
+    s_used.clear();
+}
+
+BydaoValue* BydaoValue::copy() {
+    BydaoValue* newVal = BydaoValue::get();
+    newVal->m_typeId = m_typeId;
+    if ( m_obj ) {
+        newVal->m_obj = m_obj->copy();
+        newVal->m_obj->ref();
+    }
+    return newVal;
+}
+
+//==============================================================================
+
 BydaoValue::BydaoValue() : m_obj(nullptr), m_typeId(TYPE_UNKNOWN) {}
 
 BydaoValue::BydaoValue(BydaoObject* obj) : m_obj(obj) {
@@ -55,75 +139,41 @@ BydaoValue::~BydaoValue() {
     if (m_obj) m_obj->unref();
 }
 
-BydaoValue BydaoValue::copy() {
-    BydaoValue newVal;
-    newVal.m_typeId = m_typeId;
-    if ( m_obj ) {
-        newVal.m_obj = m_obj->copy();
-        newVal.m_obj->ref();
-    }
-    else {
-        newVal.m_obj = nullptr;
-    }
-    return newVal;
-}
+// BydaoValue& BydaoValue::operator=(const BydaoValue& other) {
+//     if (this != &other) {
+//         if (m_obj) {
+//             if ( m_obj->getRef() == 1 ) {
+//                 if ( other.m_obj && m_typeId == other.m_typeId ) {
+//                     m_obj->assign( other.m_obj );
+//                     return *this;
+//                 }
+//             }
+//             m_obj->unref();
+//         }
+//         m_obj = other.m_obj;
+//         m_typeId = other.m_typeId;
+//         if (m_obj) m_obj->ref();
+//     }
+//     return *this;
+// }
 
-BydaoValue& BydaoValue::operator=(const BydaoValue& other) {
-    if (this != &other) {
-        if (m_obj) {
-            if ( m_obj->getRef() == 1 ) {
-                if ( other.m_obj && m_typeId == other.m_typeId ) {
-                    m_obj->assign( other.m_obj );
-                    return *this;
-                }
-            }
-            m_obj->unref();
-        }
-        m_obj = other.m_obj;
-        m_typeId = other.m_typeId;
-        if (m_obj) m_obj->ref();
-    }
-    return *this;
-}
-
-BydaoValue& BydaoValue::operator=(BydaoValue&& other) noexcept {
-    if (this != &other) {
-        if (m_obj) {
-            if ( m_obj->getRef() == 1 ) {
-                if ( other.m_obj && m_typeId == other.m_typeId ) {
-                    m_obj->assign( other.m_obj );
-                    return *this;
-                }
-            }
-            m_obj->unref();
-        }
-        m_obj = other.m_obj;
-        m_typeId = other.m_typeId;
-        other.m_obj = nullptr;
-    }
-    return *this;
-}
-
-// Фабричные методы
-BydaoValue BydaoValue::fromInt(qint64 value) {
-    return BydaoValue( BydaoInt::create(value) );
-}
-
-BydaoValue BydaoValue::fromReal(double value) {
-    return BydaoValue( BydaoReal::create(value));
-}
-
-BydaoValue BydaoValue::fromBool(bool value) {
-    return BydaoValue( BydaoBool::create(value) );
-}
-
-BydaoValue BydaoValue::fromString(const QString& value) {
-    return BydaoValue(BydaoString::create(value));
-}
-
-BydaoValue BydaoValue::fromObject(BydaoObject* obj) {
-    return BydaoValue(obj);
-}
+// BydaoValue& BydaoValue::operator=(BydaoValue&& other) noexcept {
+//     if (this != &other) {
+//         if (m_obj) {
+//             if ( m_obj->getRef() == 1 ) {
+//                 if ( other.m_obj && m_typeId == other.m_typeId ) {
+//                     m_obj->assign( other.m_obj );
+//                     return *this;
+//                 }
+//             }
+//             m_obj->unref();
+//         }
+//         m_obj = other.m_obj;
+//         m_typeId = other.m_typeId;
+//         other.m_obj = nullptr;
+//     }
+//     return *this;
+// }
 
 // BydaoValue BydaoValue::fromArray(BydaoArray* array) {
 //     return BydaoValue(array);
@@ -155,7 +205,7 @@ QString BydaoValue::toString() const {
             // Можно сделать красивое представление
             QStringList parts;
             for (int i = 0; i < a->size(); i++) {
-                parts << a->at(i).toString();
+                parts << a->at(i)->toString();
             }
             return "[" + parts.join(", ") + "]";
         }
@@ -164,18 +214,23 @@ QString BydaoValue::toString() const {
     }
 
     // Для неизвестных типов пробуем вызвать метод toString
-    BydaoValue result;
+
+    QString str = "???";
+    BydaoValue* result = BydaoValue::get();
     if (m_obj->callMethod("toString", {}, result)) {
-        if (result.isObject()) {
+        if ( result ->isObject() ) {
             // Рекурсивно вызываем toString у результата
-            return result.toString();
+            str = result->toString();
         }
-        qWarning() << "toString() returned non-object";
+        else {
+            qWarning() << "toString() returned non-object";
+        }
     }
     else {
         qWarning() << "Object of type" << m_obj->typeName() << "has no toString() method";
     }
-    return "???";
+    BydaoValue::free( result );
+    return str;
 }
 
 bool BydaoValue::toBool() const {
@@ -206,12 +261,14 @@ bool BydaoValue::toBool() const {
             return false;
     }
 
-    BydaoValue result;
-    if (m_obj->callMethod("toBool", {}, result)) {
-        return result.toBool();
+    bool res = true;    // по умолчанию объект считаем true
+
+    BydaoValue* result = BydaoValue::get();
+    if ( m_obj->callMethod("toBool", {}, result) ) {
+        res = result->toBool();
     }
-    // По умолчанию объект считается true
-    return true;
+    BydaoValue::free( result );
+    return res;
 }
 
 qint64 BydaoValue::toInt() const {
@@ -238,18 +295,23 @@ qint64 BydaoValue::toInt() const {
     }
 
     // Для неизвестных типов пробуем вызвать метод
-    BydaoValue result;
+
+    qint64 res = 0;
+    BydaoValue* result = BydaoValue::get();
     if (m_obj->callMethod("toInt", {}, result)) {
-        if (result.isObject()) {
+        if ( result->isObject() ) {
             // Рекурсивно вызываем toInt у результата
-            return result.toInt();
+            res = result->toInt();
         }
-        qWarning() << "toInt() returned non-object";
+        else {
+            qWarning() << "toInt() returned non-object";
+        }
     }
     else {
         qWarning() << "Object of type" << m_obj->typeName() << "cannot convert to Int";
     }
-    return 0;
+    BydaoValue::free( result );
+    return res;
 }
 
 double BydaoValue::toReal() const {
@@ -273,24 +335,31 @@ double BydaoValue::toReal() const {
             return s->value().toDouble();
         }
     }
-    BydaoValue result;
-    if (m_obj->callMethod("toReal", {}, result)) {
-        return result.toReal();
+
+    double res = 0.0;
+    BydaoValue* result = BydaoValue::get();
+    if ( m_obj->callMethod("toReal", {}, result) ) {
+        res = result->toReal();
     }
-    qWarning() << "Object of type" << m_obj->typeName() << "cannot convert to Real";
-    return 0.0;
+    else {
+        qWarning() << "Object of type" << m_obj->typeName() << "cannot convert to Real";
+    }
+    BydaoValue::free( result );
+    return res;
 }
 
 bool BydaoValue::isNull() const {
     if (!m_obj) return true;
 
-    BydaoValue result;
-    if (m_obj->callMethod("isNull", {}, result)) {
-        if (result.isObject()) {
-            return result.toBool();
+    bool res = false;
+    BydaoValue* result = BydaoValue::get();
+    if ( m_obj->callMethod("isNull", {}, result) ) {
+        if ( result->isObject() ) {
+            res = result->toBool();
         }
     }
-    return false;
+    BydaoValue::free( result );
+    return res;
 }
 
 } // namespace BydaoScript

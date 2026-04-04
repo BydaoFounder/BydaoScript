@@ -15,6 +15,7 @@
 #define _BYDAOVALUE_H_
 
 #include <QString>
+#include <QList>
 
 namespace BydaoScript {
 
@@ -38,43 +39,50 @@ enum BydaoTypeId {
 
 class BydaoValue {
 public:
+
+    static BydaoValue*  get();
+    static BydaoValue*  get( BydaoValue* other );
+    static BydaoValue*  get( BydaoObject* obj );
+
+    static void         free( BydaoValue* val );
+
+    static void         shutdown();
+
+    BydaoValue*         copy();
+    void                set( BydaoObject* obj );
+
+    inline bool         isObject() const { return m_obj != nullptr; }
+    inline BydaoObject* toObject() const { return m_obj; }
+
+    // Быстрый доступ к типу
+    inline int          typeId() const { return m_typeId; }
+
+    // Удобные методы
+    QString     toString() const;
+    bool        toBool() const;
+    qint64      toInt() const;
+    double      toReal() const;
+    bool        isNull() const;
+
+private:
+
     BydaoValue();
     explicit BydaoValue(BydaoObject* obj);
     BydaoValue(const BydaoValue& other);
     BydaoValue(BydaoValue&& other) noexcept;
     ~BydaoValue();
 
-    BydaoValue& operator=(const BydaoValue& other);
-    BydaoValue& operator=(BydaoValue&& other) noexcept;
-
-    BydaoValue copy();
-
-    inline bool isObject() const { return m_obj != nullptr; }
-    inline BydaoObject* toObject() const { return m_obj; }
-
-    // Быстрый доступ к типу
-    inline int typeId() const { return m_typeId; }
-
-    // Удобные методы
-    QString toString() const;
-    bool toBool() const;
-    qint64 toInt() const;
-    double toReal() const;
-    bool isNull() const;
-
-    // Фабричные методы для быстрого создания без new
-    static BydaoValue fromInt(qint64 value);
-    static BydaoValue fromReal(double value);
-    static BydaoValue fromBool(bool value);
-    static BydaoValue fromString(const QString& value);
-    static BydaoValue fromObject(BydaoObject* obj);
-    //    static BydaoValue fromArray(class BydaoArray* array);
-
-private:
+    // BydaoValue& operator=(const BydaoValue& other);
+    // BydaoValue& operator=(BydaoValue&& other) noexcept;
 
     BydaoObject*    m_obj;
     int             m_typeId;  // кэш типа
+
+    static QList< BydaoValue* > s_free;
+    static QList< BydaoValue* > s_used;
 };
+
+typedef QList< BydaoValue* >    BydaoValueList;
 
 } // namespace BydaoScript
 

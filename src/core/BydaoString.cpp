@@ -90,7 +90,7 @@ UsedMetaDataList    BydaoString::usedMetaData() {
     return list;
 }
 
-QVector<BydaoString*> BydaoString::s_cache;
+QList<BydaoString*> BydaoString::s_cache;
 
 BydaoString::BydaoString(const QString& value)
     : BydaoObject()
@@ -131,8 +131,8 @@ void BydaoString::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoString::callMethod(const QString& name,
-                          const QVector<BydaoValue>& args,
-                          BydaoValue& result) {
+                          const BydaoValueList& args,
+                          BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -140,129 +140,129 @@ bool BydaoString::callMethod(const QString& name,
     return false;
 }
 
-BydaoValue BydaoString::iter() {
-    return BydaoValue(new BydaoStringIterator(this));
+BydaoValue* BydaoString::iter() {
+    return BydaoValue::get( new BydaoStringIterator(this) );
 }
 
-BydaoValue BydaoString::add(const BydaoValue& other) {
-    if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = (const BydaoString*)(other.toObject());
-        return BydaoValue::fromString( m_value + otherStr->m_value );
+BydaoValue* BydaoString::add(const BydaoValue* other) {
+    if ( other->typeId() == TYPE_STRING ) {
+        const auto* otherStr = (const BydaoString*)(other->toObject());
+        return BydaoValue::get( BydaoString::create( m_value + otherStr->m_value ) );
     }
-    QString result = m_value + other.toString();
-    return BydaoValue::fromString(result);
+    QString result = m_value + other->toString();
+    return BydaoValue::get( BydaoString::create(result) );
 }
 
-void    BydaoString::addToValue(const BydaoValue& other) {
-    if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = (const BydaoString*)(other.toObject());
+void    BydaoString::addToValue(const BydaoValue* other) {
+    if ( other->typeId() == TYPE_STRING ) {
+        const auto* otherStr = (const BydaoString*)(other->toObject());
         m_value += otherStr->m_value;
     }
     else {
-        m_value += other.toString();
+        m_value += other->toString();
     }
 }
 
-BydaoValue BydaoString::eq(const BydaoValue& other) {
-    if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = (const BydaoString*)(other.toObject());
-        return BydaoValue::fromBool( m_value == otherStr->m_value );
+BydaoValue* BydaoString::eq(const BydaoValue* other) {
+    if ( other->typeId() == TYPE_STRING ) {
+        const auto* otherStr = (const BydaoString*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create( m_value == otherStr->m_value ) );
     }
-    return BydaoValue::fromBool(m_value == other.toString());
+    return BydaoValue::get( BydaoBool::create(m_value == other->toString()) );
 }
 
-BydaoValue BydaoString::neq(const BydaoValue& other) {
-    if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = (const BydaoString*)(other.toObject());
-        return BydaoValue::fromBool( m_value != otherStr->m_value );
+BydaoValue* BydaoString::neq(const BydaoValue* other) {
+    if ( other->typeId() == TYPE_STRING ) {
+        const auto* otherStr = (const BydaoString*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create( m_value != otherStr->m_value ) );
     }
-    return BydaoValue::fromBool(m_value != other.toString());
+    return BydaoValue::get( BydaoBool::create(m_value != other->toString()) );
 }
 
-BydaoValue BydaoString::lt(const BydaoValue& other) {
-    if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = (const BydaoString*)(other.toObject());
-        return BydaoValue::fromBool( m_value < otherStr->m_value );
+BydaoValue* BydaoString::lt(const BydaoValue* other) {
+    if ( other->typeId() == TYPE_STRING ) {
+        const auto* otherStr = (const BydaoString*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create( m_value < otherStr->m_value ) );
     }
-    return BydaoValue::fromBool(m_value < other.toString());
+    return BydaoValue::get( BydaoBool::create(m_value < other->toString()) );
 }
 
-BydaoValue BydaoString::le(const BydaoValue& other) {
-    if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = (const BydaoString*)(other.toObject());
-        return BydaoValue::fromBool( m_value <= otherStr->m_value );
+BydaoValue* BydaoString::le(const BydaoValue* other) {
+    if ( other->typeId() == TYPE_STRING ) {
+        const auto* otherStr = (const BydaoString*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create( m_value <= otherStr->m_value ) );
     }
-    return BydaoValue::fromBool(m_value <= other.toString());
+    return BydaoValue::get( BydaoBool::create(m_value <= other->toString()) );
 }
 
-BydaoValue BydaoString::gt(const BydaoValue& other) {
-    if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = (const BydaoString*)(other.toObject());
-        return BydaoValue::fromBool( m_value > otherStr->m_value );
+BydaoValue* BydaoString::gt(const BydaoValue* other) {
+    if ( other->typeId() == TYPE_STRING ) {
+        const auto* otherStr = (const BydaoString*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create( m_value > otherStr->m_value ) );
     }
-    return BydaoValue::fromBool(m_value > other.toString());
+    return BydaoValue::get( BydaoBool::create(m_value > other->toString()) );
 }
 
-BydaoValue BydaoString::ge(const BydaoValue& other) {
-    if ( other.typeId() == TYPE_STRING ) {
-        const auto* otherStr = (const BydaoString*)(other.toObject());
-        return BydaoValue::fromBool( m_value >= otherStr->m_value );
+BydaoValue* BydaoString::ge(const BydaoValue* other) {
+    if ( other->typeId() == TYPE_STRING ) {
+        const auto* otherStr = (const BydaoString*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create( m_value >= otherStr->m_value ) );
     }
-    return BydaoValue::fromBool(m_value >= other.toString());
+    return BydaoValue::get( BydaoBool::create(m_value >= other->toString()) );
 }
 
 // ========== Реализации методов ==========
 
-bool BydaoString::method_iter(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_iter(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoStringIterator(this));
+    result->set( new BydaoStringIterator(this) );
     return true;
 }
 
-bool BydaoString::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_toString(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(m_value));
+    result->set( BydaoString::create(m_value));
     return true;
 }
 
-bool BydaoString::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_isNull(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(m_value.isNull()));
+    result->set( BydaoBool::create( m_value.isNull() ));
     return true;
 }
 
-bool BydaoString::method_length(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_length(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoInt::create(m_value.length()));
+    result->set( BydaoInt::create(m_value.length()));
     return true;
 }
 
-bool BydaoString::method_upper(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_upper(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(m_value.toUpper()));
+    result->set( BydaoString::create(m_value.toUpper()));
     return true;
 }
 
-bool BydaoString::method_lower(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_lower(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(m_value.toLower()));
+    result->set( BydaoString::create(m_value.toLower()));
     return true;
 }
 
-bool BydaoString::method_trim(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_trim(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(m_value.trimmed()));
+    result->set( BydaoString::create(m_value.trimmed()));
     return true;
 }
 
-bool BydaoString::method_substring(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_substring(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() < 1 || args.size() > 2) return false;
 
-    qint64 start = args[0].toInt();
+    qint64 start = args[0]->toInt();
     qint64 len = m_value.length() - start;
     if ( args.size() == 2) {
-        if ( ! args[1].isNull() ) {
-            len = args[1].toInt();
+        if ( ! args[1]->isNull() ) {
+            len = args[1]->toInt();
         }
     }
 
@@ -270,114 +270,113 @@ bool BydaoString::method_substring(const QVector<BydaoValue>& args, BydaoValue& 
         return false;
     }
 
-    result = BydaoValue( BydaoString::create( m_value.mid(start, len) ) );
+    result->set( BydaoString::create( m_value.mid(start, len) ) );
     return true;
 }
 
-bool BydaoString::method_indexOf(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_indexOf(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() < 1 || args.size() > 2) return false;
 
-    QString sub = args[0].toString();
+    QString sub = args[0]->toString();
     qint64 from = 0;
     if ( args.size() == 2 ) {
-        if ( ! args[1].isNull() ) {
-            from = args[1].toInt();
+        if ( ! args[1]->isNull() ) {
+            from = args[1]->toInt();
         }
     }
 
     long idx = m_value.indexOf(sub, from);
-    result = BydaoValue(BydaoInt::create(idx));
+    result->set( BydaoInt::create(idx) );
     return true;
 }
 
-bool BydaoString::method_contains(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_contains(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
-    QString sub = args[0].toString();
-    result = BydaoValue( BydaoBool::create(m_value.contains(sub)) );
+    QString sub = args[0]->toString();
+    result->set( BydaoBool::create(m_value.contains(sub)) );
     return true;
 }
 
-bool BydaoString::method_startsWith(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_startsWith(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
-    QString sub = args[0].toString();
-    result = BydaoValue( BydaoBool::create(m_value.startsWith(sub)));
+    QString sub = args[0]->toString();
+    result->set( BydaoBool::create(m_value.startsWith(sub)));
     return true;
 }
 
-bool BydaoString::method_endsWith(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_endsWith(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
-    QString sub = args[0].toString();
-    result = BydaoValue(BydaoBool::create(m_value.endsWith(sub)));
+    QString sub = args[0]->toString();
+    result->set( BydaoBool::create(m_value.endsWith(sub)));
     return true;
 }
 
-bool BydaoString::method_split(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_split(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
-    QString sep = args[0].toString();
+    QString sep = args[0]->toString();
     QStringList parts = m_value.split(sep);
 
     auto* array = new BydaoArray();
     for (const QString& part : parts) {
-        array->append(BydaoValue(BydaoString::create(part)));
+        array->append( BydaoValue::get( BydaoString::create(part) ) );
     }
-
-    result = BydaoValue(array);
+    result->set( array );
     return true;
 }
 
-bool BydaoString::method_replace(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_replace(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 2) return false;
 
-    QString before = args[0].toString();
-    QString after = args[1].toString();
+    QString before = args[0]->toString();
+    QString after = args[1]->toString();
 
-    result = BydaoValue(BydaoString::create(m_value.replace(before, after)));
+    result->set( BydaoString::create(m_value.replace(before, after)));
     return true;
 }
 
-bool BydaoString::method_toInt(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_toInt(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
     bool ok = false;
     qint64 val = m_value.toLongLong(&ok);
     if (ok) {
-        result = BydaoValue(BydaoInt::create(val));
+        result->set( BydaoInt::create(val) );
         return true;
     }
     return false;
 }
 
-bool BydaoString::method_toReal(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_toReal(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
     bool ok = false;
     double val = m_value.toDouble(&ok);
     if (ok) {
-        result = BydaoValue::fromReal( val );
+        result->set( BydaoReal::create( val ) );
         return true;
     }
     return false;
 }
 
-bool BydaoString::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_toBool(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue::fromBool( ! m_value.isEmpty() );
+    result->set( BydaoBool::create( ! m_value.isEmpty() ) );
     return true;
 }
 
-bool BydaoString::method_isEmpty(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_isEmpty(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue::fromBool( m_value.isEmpty() );
+    result->set( BydaoBool::create( m_value.isEmpty() ) );
     return true;
 }
 
 #ifdef QT_CRYPTOGRAPHICHASH_LIB
-bool BydaoString::method_md5(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoString::method_md5(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
     QByteArray hash = QCryptographicHash::hash(m_value.toUtf8(), QCryptographicHash::Md5);
-    result = BydaoValue(BydaoString::create(QString::fromLatin1(hash.toHex())));
+    result->set( (BydaoString::create(QString::fromLatin1(hash.toHex())));
     return true;
 }
 #endif
@@ -411,8 +410,8 @@ BydaoStringArray::BydaoStringArray()
     : BydaoArray() {
 }
 
-BydaoValue BydaoStringArray::iter() {
-    return BydaoValue(new BydaoStringArrayIterator(this));
+BydaoValue* BydaoStringArray::iter() {
+    return BydaoValue::get( new BydaoStringArrayIterator(this) );
 }
 
 //==============================================================================
@@ -443,12 +442,5 @@ BydaoStringArrayIterator::BydaoStringArrayIterator(BydaoArray* array)
 
 BydaoStringArrayIterator::~BydaoStringArrayIterator() {
 }
-
-// BydaoValue BydaoStringArrayIterator::value() const {
-//     if ( ! isValid() ) {
-//         return BydaoValue(BydaoNull::instance());
-//     }
-//     return m_array->at(m_index).toString();
-// }
 
 } // namespace BydaoScript

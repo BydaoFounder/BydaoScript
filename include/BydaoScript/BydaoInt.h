@@ -19,7 +19,7 @@ namespace BydaoScript {
 
 class BydaoInt : public BydaoObject {
 
-    static QVector<BydaoInt*> s_cache;
+    static QList<BydaoInt*> s_cache;
     static const int MAX_CACHE_SIZE = 1024;
 
 protected:
@@ -55,42 +55,42 @@ public:
     qint64 value() const { return m_value; }
 
     bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+                    const BydaoValueList& args,
+                    BydaoValue* result) override;
 
     // ========== Операции ==========
 
     void    assign( BydaoObject* obj ) override {
         m_value = ((BydaoInt*)obj)->m_value;
     }
-    BydaoValue add(const BydaoValue& other) override;
-    void       addToValue(const BydaoValue& other) override;
-    BydaoValue sub(const BydaoValue& other) override;
-    BydaoValue mul(const BydaoValue& other) override;
-    BydaoValue div(const BydaoValue& other) override;
-    BydaoValue mod(const BydaoValue& other) override;
-    BydaoValue neg() override;
+    BydaoValue* add(const BydaoValue* other) override;
+    void        addToValue(const BydaoValue* other) override;
+    BydaoValue* sub(const BydaoValue* other) override;
+    BydaoValue* mul(const BydaoValue* other) override;
+    BydaoValue* div(const BydaoValue* other) override;
+    BydaoValue* mod(const BydaoValue* other) override;
+    BydaoValue* neg() override;
 
-    BydaoValue eq(const BydaoValue& other) override;
-    BydaoValue neq(const BydaoValue& other) override;
-    BydaoValue lt(const BydaoValue& other) override;
-    BydaoValue le(const BydaoValue& other) override;
-    BydaoValue gt(const BydaoValue& other) override;
-    BydaoValue ge(const BydaoValue& other) override;
+    BydaoValue* eq(const BydaoValue* other) override;
+    BydaoValue* neq(const BydaoValue* other) override;
+    BydaoValue* lt(const BydaoValue* other) override;
+    BydaoValue* le(const BydaoValue* other) override;
+    BydaoValue* gt(const BydaoValue* other) override;
+    BydaoValue* ge(const BydaoValue* other) override;
 
 private:
 
     // Методы
-    bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toReal(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toBool(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_abs(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_negate(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_isNull(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toHex(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toBin(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toString(const BydaoValueList& args, BydaoValue* result);
+    bool method_toReal(const BydaoValueList& args, BydaoValue* result);
+    bool method_toBool(const BydaoValueList& args, BydaoValue* result);
+    bool method_abs(const BydaoValueList& args, BydaoValue* result);
+    bool method_negate(const BydaoValueList& args, BydaoValue* result);
+    bool method_isNull(const BydaoValueList& args, BydaoValue* result);
+    bool method_toHex(const BydaoValueList& args, BydaoValue* result);
+    bool method_toBin(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoInt::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoInt::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов

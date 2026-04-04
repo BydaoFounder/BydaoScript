@@ -20,7 +20,7 @@ namespace BydaoScript {
 
 class BydaoBool : public BydaoObject {
 
-    static QVector<BydaoBool*> s_cache;
+    static QList<BydaoBool*> s_cache;
     static const int MAX_CACHE_SIZE = 1024;
 
 protected:
@@ -54,8 +54,8 @@ public:
     bool value() const { return m_value; }
 
     bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+                    const BydaoValueList& args,
+                    BydaoValue* result) override;
 
     BydaoObject* copy() override {
         return BydaoBool::create( m_value );
@@ -64,18 +64,18 @@ public:
     void    assign( BydaoObject* obj ) override {
         m_value = ((BydaoBool*)obj)->m_value;
     }
-    BydaoValue eq(const BydaoValue& other) override;
-    BydaoValue neq(const BydaoValue& other) override;
+    BydaoValue* eq(const BydaoValue* other) override;
+    BydaoValue* neq(const BydaoValue* other) override;
 
 private:
 
-    bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toInt(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toReal(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toBool(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_isNull(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toString(const BydaoValueList& args, BydaoValue* result);
+    bool method_toInt(const BydaoValueList& args, BydaoValue* result);
+    bool method_toReal(const BydaoValueList& args, BydaoValue* result);
+    bool method_toBool(const BydaoValueList& args, BydaoValue* result);
+    bool method_isNull(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoBool::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoBool::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов

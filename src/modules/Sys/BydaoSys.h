@@ -30,8 +30,8 @@ public:
     MetaData*   metaData() override;
 
     bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+                    const BydaoValueList& args,
+                    BydaoValue* result) override;
 
 protected:
     bool initialize() override;
@@ -39,30 +39,30 @@ protected:
 
 private:
     // Методы модуля
-    bool method_out(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_outln(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_in(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_err(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_errln(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_run(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_exec(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_shell(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_getenv(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_setenv(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_unsetenv(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_env(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_sleep(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_time(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_date(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_datetime(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_platform(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_currentDir(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_setCurrentDir(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_tempDir(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_homeDir(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_drives(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_out(const BydaoValueList& args, BydaoValue* result);
+    bool method_outln(const BydaoValueList& args, BydaoValue* result);
+    bool method_in(const BydaoValueList& args, BydaoValue* result);
+    bool method_err(const BydaoValueList& args, BydaoValue* result);
+    bool method_errln(const BydaoValueList& args, BydaoValue* result);
+    bool method_run(const BydaoValueList& args, BydaoValue* result);
+    bool method_exec(const BydaoValueList& args, BydaoValue* result);
+    bool method_shell(const BydaoValueList& args, BydaoValue* result);
+    bool method_getenv(const BydaoValueList& args, BydaoValue* result);
+    bool method_setenv(const BydaoValueList& args, BydaoValue* result);
+    bool method_unsetenv(const BydaoValueList& args, BydaoValue* result);
+    bool method_env(const BydaoValueList& args, BydaoValue* result);
+    bool method_sleep(const BydaoValueList& args, BydaoValue* result);
+    bool method_time(const BydaoValueList& args, BydaoValue* result);
+    bool method_date(const BydaoValueList& args, BydaoValue* result);
+    bool method_datetime(const BydaoValueList& args, BydaoValue* result);
+    bool method_platform(const BydaoValueList& args, BydaoValue* result);
+    bool method_currentDir(const BydaoValueList& args, BydaoValue* result);
+    bool method_setCurrentDir(const BydaoValueList& args, BydaoValue* result);
+    bool method_tempDir(const BydaoValueList& args, BydaoValue* result);
+    bool method_homeDir(const BydaoValueList& args, BydaoValue* result);
+    bool method_drives(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoSysModule::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoSysModule::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов

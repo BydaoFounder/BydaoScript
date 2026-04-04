@@ -17,20 +17,15 @@
 #include "BydaoValue.h"
 #include <QStack>
 #include <QHash>
-#include <QVector>
+#include <QList>
 
 namespace BydaoScript {
 
 // Информация о переменной в runtime
 struct RuntimeVar {
-    QString name;        // имя переменной (для отладки)
-    BydaoValue value;    // значение
+    QString     name;       // имя переменной (для отладки)
+    BydaoValue* value;      // значение
 };
-
-// Область видимости в runtime
-// struct RuntimeScope {
-//     QVector<RuntimeVar> vars;           // переменные в этой области
-// };
 
 class BydaoVM {
 public:
@@ -38,9 +33,9 @@ public:
     ~BydaoVM();
 
     // Загрузка байткода
-    bool load(const QVector<BydaoConstant>& constants,
-              const QVector<QString>& stringTable,
-              const QVector<BydaoInstruction>& code);
+    bool load(const QList<BydaoConstant>& constants,
+              const QList<QString>& stringTable,
+              const QList<BydaoInstruction>& code);
 
     // Выполнение
     bool run();
@@ -60,7 +55,7 @@ public:
         qint64 time;      // наносекунды
         int count;        // количество вызовов
     };
-    QVector<ProfileItem> takeProfile();
+    QList<ProfileItem> takeProfile();
 
 private:
     // Выполнение одной инструкции
@@ -68,42 +63,41 @@ private:
 
     // Вспомогательные методы
     void error(const QString& msg, const BydaoInstruction& instr);
-    BydaoValue& getVariable(int varIndex, const BydaoInstruction& instr);
-    const BydaoValue& getVariable(int varIndex, const BydaoInstruction& instr) const;
-    void setVariable(int varIndex, const BydaoValue& value, const BydaoInstruction& instr);
+
+    BydaoValue*     getVariable(int varIndex, const BydaoInstruction& instr);
+    void            setVariable(int varIndex, BydaoValue* value, const BydaoInstruction& instr);
 
     void dumpStack(const QString& label = QString());
 
     // Таблицы из байткода
-    QVector<BydaoConstant> m_constants;      // исходные константы
-    QVector<BydaoValue> m_constantValues;    // готовые значения констант
-    QVector<QString> m_stringTable;          // таблица строк
-    QVector<BydaoInstruction> m_code;         // код
+    QList<BydaoConstant>    m_constants;        // исходные константы
+    BydaoValueList          m_constantValues;   // готовые значения констант
+    QList<QString>          m_stringTable;      // таблица строк
+    QList<BydaoInstruction> m_code;             // код
 
     // Состояние выполнения
-    int m_pc;                    // program counter
-    bool m_running;              // флаг выполнения
-    QStack<BydaoValue> m_stack;  // стек значений
-    QList<RuntimeVar>  m_scopeStack;  // стек областей видимости
+    int                     m_pc;               // program counter
+    bool                    m_running;          // флаг выполнения
+    QStack<BydaoValue*>     m_stack;            // стек значений
+    QList<RuntimeVar>       m_scopeStack;       // стек областей видимости
 
     // Ошибки
-    QString m_lastError;
-    int m_errorLine;
+    QString                 m_lastError;
+    int                     m_errorLine;
 
     // Режимы
-    bool m_traceMode;
-    bool m_profileMode;
+    bool                    m_traceMode;
+    bool                    m_profileMode;
 
     // Профилирование
     struct ProfileData {
-        qint64 totalTime;
-        int callCount;
+        qint64  totalTime;
+        int     callCount;
     };
     QHash<QString, ProfileData> m_profile;
-    qint64 m_lastInstrStart;  // время начала текущей инструкции
+    qint64                      m_lastInstrStart;  // время начала текущей инструкции
 
-    QHash<QString, int> m_moduleName;    // для проверки повторной загрузки модулей
-
+    QHash<QString, int>         m_moduleName;    // для проверки повторной загрузки модулей
 };
 
 } // namespace BydaoScript

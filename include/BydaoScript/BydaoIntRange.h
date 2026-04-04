@@ -18,6 +18,9 @@
 
 namespace BydaoScript {
 
+/**
+ * Диапазон целых чисел.
+ */
 class BydaoIntRange : public BydaoObject {
 
 public:
@@ -30,21 +33,19 @@ public:
 
     QString typeName() const override { return "IntRange"; }
 
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+    bool callMethod(const QString& name, const BydaoValueList& args, BydaoValue* result) override;
 
     // Метод, возвращающий итератор
-    BydaoValue iter() override;
+    BydaoValue* iter() override;
 
     qint64 start() { return m_start; }
     qint64 end() { return m_end; }
 
 private:
 
-    bool method_iter(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_iter(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoIntRange::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoIntRange::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
@@ -53,6 +54,9 @@ private:
     qint64 m_end;
 };
 
+/**
+ * Итератор для диапазона целых чисел.
+ */
 class BydaoIntRangeIterator : public BydaoIterator {
 
 public:
@@ -62,22 +66,12 @@ public:
 
     BydaoIntRangeIterator( BydaoIntRange* range );
 
-    bool next() override;
-    bool isValid() const override;
-    BydaoValue key() const override;
-    BydaoValue value() const override;
+    bool            next() override;
+    bool            isValid() const override;
+    BydaoValue*     key() const override;
+    BydaoValue*     value() const override;
 
-    bool    getVar( const QString& varName, BydaoValue& value ) override {
-        if ( varName == "value" ) {
-            value = this->value();
-            return true;
-        }
-        if ( varName == "key" ) {
-            value = this->key();
-            return true;
-        }
-        return BydaoIterator::getVar( varName, value );
-    };
+    bool    getVar( const QString& varName, BydaoValue* value ) override;
 
 private:
 

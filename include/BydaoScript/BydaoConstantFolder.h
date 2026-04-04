@@ -31,7 +31,7 @@ public:
 
     // Вычисляет значение константного выражения (начиная с текущей позиции)
     // Если выражение не является константным, возвращает null
-    BydaoValue evaluate();
+    BydaoValue* evaluate();
 
     // Возвращает позицию после вычисленного выражения (для восстановления)
     int getPos() const;
@@ -43,28 +43,28 @@ private:
 
     // Рекурсивные методы для каждого уровня грамматики
     bool isConstantLogicalOr();
-    BydaoValue evaluateLogicalOr();
+    BydaoValue* evaluateLogicalOr();
 
     bool isConstantLogicalAnd();
-    BydaoValue evaluateLogicalAnd();
+    BydaoValue* evaluateLogicalAnd();
 
     bool isConstantEquality();
-    BydaoValue evaluateEquality();
+    BydaoValue* evaluateEquality();
 
     bool isConstantComparison();
-    BydaoValue evaluateComparison();
+    BydaoValue* evaluateComparison();
 
     bool isConstantAddition();
-    BydaoValue evaluateAddition();
+    BydaoValue* evaluateAddition();
 
     bool isConstantTerm();
-    BydaoValue evaluateTerm();
+    BydaoValue* evaluateTerm();
 
     bool isConstantUnary();
-    BydaoValue evaluateUnary();
+    BydaoValue* evaluateUnary();
 
     bool isConstantPrimary();
-    BydaoValue evaluatePrimary();
+    BydaoValue* evaluatePrimary();
 
     BydaoParser* m_parser;
     int m_savedPos;

@@ -69,7 +69,7 @@ extern "C" {
 // ========== BydaoSysModule ==========
 
 #define REGISTER_MODULE_METHOD(name) \
-registerMethod(#name, [this](const QVector<BydaoValue>& args, BydaoValue& result) { \
+registerMethod(#name, [this](const BydaoValueList& args, BydaoValue* result) { \
         return method_##name(args, result); \
 })
 
@@ -145,8 +145,8 @@ void BydaoSysModule::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoSysModule::callMethod(const QString& name,
-                                 const QVector<BydaoValue>& args,
-                                 BydaoValue& result) {
+                                 const BydaoValueList& args,
+                                 BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -156,36 +156,35 @@ bool BydaoSysModule::callMethod(const QString& name,
 
 // ========== Методы модуля (С КВАЛИФИКАТОРОМ КЛАССА) ==========
 
-bool BydaoSysModule::method_out(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_out(const BydaoValueList& args, BydaoValue* result) {
+    Q_UNUSED( result );
     if (args.size() != 1) return false;
 
     QTextStream& out = *m_outStream;
-    out << args[0].toString();
+    out << args[0]->toString();
     out.flush();
-
-    result = BydaoValue();
     return true;
 }
 
-bool BydaoSysModule::method_outln(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() > 1) return false;
+bool BydaoSysModule::method_outln(const BydaoValueList& args, BydaoValue* result) {
+    Q_UNUSED( result );
 
-    if (args.size() == 1) {
+    QTextStream& out = *m_outStream;
+
+    if ( args.size() > 0 ) {
         // Выводим текст
-        QTextStream& out = *m_outStream;
-        out << args[0].toString();
+        foreach ( const BydaoValue* arg, args ) {
+            out << arg->toString();
+        }
     }
 
     // В любом случае добавляем перевод строки
-    QTextStream& out = *m_outStream;
     out << Qt::endl;
     out.flush();
-
-    result = BydaoValue(BydaoNull::instance());
     return true;
 }
 
-bool BydaoSysModule::method_in(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_in(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() > 1) return false;
 
     if (args.size() == 1) {
@@ -193,73 +192,77 @@ bool BydaoSysModule::method_in(const QVector<BydaoValue>& args, BydaoValue& resu
 #ifdef Q_OS_WIN
         out.setEncoding(QStringConverter::Utf8);
 #endif
-        out << args[0].toString();
+        out << args[0]->toString();
         out.flush();
     }
 
     QTextStream in(stdin);
     QString line = in.readLine();
 
-    result = BydaoValue( BydaoString::create(line) );
+    result->set( BydaoString::create(line) );
     return true;
 }
 
-bool BydaoSysModule::method_err(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_err(const BydaoValueList& args, BydaoValue* result) {
+
+    Q_UNUSED( result );
+
     if (args.size() != 1) return false;
 
     QTextStream err(stderr);
 #ifdef Q_OS_WIN
     err.setEncoding(QStringConverter::Utf8);
 #endif
-    err << args[0].toString();
+    err << args[0]->toString();
     err.flush();
 
-    result = BydaoValue();
     return true;
 }
 
-bool BydaoSysModule::method_errln(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_errln(const BydaoValueList& args, BydaoValue* result) {
+
+    Q_UNUSED( result );
+
     if (args.size() != 1) return false;
 
     QTextStream err(stderr);
 #ifdef Q_OS_WIN
     err.setEncoding(QStringConverter::Utf8);
 #endif
-    err << args[0].toString() << Qt::endl;
+    err << args[0]->toString() << Qt::endl;
 
-    result = BydaoValue();
     return true;
 }
 
-bool BydaoSysModule::method_run(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_run(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
-    int code = system(args[0].toString().toLocal8Bit().constData());
-    result = BydaoValue( BydaoInt::create(code) );
+    int code = system(args[0]->toString().toLocal8Bit().constData());
+    result->set( BydaoInt::create(code) );
     return true;
 }
 
-bool BydaoSysModule::method_exec(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_exec(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() < 1 || args.size() > 2) return false;
 
     if (!m_process) {
         m_process = new QProcess();
     }
 
-    QString program = args[0].toString();
+    QString program = args[0]->toString();
     QStringList arguments;
 
     // Если есть второй аргумент - это должен быть массив аргументов
     if (args.size() == 2) {
-        if (args[1].typeId() != TYPE_ARRAY) {
+        if (args[1]->typeId() != TYPE_ARRAY) {
             return false;
         }
 
-        auto* array = (BydaoArray*)(args[1].toObject());
+        auto* array = (BydaoArray*)(args[1]->toObject());
         if (!array) return false;
 
         for (int i = 0; i < array->size(); i++) {
-            arguments << array->at(i).toString();
+            arguments << array->at(i)->toString();
         }
     }
 
@@ -271,67 +274,67 @@ bool BydaoSysModule::method_exec(const QVector<BydaoValue>& args, BydaoValue& re
     m_process->start(program, arguments);
     m_process->waitForFinished(-1);
 
-    result = BydaoValue(BydaoInt::create(m_process->exitCode()));
+    result->set( BydaoInt::create(m_process->exitCode()) );
     return true;
 }
 
-bool BydaoSysModule::method_shell(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_shell(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
     if (!m_process) {
         m_process = new QProcess();
     }
 
-    m_process->startCommand(args[0].toString());
+    m_process->startCommand(args[0]->toString());
     m_process->waitForFinished(-1);
 
     QString output = QString::fromLocal8Bit(m_process->readAllStandardOutput());
-    result = BydaoValue( BydaoString::create( output ) );
+    result->set( BydaoString::create( output ) );
     return true;
 }
 
-bool BydaoSysModule::method_getenv(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_getenv(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
-    QString value = qgetenv(args[0].toString().toLatin1().constData());
-    result = BydaoValue( BydaoString::create( value ) );
+    QString value = qgetenv(args[0]->toString().toLatin1().constData());
+    result->set( BydaoString::create( value ) );
     return true;
 }
 
-bool BydaoSysModule::method_setenv(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_setenv(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 2) return false;
 
 #ifdef Q_OS_WIN
     bool ok = SetEnvironmentVariableW(
-        (LPCWSTR)args[0].toString().utf16(),
-        (LPCWSTR)args[1].toString().utf16());
+        (LPCWSTR)args[0]->toString().utf16(),
+        (LPCWSTR)args[1]->toString().utf16());
 #else
     bool ok = setenv(
-                  args[0].toString().toLatin1().constData(),
-                  args[1].toString().toLatin1().constData(),
+                  args[0]->toString().toLatin1().constData(),
+                  args[1]->toString().toLatin1().constData(),
                   1) == 0;
 #endif
 
-    result = BydaoValue( BydaoBool::create(ok) );
+    result->set( BydaoBool::create(ok) );
     return true;
 }
 
-bool BydaoSysModule::method_unsetenv(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_unsetenv(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
 #ifdef Q_OS_WIN
     bool ok = SetEnvironmentVariableW(
-        (LPCWSTR)args[0].toString().utf16(),
+        (LPCWSTR)args[0]->toString().utf16(),
         nullptr);
 #else
-    bool ok = unsetenv(args[0].toString().toLatin1().constData()) == 0;
+    bool ok = unsetenv(args[0]->toString().toLatin1().constData()) == 0;
 #endif
 
-    result = BydaoValue( BydaoBool::create(ok) );
+    result->set( BydaoBool::create(ok) );
     return true;
 }
 
-bool BydaoSysModule::method_env(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_env(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
@@ -341,81 +344,82 @@ bool BydaoSysModule::method_env(const QVector<BydaoValue>& args, BydaoValue& res
 
     for (const QString& key : keys) {
         QString entry = key + "=" + env.value(key);
-        array->append(BydaoValue(BydaoString::create(entry)));
+        array->append( BydaoValue::get( BydaoString::create(entry) ) );
     }
 
-    result = BydaoValue(array);
+    result->set(array);
     return true;
 }
 
-bool BydaoSysModule::method_sleep(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_sleep(const BydaoValueList& args, BydaoValue* result) {
+    Q_UNUSED(result);
     if (args.size() != 1) return false;
 
-    QThread::msleep( (unsigned long) args[0].toInt());
-    result = BydaoValue();
+    QThread::msleep( (unsigned long) args[0]->toInt());
+
     return true;
 }
 
-bool BydaoSysModule::method_time(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_time(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoInt::create(QDateTime::currentMSecsSinceEpoch()));
+    result->set( BydaoInt::create(QDateTime::currentMSecsSinceEpoch()) );
     return true;
 }
 
-bool BydaoSysModule::method_date(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_date(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoString::create( QDate::currentDate().toString(Qt::ISODate)) );
+    result->set( BydaoString::create( QDate::currentDate().toString(Qt::ISODate)) );
     return true;
 }
 
-bool BydaoSysModule::method_datetime(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_datetime(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoString::create( QDateTime::currentDateTime().toString(Qt::ISODate)) );
+    result->set( BydaoString::create( QDateTime::currentDateTime().toString(Qt::ISODate)) );
     return true;
 }
 
-bool BydaoSysModule::method_platform(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_platform(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
 
 #ifdef Q_OS_WIN
-    result = BydaoValue( BydaoString::create("windows") );
+    result->set( BydaoString::create("windows") );
 #elif Q_OS_MAC
-    result = BydaoValue( BydaoString::create("macos") );
+    result->set( BydaoString::create("macos") );
 #elif Q_OS_LINUX
-    result = BydaoValue( BydaoString::create("linux") );
+    result->set( BydaoString::create("linux") );
 #else
-    result = BydaoValue( BydaoString::create("unknown") );
+    result->set( BydaoString::create("unknown") );
 #endif
     return true;
 }
 
-bool BydaoSysModule::method_currentDir(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_currentDir(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoString::create(QDir::currentPath()) );
+    result->set( BydaoString::create(QDir::currentPath()) );
     return true;
 }
 
-bool BydaoSysModule::method_setCurrentDir(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_setCurrentDir(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
-    bool ok = QDir::setCurrent(args[0].toString());
-    result = BydaoValue( BydaoBool::create(ok) );
+    bool ok = QDir::setCurrent(args[0]->toString());
+    result->set( BydaoBool::create(ok) );
     return true;
 }
 
-bool BydaoSysModule::method_tempDir(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_tempDir(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoString::create(QDir::tempPath()));
+    result->set( BydaoString::create(QDir::tempPath()));
     return true;
 }
 
-bool BydaoSysModule::method_homeDir(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_homeDir(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoString::create(QDir::homePath()) );
+    result->set( BydaoString::create(QDir::homePath()) );
     return true;
 }
 
-bool BydaoSysModule::method_drives(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoSysModule::method_drives(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
 
     auto* array = new BydaoArray();
@@ -426,7 +430,7 @@ bool BydaoSysModule::method_drives(const QVector<BydaoValue>& args, BydaoValue& 
     for (char c = 'A'; c <= 'Z'; c++) {
         if (drives & 1) {
             QString drive = QString(c) + ":";
-            array->append(BydaoValue(BydaoString::create(drive)));
+            array->append( BydaoValue::get( BydaoString::create(drive) ) );
         }
         drives >>= 1;
     }
@@ -435,7 +439,7 @@ bool BydaoSysModule::method_drives(const QVector<BydaoValue>& args, BydaoValue& 
     array->append(BydaoValue(BydaoString::create("/")));
 #endif
 
-    result = BydaoValue(array);
+    result->set(array);
     return true;
 }
 

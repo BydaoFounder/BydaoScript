@@ -13,7 +13,7 @@
 // limitations under the License.
 #pragma once
 
-#include <QVector>
+#include <QList>
 
 #include "BydaoObject.h"
 #include "BydaoMetaData.h"
@@ -35,41 +35,41 @@ public:
     QString typeName() const override { return "Array"; }
 
     bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+                    const BydaoValueList& args,
+                    BydaoValue* result) override;
 
     virtual int         size() const { return m_elements.size(); }
-    virtual BydaoValue  at(qint64 index) const;
-    virtual void        set(qint64 index, const BydaoValue& value);
-    virtual BydaoValue  get(const BydaoValue& index);
-    virtual void        append(const BydaoValue& value);
-    virtual void        insert(qint64 index, const BydaoValue& value);
+    virtual BydaoValue* at(qint64 index) const;
+    virtual void        set(qint64 index, BydaoValue* value);
+    virtual BydaoValue* get(const BydaoValue* index);
+    virtual void        append(BydaoValue* value);
+    virtual void        insert(qint64 index, BydaoValue* value);
     virtual void        removeAt(qint64 index);
     virtual void        clear();
 
-    BydaoValue  iter() override;  // создаёт итератор для массива
+    BydaoValue*  iter() override;  // создаёт итератор для массива
 
 private:
 
-    bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_length(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_get(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_set(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_push(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_pop(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_shift(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_unshift(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_slice(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_join(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toString(const BydaoValueList& args, BydaoValue* result);
+    bool method_length(const BydaoValueList& args, BydaoValue* result);
+    bool method_get(const BydaoValueList& args, BydaoValue* result);
+    bool method_set(const BydaoValueList& args, BydaoValue* result);
+    bool method_push(const BydaoValueList& args, BydaoValue* result);
+    bool method_pop(const BydaoValueList& args, BydaoValue* result);
+    bool method_shift(const BydaoValueList& args, BydaoValue* result);
+    bool method_unshift(const BydaoValueList& args, BydaoValue* result);
+    bool method_slice(const BydaoValueList& args, BydaoValue* result);
+    bool method_join(const BydaoValueList& args, BydaoValue* result);
 
-    bool method_iter(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_iter(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoArray::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoArray::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;
 
-    QVector<BydaoValue> m_elements;
+    BydaoValueList m_elements;
 };
 
 } // namespace BydaoScript

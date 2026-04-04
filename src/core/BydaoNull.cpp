@@ -51,10 +51,10 @@ MetaData*   BydaoNull::metaData() {
 BydaoNull::BydaoNull() {
     // Увеличиваем счётчик, чтобы никогда не удалялся
     ref();  // теперь никогда не станет 0
-    registerMethod("toString", &BydaoNull::method_toString);
-    registerMethod("toBool", &BydaoNull::method_toBool);
-    registerMethod("isNull", &BydaoNull::method_isNull);
-    registerMethod("isEmpty", &BydaoNull::method_isNull);
+    registerMethod("toString",  &BydaoNull::method_toString);
+    registerMethod("toBool",    &BydaoNull::method_toBool);
+    registerMethod("isNull",    &BydaoNull::method_isNull);
+    registerMethod("isEmpty",   &BydaoNull::method_isNull);
 }
 
 void BydaoNull::registerMethod(const QString& name, MethodPtr method) {
@@ -62,8 +62,8 @@ void BydaoNull::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoNull::callMethod(const QString& name,
-                           const QVector<BydaoValue>& args,
-                           BydaoValue& result) {
+                           const BydaoValueList& args,
+                           BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -71,30 +71,30 @@ bool BydaoNull::callMethod(const QString& name,
     return false;
 }
 
-bool BydaoNull::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoNull::method_toString(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create("null"));
+    result->set( BydaoString::create("null") );
     return true;
 }
 
-bool BydaoNull::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoNull::method_toBool(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(false));
+    result->set( BydaoBool::create(false) );
     return true;
 }
 
-bool BydaoNull::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoNull::method_isNull(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(true));
+    result->set( BydaoBool::create(true) );
     return true;
 }
 
-BydaoValue BydaoNull::eq(const BydaoValue& other) {
-    return BydaoValue::fromBool( other.typeId() == TYPE_NULL );
+BydaoValue* BydaoNull::eq(const BydaoValue* other) {
+    return BydaoValue::get( BydaoBool::create( other->typeId() == TYPE_NULL ) );
 }
 
-BydaoValue BydaoNull::neq(const BydaoValue& other) {
-    return BydaoValue::fromBool( other.typeId() != TYPE_NULL );
+BydaoValue* BydaoNull::neq(const BydaoValue* other) {
+    return BydaoValue::get( BydaoBool::create( other->typeId() != TYPE_NULL ) );
 }
 
 } // namespace BydaoScript

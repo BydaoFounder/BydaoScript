@@ -33,18 +33,18 @@ public:
     QString typeName() const override { return "Int"; }
 
     bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+                    const BydaoValueList& args,
+                    BydaoValue* result) override;
 
 private:
     // Статические методы класса Int
-    bool method_range(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_parse(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_max(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_min(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_random(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_range(const BydaoValueList& args, BydaoValue* result);
+    bool method_parse(const BydaoValueList& args, BydaoValue* result);
+    bool method_max(const BydaoValueList& args, BydaoValue* result);
+    bool method_min(const BydaoValueList& args, BydaoValue* result);
+    bool method_random(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoIntClass::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoIntClass::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;

@@ -1,5 +1,6 @@
 #include "../include/BydaoScript/BydaoArray.h"
 #include "../include/BydaoScript/BydaoString.h"
+#include "../include/BydaoScript/BydaoBool.h"
 #include "../include/BydaoScript/BydaoNull.h"
 #include "BydaoDir.h"
 //#include "BydaoDir_global.h"
@@ -60,8 +61,8 @@ void BydaoDirModule::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoDirModule::callMethod(const QString& name,
-                             const QVector<BydaoValue>& args,
-                             BydaoValue& result) {
+                             const BydaoValueList& args,
+                             BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -71,48 +72,48 @@ bool BydaoDirModule::callMethod(const QString& name,
 
 // ========== Методы модуля ==========
 
-bool BydaoDirModule::method_open(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirModule::method_open(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    result = BydaoValue(new BydaoDirObject(args[0].toString()));
+    result->set( new BydaoDirObject(args[0]->toString()) );
     return true;
 }
 
-bool BydaoDirModule::method_list(const QVector<BydaoValue>& args, BydaoValue& result) {
-    QString path = args.size() > 0 ? args[0].toString() : ".";
+bool BydaoDirModule::method_list(const BydaoValueList& args, BydaoValue* result) {
+    QString path = args.size() > 0 ? args[0]->toString() : ".";
     QDir dir(path);
     auto entries = dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
     auto* array = new BydaoArray();
     foreach (const QString& entry, entries) {
-        array->append(BydaoValue(BydaoString::create(entry)));
+        array->append( BydaoValue::get( BydaoString::create(entry) ) );
     }
-    result = BydaoValue(array);
+    result->set( array );
     return true;
 }
 
-bool BydaoDirModule::method_cd(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirModule::method_cd(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    bool ok = QDir::setCurrent(args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    bool ok = QDir::setCurrent(args[0]->toString());
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoDirModule::method_current(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirModule::method_current(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(QDir::currentPath()));
+    result->set( BydaoString::create(QDir::currentPath()) );
     return true;
 }
 
-bool BydaoDirModule::method_mkdir(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirModule::method_mkdir(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    bool ok = QDir().mkpath(args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    bool ok = QDir().mkpath(args[0]->toString());
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoDirModule::method_rmdir(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirModule::method_rmdir(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    bool ok = QDir().rmdir(args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    bool ok = QDir().rmdir(args[0]->toString());
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
@@ -151,8 +152,8 @@ void BydaoDirObject::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoDirObject::callMethod(const QString& name,
-                                const QVector<BydaoValue>& args,
-                                BydaoValue& result) {
+                                const BydaoValueList& args,
+                                BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -162,48 +163,48 @@ bool BydaoDirObject::callMethod(const QString& name,
 
 // ========== Методы объекта ==========
 
-bool BydaoDirObject::method_list(const QVector<BydaoValue>& args, BydaoValue& result) {
-    QString filter = args.size() > 0 ? args[0].toString() : "*";
+bool BydaoDirObject::method_list(const BydaoValueList& args, BydaoValue* result) {
+    QString filter = args.size() > 0 ? args[0]->toString() : "*";
     QStringList nameFilters = filter.isEmpty() ? QStringList() : QStringList(filter);
     auto entries = m_dir.entryList(nameFilters, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
     auto* array = new BydaoArray();
-    for (const QString& entry : entries) {
-        array->append(BydaoValue(BydaoString::create(entry)));
+    foreach (const QString& entry, entries) {
+        array->append( BydaoValue::get( BydaoString::create(entry) ) );
     }
-    result = BydaoValue(array);
+    result->set( array );
     return true;
 }
 
-bool BydaoDirObject::method_cd(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirObject::method_cd(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    bool ok = m_dir.cd(args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    bool ok = m_dir.cd(args[0]->toString());
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoDirObject::method_mkdir(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirObject::method_mkdir(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    bool ok = m_dir.mkdir(args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    bool ok = m_dir.mkdir(args[0]->toString());
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoDirObject::method_rmdir(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirObject::method_rmdir(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    bool ok = m_dir.rmdir(args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    bool ok = m_dir.rmdir(args[0]->toString());
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoDirObject::method_exists(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirObject::method_exists(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue::fromBool( m_dir.exists() );
+    result->set( BydaoBool::create( m_dir.exists() ) );
     return true;
 }
 
-bool BydaoDirObject::method_current(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoDirObject::method_current(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(m_dir.absolutePath()));
+    result->set( BydaoString::create(m_dir.absolutePath()) );
     return true;
 }
 

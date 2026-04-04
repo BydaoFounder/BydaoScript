@@ -23,6 +23,7 @@
 #include "BydaoScript/BydaoString.h"
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoNull.h"
+#include "BydaoScript/BydaoModule.h"
 
 namespace BydaoScript {
 
@@ -30,7 +31,7 @@ namespace BydaoScript {
 // КОНСТРУКТОР / ДЕСТРУКТОР
 // ============================================================
 
-BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
+BydaoParser::BydaoParser(const QList<BydaoToken>& tokens)
     : m_tokens(tokens)
     , m_pos(0)
     , m_inLoop(false)
@@ -170,12 +171,12 @@ qint16 BydaoParser::addNullConstant() {
     return addConstant(BydaoConstant());
 }
 
-qint16 BydaoParser::addConstant( const BydaoValue& val ) {
-    switch ( val.typeId() ) {
-    case TYPE_STRING: return addConstant( val.toString() );
-    case TYPE_INT:    return addConstant( val.toInt() );
-    case TYPE_REAL:   return addConstant( val.toReal() );
-    case TYPE_BOOL:   return addConstant( val.toBool() );
+qint16 BydaoParser::addConstant( const BydaoValue* val ) {
+    switch ( val->typeId() ) {
+    case TYPE_STRING: return addConstant( val->toString() );
+    case TYPE_INT:    return addConstant( val->toInt() );
+    case TYPE_REAL:   return addConstant( val->toReal() );
+    case TYPE_BOOL:   return addConstant( val->toBool() );
     case TYPE_NULL:   return addNullConstant();
     }
     error("Invalid type of constant");
@@ -252,7 +253,7 @@ void BydaoParser::patchJump(int instrIndex) {
     }
 }
 
-void BydaoParser::patchJumps(const QVector<int>& jumps, int targetAddr) {
+void BydaoParser::patchJumps(const QList<int>& jumps, int targetAddr) {
     for (int instrIndex : jumps) {
         if (instrIndex >= 0 && instrIndex < m_bytecode.size()) {
             m_bytecode[instrIndex].arg1 = targetAddr;
@@ -765,8 +766,8 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
     // Пытаемся вычислить выражение
     BydaoToken exprToken = m_current;
     BydaoConstantFolder folder(this);
-    BydaoValue constValue = folder.evaluate();  // Один проход!
-    if ( ! constValue.isObject() ) {
+    BydaoValue* constValue = folder.evaluate();  // Один проход!
+    if ( ! constValue->isObject() ) {
         removeVariable(name);
         error("Constant expression expected");
         return false;
@@ -775,7 +776,7 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
     // Обновляем значение в таблице
 
     VariableInfo info = resolveVariable(name);
-    m_varScopes[ info.varIndex ].varInfo.type = constValue.toObject()->typeName();
+    m_varScopes[ info.varIndex ].varInfo.type = constValue->toObject()->typeName();
     m_varScopes[ info.varIndex ].varInfo.constValue = constValue;
 
     // Добавляем значение в таблицу констант и генерируем PUSH
@@ -1148,7 +1149,7 @@ bool BydaoParser::parseWhile() {
 
     // Парсим next-оператор
 
-    QVector<BydaoInstruction> nextCode;
+    QList<BydaoInstruction> nextCode;
 
     bool hasNext = match(BydaoTokenType::Next);
     if ( hasNext ) {
@@ -1719,7 +1720,7 @@ bool BydaoParser::parseAddition() {
             }
             if ( m_bytecode[size-2].op == BydaoOpCode::Load ) {
 
-                // Сложение переменной и значяения на стеке
+                // Сложение переменной и значения на стеке
 
                 int leftVarIndex = m_bytecode.takeAt( size - 2 ).arg1;
                 emitCode( BydaoOpCode::VarAdd, leftVarIndex, 0, op);
@@ -2084,8 +2085,8 @@ bool BydaoParser::parseCallSuffix() {
             BydaoParser parser(tokens);
 
             BydaoConstantFolder folder( &parser );
-            BydaoValue constValue = folder.evaluate();  // Один проход!
-            if ( constValue.isObject() ) {
+            BydaoValue* constValue = folder.evaluate();  // Один проход!
+            if ( constValue->isObject() ) {
                 qint64 constIndex = addConstant( constValue );
                 if ( constIndex > 0 ) {
                     emitCode( BydaoOpCode::PushConst, constIndex, 0, token );

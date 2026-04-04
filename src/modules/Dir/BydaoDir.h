@@ -35,19 +35,19 @@ public:
     bool exists() const { return m_dir.exists(); }
 
     bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+                    const BydaoValueList& args,
+                    BydaoValue* result) override;
 
 private:
     // Методы объекта
-    bool method_list(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_cd(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_mkdir(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_rmdir(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_exists(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_current(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_list(const BydaoValueList& args, BydaoValue* result);
+    bool method_cd(const BydaoValueList& args, BydaoValue* result);
+    bool method_mkdir(const BydaoValueList& args, BydaoValue* result);
+    bool method_rmdir(const BydaoValueList& args, BydaoValue* result);
+    bool method_exists(const BydaoValueList& args, BydaoValue* result);
+    bool method_current(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoDirObject::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoDirObject::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
@@ -75,8 +75,8 @@ public:
     UsedMetaDataList usedMetaData() override;
 
     bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+                    const BydaoValueList& args,
+                    BydaoValue* result) override;
 
 protected:
     bool initialize() override;
@@ -84,14 +84,14 @@ protected:
 
 private:
     // Методы модуля
-    bool method_open(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_list(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_cd(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_current(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_mkdir(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_rmdir(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_open(const BydaoValueList& args, BydaoValue* result);
+    bool method_list(const BydaoValueList& args, BydaoValue* result);
+    bool method_cd(const BydaoValueList& args, BydaoValue* result);
+    bool method_current(const BydaoValueList& args, BydaoValue* result);
+    bool method_mkdir(const BydaoValueList& args, BydaoValue* result);
+    bool method_rmdir(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoDirModule::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoDirModule::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов

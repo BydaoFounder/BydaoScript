@@ -13,6 +13,7 @@
 // limitations under the License.
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoInt.h"
+#include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoString.h"
 
 namespace BydaoScript {
@@ -38,7 +39,7 @@ MetaData*   BydaoBool::metaData() {
     return metaData;
 }
 
-QVector<BydaoBool*> BydaoBool::s_cache;
+QList<BydaoBool*> BydaoBool::s_cache;
 
 BydaoBool::BydaoBool(bool value)
     : BydaoObject()
@@ -56,8 +57,8 @@ void BydaoBool::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoBool::callMethod(const QString& name,
-                          const QVector<BydaoValue>& args,
-                          BydaoValue& result) {
+                          const BydaoValueList& args,
+                          BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -65,42 +66,42 @@ bool BydaoBool::callMethod(const QString& name,
     return false;
 }
 
-bool BydaoBool::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoBool::method_toString(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(m_value ? "true" : "false"));
+    result->set( BydaoString::create(m_value ? "true" : "false") );
     return true;
 }
 
-bool BydaoBool::method_toInt(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoBool::method_toInt(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoInt::create(m_value ? 1 : 0));
+    result->set( BydaoInt::create(m_value ? 1 : 0) );
     return true;
 }
 
-bool BydaoBool::method_toReal(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoBool::method_toReal(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue::fromReal(m_value ? 1.0 : 0.0);
+    result->set( BydaoReal::create(m_value ? 1.0 : 0.0) );
     return true;
 }
 
-bool BydaoBool::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoBool::method_toBool(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoBool::create(m_value) );
+    result->set( BydaoBool::create(m_value) );
     return true;
 }
 
-bool BydaoBool::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoBool::method_isNull(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(false));
+    result->set( BydaoBool::create(false) );
     return true;
 }
 
-BydaoValue BydaoBool::eq(const BydaoValue& other) {
-    return BydaoValue::fromBool( m_value == other.toBool() );
+BydaoValue* BydaoBool::eq(const BydaoValue* other) {
+    return BydaoValue::get( BydaoBool::create( m_value == other->toBool() ) );
 }
 
-BydaoValue BydaoBool::neq(const BydaoValue& other) {
-    return BydaoValue::fromBool( m_value != other.toBool() );
+BydaoValue* BydaoBool::neq(const BydaoValue* other) {
+    return BydaoValue::get( BydaoBool::create( m_value != other->toBool() ) );
 }
 
 } // namespace BydaoScript

@@ -25,28 +25,27 @@ public:
 
     QString typeName() const override { return "Iter"; }
 
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+    bool callMethod(const QString& name, const BydaoValueList& args, BydaoValue* result) override;
 
     // Виртуальные методы, которые должны реализовать конкретные итераторы
-    virtual bool next() = 0;
-    virtual bool isValid() const = 0;
-    virtual BydaoValue key() const = 0;
-    virtual BydaoValue value() const = 0;
+    virtual bool        next() = 0;
+    virtual bool        isValid() const = 0;
+    virtual BydaoValue* key() const = 0;
+    virtual BydaoValue* value() const = 0;
 
     // Свойства для доступа через точку
-    BydaoValue getKey() const { return key(); }
-    BydaoValue getValue() const { return value(); }
+    BydaoValue* getKey() const { return key(); }
+    BydaoValue* getValue() const { return value(); }
 
 private:
-    // Реализация методов для вызова из VM
-    bool method_next(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_isValid(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_key(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_value(const QVector<BydaoValue>& args, BydaoValue& result);
 
-    using MethodPtr = bool (BydaoIterator::*)(const QVector<BydaoValue>&, BydaoValue&);
+    // Реализация методов для вызова из VM
+    bool method_next(const BydaoValueList& args, BydaoValue* result);
+    bool method_isValid(const BydaoValueList& args, BydaoValue* result);
+    bool method_key(const BydaoValueList& args, BydaoValue* result);
+    bool method_value(const BydaoValueList& args, BydaoValue* result);
+
+    using MethodPtr = bool (BydaoIterator::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;

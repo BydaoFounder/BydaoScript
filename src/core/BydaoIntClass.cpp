@@ -15,7 +15,8 @@
 
 #include "BydaoScript/BydaoIntClass.h"
 #include "BydaoScript/BydaoIntRange.h"
-#include "BydaoScript/BydaoIntRange.h"  // для range
+#include "BydaoScript/BydaoInt.h"
+#include "BydaoScript/BydaoBool.h"
 
 namespace BydaoScript {
 
@@ -124,8 +125,8 @@ void BydaoIntClass::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoIntClass::callMethod(const QString& name,
-                               const QVector<BydaoValue>& args,
-                               BydaoValue& result) {
+                               const BydaoValueList& args,
+                               BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -136,70 +137,70 @@ bool BydaoIntClass::callMethod(const QString& name,
 //==============================================================================
 
 // Int.range(start, end) -> возвращает итератор по числам от start до end-1
-bool BydaoIntClass::method_range(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIntClass::method_range(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 2) return false;
     
-    qint64 start = args[0].toInt();
-    qint64 end = args[1].toInt();
+    qint64 start = args[0]->toInt();
+    qint64 end = args[1]->toInt();
     
     if (start >= end) {
-        result = BydaoValue(new BydaoIntRange(0, 0));  // пустой диапазон
+        result->set( new BydaoIntRange(0, 0) );  // пустой диапазон
         return true;
     }
     
-    result = BydaoValue(new BydaoIntRange(start, end));
+    result->set( new BydaoIntRange(start, end) );
     return true;
 }
 
 // Int.parse(str) -> преобразует строку в число
-bool BydaoIntClass::method_parse(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIntClass::method_parse(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
     
     bool ok;
-    qint64 val = args[0].toString().toLongLong(&ok);
+    qint64 val = args[0]->toString().toLongLong(&ok);
     if (!ok) return false;
     
-    result = BydaoValue::fromInt(val);
+    result->set( BydaoBool::create(val) );
     return true;
 }
 
 // Int.max(a, b) -> возвращает максимальное из двух чисел
-bool BydaoIntClass::method_max(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIntClass::method_max(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 2) return false;
     
-    qint64 a = args[0].toInt();
-    qint64 b = args[1].toInt();
+    qint64 a = args[0]->toInt();
+    qint64 b = args[1]->toInt();
     
-    result = BydaoValue::fromInt(a > b ? a : b);
+    result->set( BydaoInt::create(a > b ? a : b) );
     return true;
 }
 
 // Int.min(a, b) -> возвращает минимальное из двух чисел
-bool BydaoIntClass::method_min(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIntClass::method_min(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 2) return false;
     
-    qint64 a = args[0].toInt();
-    qint64 b = args[1].toInt();
+    qint64 a = args[0]->toInt();
+    qint64 b = args[1]->toInt();
     
-    result = BydaoValue::fromInt(a < b ? a : b);
+    result->set( BydaoInt::create(a < b ? a : b) );
     return true;
 }
 
 // Int.random(max) или Int.random(min, max) -> случайное число
-bool BydaoIntClass::method_random(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIntClass::method_random(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() == 1) {
         // random(max)
-        qint64 max = args[0].toInt();
+        qint64 max = args[0]->toInt();
         if (max <= 0) return false;
-        result = BydaoValue::fromInt(QRandomGenerator::global()->bounded(max));
+        result->set( BydaoInt::create(QRandomGenerator::global()->bounded(max)) );
         return true;
     }
     else if (args.size() == 2) {
         // random(min, max)
-        qint64 min = args[0].toInt();
-        qint64 max = args[1].toInt();
+        qint64 min = args[0]->toInt();
+        qint64 max = args[1]->toInt();
         if (min >= max) return false;
-        result = BydaoValue::fromInt(QRandomGenerator::global()->bounded(min, max));
+        result->set( BydaoInt::create(QRandomGenerator::global()->bounded(min, max)) );
         return true;
     }
     return false;

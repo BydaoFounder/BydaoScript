@@ -15,7 +15,6 @@
 
 #include "BydaoLexer.h"
 #include "BydaoBytecode.h"
-#include "BydaoModule.h"
 #include "BydaoConstantFolder.h"
 #include "BydaoMetaData.h"
 #include <QStack>
@@ -32,7 +31,7 @@ struct VariableInfo {
     int         varIndex;       // индекс в списке переменных
     bool        isConstant;     // true для констант
     bool        isPublic;       // true для pub-переменных/констант
-    BydaoValue  constValue;     // значение константы для вычислителя
+    BydaoValue* constValue;     // значение константы для вычислителя
 };
 
 // Информация о цикле (для break/next)
@@ -40,8 +39,8 @@ struct LoopInfo {
     int conditionAddr;   // адрес начала условия
     int nextAddr;        // адрес next-оператора
     int exitAddr;        // адрес выхода
-    QVector<int> breaks; // индексы инструкций JUMP для break
-    QVector<int> nexts;  // индексы инструкций JUMP для next
+    QList<int> breaks; // индексы инструкций JUMP для break
+    QList<int> nexts;  // индексы инструкций JUMP для next
 };
 
 // Информация о встроенном типе
@@ -52,16 +51,16 @@ struct BuiltinTypeInfo {
 
 class BydaoParser {
 public:
-    explicit BydaoParser(const QVector<BydaoToken>& tokens);
+    explicit BydaoParser(const QList<BydaoToken>& tokens);
     ~BydaoParser();
 
     bool parse();
     
     // Результаты парсинга
-    QVector<BydaoInstruction> takeBytecode() { return std::move(m_bytecode); }
-    QVector<BydaoConstant> takeConstants() { return std::move(m_constants); }
-    QVector<QString> takeStringTable() { return std::move(m_stringTable); }
-    QVector<BydaoDebugInfo> takeDebugInfo() { return std::move(m_debugInfo); }
+    QList<BydaoInstruction> takeBytecode() { return std::move(m_bytecode); }
+    QList<BydaoConstant> takeConstants() { return std::move(m_constants); }
+    QList<QString> takeStringTable() { return std::move(m_stringTable); }
+    QList<BydaoDebugInfo> takeDebugInfo() { return std::move(m_debugInfo); }
     
     QStringList errors() const { return m_errors; }
 
@@ -89,13 +88,13 @@ private:
     qint16 addConstant(bool value);
     qint16 addConstant(const QString& strValue);
     qint16 addNullConstant();
-    qint16 addConstant( const BydaoValue& val );
+    qint16 addConstant( const BydaoValue* val );
 
     // ===== Генерация кода =====
     qint16 emitCode(BydaoOpCode op, qint16 arg1 = 0, qint16 arg2 = 0);
     qint16 emitCode(BydaoOpCode op, qint16 arg1, qint16 arg2, const BydaoToken& token);
     void patchJump(int instrIndex);
-    void patchJumps(const QVector<int>& jumps, int targetAddr);
+    void patchJumps(const QList<int>& jumps, int targetAddr);
 
     // ===== Области видимости =====
     void enterScope();
@@ -164,20 +163,20 @@ private:
     QString getResultType( const QString& type, const QString& operName, const BydaoToken& token );
 
     // ===== Данные =====
-    QVector<BydaoToken> m_tokens;
+    QList<BydaoToken> m_tokens;
     int m_pos;
     BydaoToken m_current;
 
     // Таблицы
-    QVector<QString> m_stringTable;
+    QList<QString> m_stringTable;
     QHash<QString, qint16> m_stringIndex;
     
-    QVector<BydaoConstant> m_constants;
+    QList<BydaoConstant> m_constants;
     QHash<QString, qint16> m_constantIndex;
 
     // Байткод и отладка
-    QVector<BydaoInstruction> m_bytecode;
-    QVector<BydaoDebugInfo> m_debugInfo;
+    QList<BydaoInstruction> m_bytecode;
+    QList<BydaoDebugInfo> m_debugInfo;
     
     // Ошибки
     QStringList m_errors;

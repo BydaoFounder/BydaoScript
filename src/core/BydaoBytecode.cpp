@@ -76,11 +76,11 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
 
 // ========== Сохранение байткода ==========
 
-bool BydaoBytecode::save(const QVector<BydaoConstant>& constants,
-                         const QVector<QString>& stringTable,
-                         const QVector<BydaoInstruction>& code,
+bool BydaoBytecode::save(const QList<BydaoConstant>& constants,
+                         const QList<QString>& stringTable,
+                         const QList<BydaoInstruction>& code,
                          const QString& filename,
-                         const QVector<BydaoDebugInfo>* debugInfo) {
+                         const QList<BydaoDebugInfo>* debugInfo) {
     
     QFile file(filename);
     if (!file.open(QIODevice::WriteOnly)) {
@@ -167,10 +167,10 @@ bool BydaoBytecode::save(const QVector<BydaoConstant>& constants,
 // ========== Загрузка байткода ==========
 
 bool BydaoBytecode::load(const QString& filename,
-                         QVector<BydaoConstant>& constants,
-                         QVector<QString>& stringTable,
-                         QVector<BydaoInstruction>& code,
-                         QVector<BydaoDebugInfo>* debugInfo,
+                         QList<BydaoConstant>& constants,
+                         QList<QString>& stringTable,
+                         QList<BydaoInstruction>& code,
+                         QList<BydaoDebugInfo>* debugInfo,
                          QString* error) {
     
     QFile file(filename);
@@ -315,9 +315,9 @@ bool BydaoBytecode::load(const QString& filename,
 
 // ========== Валидация ==========
 
-bool BydaoBytecode::validate(const QVector<BydaoInstruction>& code,
-                             const QVector<BydaoConstant>& constants,
-                             const QVector<QString>& stringTable,
+bool BydaoBytecode::validate(const QList<BydaoInstruction>& code,
+                             const QList<BydaoConstant>& constants,
+                             const QList<QString>& stringTable,
                              QString* error) {
     
     // Проверка границ констант

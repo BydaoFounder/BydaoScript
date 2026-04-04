@@ -13,7 +13,6 @@
 // limitations under the License.
 #include "BydaoScript/BydaoIterator.h"
 #include "BydaoScript/BydaoBool.h"
-#include "BydaoScript/BydaoNull.h"
 
 namespace BydaoScript {
 
@@ -44,8 +43,8 @@ void BydaoIterator::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoIterator::callMethod(const QString& name,
-                               const QVector<BydaoValue>& args,
-                               BydaoValue& result) {
+                               const BydaoValueList& args,
+                               BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -53,27 +52,27 @@ bool BydaoIterator::callMethod(const QString& name,
     return false;
 }
 
-bool BydaoIterator::method_next(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIterator::method_next(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(next()));
+    result->set( BydaoBool::create(next()) );
     return true;
 }
 
-bool BydaoIterator::method_isValid(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIterator::method_isValid(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(isValid()));
+    result->set( BydaoBool::create(isValid()) );
     return true;
 }
 
-bool BydaoIterator::method_key(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIterator::method_key(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = key();
+    result->set( key()->toObject() );
     return true;
 }
 
-bool BydaoIterator::method_value(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIterator::method_value(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = value();
+    result->set( value()->toObject() );
     return true;
 }
 

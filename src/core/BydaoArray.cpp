@@ -30,8 +30,8 @@ MetaData*   BydaoArray::metaData() {
             ->append( "length",     VarMetaData("Int",true,false) );
         metaData
             // методы объекта
-            ->append( "iter",        FuncMetaData("ArrayIter", false, true) )
-            .append( "toString",   FuncMetaData("String", false, true) )
+            ->append( "iter",       FuncMetaData("ArrayIter", false, true) )
+            .append( "toString",    FuncMetaData("String", false, true) )
             .append( "length",      FuncMetaData("Int", false, true) )
             .append( "get",         FuncMetaData("Int", false, true) << FuncArgMetaData("pos","Int",false) )
             .append( "set",         FuncMetaData("Void", false, true)
@@ -59,25 +59,18 @@ BydaoArray::BydaoArray()
     : BydaoObject()
 {
     // Регистрация методов (без макросов)
-    registerMethod("toString", &BydaoArray::method_toString);
-    registerMethod("length", &BydaoArray::method_length);
-    registerMethod("get", &BydaoArray::method_get);
-    registerMethod("set", &BydaoArray::method_set);
-    registerMethod("push", &BydaoArray::method_push);
-    registerMethod("pop", &BydaoArray::method_pop);
-    registerMethod("shift", &BydaoArray::method_shift);
-    registerMethod("unshift", &BydaoArray::method_unshift);
-    registerMethod("slice", &BydaoArray::method_slice);
-    registerMethod("join", &BydaoArray::method_join);
+    registerMethod("toString",  &BydaoArray::method_toString);
+    registerMethod("length",    &BydaoArray::method_length);
+    registerMethod("get",       &BydaoArray::method_get);
+    registerMethod("set",       &BydaoArray::method_set);
+    registerMethod("push",      &BydaoArray::method_push);
+    registerMethod("pop",       &BydaoArray::method_pop);
+    registerMethod("shift",     &BydaoArray::method_shift);
+    registerMethod("unshift",   &BydaoArray::method_unshift);
+    registerMethod("slice",     &BydaoArray::method_slice);
+    registerMethod("join",      &BydaoArray::method_join);
 
-    registerMethod("iter", &BydaoArray::method_iter);  // ← добавить
-
-    // Регистрация свойства length (ReadOnly)
-    // Свойства
-    // registerProperty("length",
-    //                  [this]() { return BydaoValue::fromInt(m_elements.size()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    registerMethod("iter",      &BydaoArray::method_iter);  // ← добавить
 }
 
 void BydaoArray::registerMethod(const QString& name, MethodPtr method) {
@@ -85,8 +78,8 @@ void BydaoArray::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoArray::callMethod(const QString& name,
-                           const QVector<BydaoValue>& args,
-                           BydaoValue& result) {
+                           const BydaoValueList& args,
+                           BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -94,20 +87,20 @@ bool BydaoArray::callMethod(const QString& name,
     return false;
 }
 
-BydaoValue BydaoArray::iter() {
-    return BydaoValue(new BydaoArrayIterator(this));
+BydaoValue* BydaoArray::iter() {
+    return BydaoValue::get( new BydaoArrayIterator(this) );
 }
 
 // ========== Реализация методов массива ==========
 
-BydaoValue BydaoArray::at(qint64 index) const {
+BydaoValue* BydaoArray::at(qint64 index) const {
     if (index >= 0 && index < m_elements.size()) {
         return m_elements[index];
     }
-    return BydaoValue(BydaoNull::instance());
+    return BydaoValue::get();
 }
 
-void BydaoArray::set(qint64 index, const BydaoValue& value) {
+void BydaoArray::set(qint64 index, BydaoValue* value) {
     if (index >= 0) {
         if (index >= m_elements.size()) {
             m_elements.resize(index + 1);
@@ -116,19 +109,19 @@ void BydaoArray::set(qint64 index, const BydaoValue& value) {
     }
 }
 
-BydaoValue  BydaoArray::get(const BydaoValue& index) {
-    int idx = index.toInt();
+BydaoValue* BydaoArray::get(const BydaoValue* index) {
+    int idx = index->toInt();
     if (0 <= idx && idx < m_elements.size()) {
         return m_elements[idx];
     }
-    return BydaoValue(BydaoNull::instance());
+    return BydaoValue::get();
 }
 
-void BydaoArray::append(const BydaoValue& value) {
+void BydaoArray::append(BydaoValue* value) {
     m_elements.append(value);
 }
 
-void BydaoArray::insert(qint64 index, const BydaoValue& value) {
+void BydaoArray::insert(qint64 index, BydaoValue* value) {
     if (index >= 0 && index <= m_elements.size()) {
         m_elements.insert(index, value);
     }
@@ -146,86 +139,90 @@ void BydaoArray::clear() {
 
 // ========== Методы ==========
 
-bool BydaoArray::method_iter(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_iter(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoArrayIterator(this));
+    result->set(new BydaoArrayIterator(this));
     return true;
 }
 
-bool BydaoArray::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_toString(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
     QStringList parts;
     foreach (const auto& elem, m_elements) {
-        parts << elem.toString();
+        parts << elem->toString();
     }
-    result = BydaoValue::fromString("[" + parts.join(", ") + "]");
+    result->set( BydaoString::create( "[" + parts.join(", ") + "]") );
     return true;
 }
 
-bool BydaoArray::method_length(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_length(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue::fromInt(m_elements.size());
+    result->set( BydaoInt::create( m_elements.size() ) );
     return true;
 }
 
-bool BydaoArray::method_get(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_get(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    int index = args[0].toInt();
-    result = at(index);
-    return true;
+    int index = args[0]->toInt();
+    if ( 0 <= index && index < m_elements.size() ) {
+        result->set( m_elements[ index ]->toObject() );
+        return true;
+    }
+    qWarning() << "Invalid array index";
+    return false;
 }
 
-bool BydaoArray::method_set(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_set(const BydaoValueList& args, BydaoValue* result) {
+    Q_UNUSED( result );
     if (args.size() != 2) return false;
-    set(args[0].toInt(), args[1]);
-    result = BydaoValue();
+    set( args[0]->toInt(), args[1] );
     return true;
 }
 
-bool BydaoArray::method_push(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_push(const BydaoValueList& args, BydaoValue* result) {
+    Q_UNUSED( result );
     if (args.size() != 1) return false;
     append(args[0]);
-    result = BydaoValue::fromInt(m_elements.size());
     return true;
 }
 
-bool BydaoArray::method_pop(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_pop(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
     if (m_elements.isEmpty()) {
-        result = BydaoValue(BydaoNull::instance());
+        result->set( BydaoNull::instance() );
     } else {
-        result = m_elements.takeLast();
+        result->set( m_elements.takeLast()->toObject() );
     }
     return true;
 }
 
-bool BydaoArray::method_shift(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_shift(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
     if (m_elements.isEmpty()) {
-        result = BydaoValue(BydaoNull::instance());
+        result->set( BydaoNull::instance() );
     } else {
-        result = m_elements.takeFirst();
+        result->set( m_elements.takeFirst()->toObject() );
     }
     return true;
 }
 
-bool BydaoArray::method_unshift(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_unshift(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
     m_elements.prepend(args[0]);
-    result = BydaoValue::fromInt(m_elements.size());
+    result->set( BydaoInt::create( m_elements.size() ) );
     return true;
 }
 
-bool BydaoArray::method_slice(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoArray::method_slice(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() < 1 || args.size() > 2) return false;
 
-    qint64 start = args[0].toInt();
-    qint64 end = (args.size() == 2) ? args[1].toInt() : m_elements.size();
+    qint64 start = args[0]->toInt();
+    qint64 end = (args.size() == 2) ? args[1]->toInt() : m_elements.size();
 
     if (start < 0) start = 0;
     if (end > m_elements.size()) end = m_elements.size();
     if (start >= end) {
-        result = BydaoValue(new BydaoArray());
+        result->set( new BydaoArray() );
         return true;
     }
 
@@ -233,18 +230,18 @@ bool BydaoArray::method_slice(const QVector<BydaoValue>& args, BydaoValue& resul
     for (qint64 i = start; i < end; i++) {
         newArray->append(m_elements[i]);
     }
-    result = BydaoValue(newArray);
+    result->set( newArray );
     return true;
 }
 
-bool BydaoArray::method_join(const QVector<BydaoValue>& args, BydaoValue& result) {
-    QString sep = args.size() > 0 ? args[0].toString() : ",";
+bool BydaoArray::method_join(const BydaoValueList& args, BydaoValue* result) {
+    QString sep = args.size() > 0 ? args[0]->toString() : ",";
 
     QStringList parts;
     for (const auto& elem : m_elements) {
-        parts << elem.toString();
+        parts << elem->toString();
     }
-    result = BydaoValue::fromString(parts.join(sep));
+    result->set( BydaoString::create( parts.join(sep) ) );
     return true;
 }
 

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "BydaoScript/BydaoIntRange.h"
-#include "BydaoScript/BydaoNull.h"
 #include "BydaoScript/BydaoInt.h"
 
 namespace BydaoScript {
@@ -43,8 +42,8 @@ void BydaoIntRange::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoIntRange::callMethod(const QString& name,
-                             const QVector<BydaoValue>& args,
-                             BydaoValue& result) {
+                             const BydaoValueList& args,
+                             BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -52,14 +51,14 @@ bool BydaoIntRange::callMethod(const QString& name,
     return false;
 }
 
-BydaoValue BydaoIntRange::iter() {
-    return BydaoValue(new BydaoIntRangeIterator(this));
+BydaoValue* BydaoIntRange::iter() {
+    return BydaoValue::get( new BydaoIntRangeIterator(this) );
 }
 
 // BydaoIntRange::method_iter()
-bool BydaoIntRange::method_iter(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoIntRange::method_iter(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = iter();
+    result->set( new BydaoIntRangeIterator(this) );
     return true;
 }
 
@@ -91,7 +90,19 @@ BydaoIntRangeIterator::BydaoIntRangeIterator( BydaoIntRange* range ) {
     m_current = m_start - 1;
 }
 
-bool BydaoIntRangeIterator::next() {
+bool    BydaoIntRangeIterator::getVar( const QString& varName, BydaoValue* value ) {
+    if ( varName == "value" ) {
+        value->set( isValid() ? BydaoInt::create(m_current) : nullptr );
+        return true;
+    }
+    if ( varName == "key" ) {
+        value->set( isValid() ? BydaoInt::create(m_current - m_start) : nullptr );
+        return true;
+    }
+    return BydaoIterator::getVar( varName, value );
+}
+
+bool    BydaoIntRangeIterator::next() {
     return ++m_current < m_end;
 }
 
@@ -99,14 +110,14 @@ bool BydaoIntRangeIterator::isValid() const {
     return m_current >= m_start && m_current < m_end;
 }
 
-BydaoValue BydaoIntRangeIterator::key() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
-    return BydaoValue( BydaoInt::create(m_current - m_start) );
+BydaoValue* BydaoIntRangeIterator::key() const {
+    if (!isValid()) return BydaoValue::get();
+    return BydaoValue::get( BydaoInt::create(m_current - m_start) );
 }
 
-BydaoValue BydaoIntRangeIterator::value() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
-    return BydaoValue( BydaoInt::create(m_current) );
+BydaoValue* BydaoIntRangeIterator::value() const {
+    if (!isValid()) return BydaoValue::get();
+    return BydaoValue::get( BydaoInt::create(m_current) );
 }
 
 } // namespace BydaoScript

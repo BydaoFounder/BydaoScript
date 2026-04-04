@@ -15,7 +15,7 @@
 #define _BYDAOOBJECT_H_
 
 #include <QString>
-#include <QVector>
+#include <QList>
 #include <QDebug>
 
 #include "BydaoValue.h"
@@ -33,17 +33,17 @@ public:
 
     // Единственный метод вызова
     virtual bool callMethod(const QString& name,
-                            const QVector<BydaoValue>& args,
-                            BydaoValue& result) = 0;
+                            const BydaoValueList& args,
+                            BydaoValue* result) = 0;
 
-    virtual bool    getVar( const QString& varName, BydaoValue& value ) {
+    virtual bool    getVar( const QString& varName, BydaoValue* value ) {
         Q_UNUSED( varName );
         Q_UNUSED( value );
         qWarning() << "'getVar' not implemented for" << typeName();
         return false;
     };
 
-    virtual bool    setVar( const QString& varName, const BydaoValue& value ) {
+    virtual bool    setVar( const QString& varName, const BydaoValue* value ) {
         Q_UNUSED( varName );
         Q_UNUSED( value );
         qWarning() << "'setVar' not implemented for" << typeName();
@@ -54,8 +54,8 @@ public:
     virtual QString typeName() const = 0;
 
     // Получить итератор
-    virtual BydaoValue iter(){
-        return BydaoValue();
+    virtual BydaoValue* iter(){
+        return BydaoValue::get();
     };
 
     virtual BydaoObject* copy() {
@@ -70,97 +70,97 @@ public:
         qWarning() << "assign not implemented for" << typeName();
     }
 
-    virtual BydaoValue add(const BydaoValue& other) {
+    virtual BydaoValue* add(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "add not supported for" << typeName();
-        return BydaoValue();  // null
+        return BydaoValue::get();  // null
     }
 
-    virtual void  addToValue(const BydaoValue& other) {
+    virtual void  addToValue(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "addToValue not supported for" << typeName();
     }
 
-    virtual BydaoValue sub(const BydaoValue& other) {
+    virtual BydaoValue* sub(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "sub not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue mul(const BydaoValue& other) {
+    virtual BydaoValue* mul(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "mul not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue div(const BydaoValue& other) {
+    virtual BydaoValue* div(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "div not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue mod(const BydaoValue& other) {
+    virtual BydaoValue* mod(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "mod not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue neg() {
+    virtual BydaoValue* neg() {
         qWarning() << "neg not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue eq(const BydaoValue& other) {
+    virtual BydaoValue* eq(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "eq not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue neq(const BydaoValue& other) {
+    virtual BydaoValue* neq(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "neq not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue lt(const BydaoValue& other) {
+    virtual BydaoValue* lt(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "lt not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue le(const BydaoValue& other) {
+    virtual BydaoValue* le(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "le not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue gt(const BydaoValue& other) {
+    virtual BydaoValue* gt(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "gt not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue ge(const BydaoValue& other) {
+    virtual BydaoValue* ge(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "ge not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue and_(const BydaoValue& other) {
+    virtual BydaoValue* and_(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "and not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue or_(const BydaoValue& other) {
+    virtual BydaoValue* or_(const BydaoValue* other) {
         Q_UNUSED( other );
         qWarning() << "or not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
-    virtual BydaoValue not_() {
+    virtual BydaoValue* not_() {
         qWarning() << "not not supported for" << typeName();
-        return BydaoValue();
+        return BydaoValue::get();
     }
 
 protected:

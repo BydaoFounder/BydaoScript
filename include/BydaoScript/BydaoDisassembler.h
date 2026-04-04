@@ -24,27 +24,27 @@ public:
     BydaoDisassembler();
 
     // Основные методы дизассемблирования
-    QString disassemble(const QVector<BydaoConstant>& constants,
-                        const QVector<QString>& stringTable,
-                        const QVector<BydaoInstruction>& code,
-                        const QVector<BydaoDebugInfo>* debugInfo = nullptr);
+    QString disassemble(const QList<BydaoConstant>& constants,
+                        const QList<QString>& stringTable,
+                        const QList<BydaoInstruction>& code,
+                        const QList<BydaoDebugInfo>* debugInfo = nullptr);
 
     void disassemble(QTextStream& out,
-                     const QVector<BydaoConstant>& constants,
-                     const QVector<QString>& stringTable,
-                     const QVector<BydaoInstruction>& code,
-                     const QVector<BydaoDebugInfo>* debugInfo = nullptr);
+                     const QList<BydaoConstant>& constants,
+                     const QList<QString>& stringTable,
+                     const QList<BydaoInstruction>& code,
+                     const QList<BydaoDebugInfo>* debugInfo = nullptr);
 
     // Дизассемблирование отдельных секций
-    QString disassembleConstants(const QVector<BydaoConstant>& constants,
-                                 const QVector<QString>& stringTable);
+    QString disassembleConstants(const QList<BydaoConstant>& constants,
+                                 const QList<QString>& stringTable);
 
-    QString disassembleStringTable(const QVector<QString>& stringTable);
+    QString disassembleStringTable(const QList<QString>& stringTable);
 
-    QString disassembleCode(const QVector<BydaoInstruction>& code,
-                            const QVector<BydaoConstant>& constants,
-                            const QVector<QString>& stringTable,
-                            const QVector<BydaoDebugInfo>* debugInfo = nullptr);
+    QString disassembleCode(const QList<BydaoInstruction>& code,
+                            const QList<BydaoConstant>& constants,
+                            const QList<QString>& stringTable,
+                            const QList<BydaoDebugInfo>* debugInfo = nullptr);
 
     // Настройки вывода
     void setShowLineNumbers(bool show) { m_showLineNumbers = show; }
@@ -61,17 +61,17 @@ public:
 private:
     // Вспомогательные методы
     QString formatInstruction(int index, const BydaoInstruction& instr,
-                              const QVector<BydaoConstant>& constants,
-                              const QVector<QString>& stringTable,
-                              const QVector<BydaoDebugInfo>* debugInfo = nullptr);
+                              const QList<BydaoConstant>& constants,
+                              const QList<QString>& stringTable,
+                              const QList<BydaoDebugInfo>* debugInfo = nullptr);
 
-    QString formatArg(const BydaoInstruction& instr, const QVector<BydaoConstant>& constants, const QVector<QString>& stringTable);
-    QString formatConstant(const BydaoConstant& c, const QVector<QString>& stringTable);
+    QString formatArg(const BydaoInstruction& instr, const QList<BydaoConstant>& constants, const QList<QString>& stringTable);
+    QString formatConstant(const BydaoConstant& c, const QList<QString>& stringTable);
     QString formatString(const QString& str);
 
     // Поиск отладочной информации
     const BydaoDebugInfo* findDebugInfo(int instructionIndex,
-                                        const QVector<BydaoDebugInfo>* debugInfo) const;
+                                        const QList<BydaoDebugInfo>* debugInfo) const;
 
     // Настройки
     bool m_showLineNumbers = true;

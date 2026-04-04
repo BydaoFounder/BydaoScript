@@ -1,9 +1,11 @@
 #pragma once
 
-#include "../../../include/BydaoScript/BydaoModule.h"
 #include <QFile>
 #include <QFileInfo>
 #include <QTextStream>
+
+#include "../../../include/BydaoScript/BydaoModule.h"
+#include "../../../include/BydaoScript/BydaoString.h"
 
 #ifdef BYDAOFILE_LIBRARY
 #include "BydaoFile_global.h"
@@ -28,18 +30,18 @@ public:
     QString name() const override { return "FileObject"; }
     QString version() const override { return "1.0.0"; }
 
-    virtual bool    getVar( const QString& varName, BydaoValue& value ) override {
+    virtual bool    getVar( const QString& varName, BydaoValue* value ) override {
         if ( varName == "name" ) {
-            value = BydaoValue::fromString( m_file.fileName() );
+            value->set( BydaoString::create( m_file.fileName() ) );
             return true;
         }
         qWarning() << QString("Member '%1' not exists in file object").arg( varName );
         return false;
     };
 
-    virtual bool    setVar( const QString& varName, const BydaoValue& value ) override {
+    virtual bool    setVar( const QString& varName, const BydaoValue* value ) override {
         if ( varName == "name" ) {
-            m_file.setFileName( value.toString() );
+            m_file.setFileName( value->toString() );
             return true;
         }
         qWarning() << QString("Member '%1' not exists in file object").arg( varName );
@@ -57,30 +59,30 @@ public:
     bool isWritable() const { return QFileInfo(m_file).isWritable(); }
 
     bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+                    const BydaoValueList& args,
+                    BydaoValue* result) override;
 
 private:
     // Методы объекта
-    bool method_open(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_close(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_read(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_readLine(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_readLines(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_write(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_writeLine(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_append(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_copy(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_move(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_rename(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_remove(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_pos(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_seek(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_atEnd(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_open(const BydaoValueList& args, BydaoValue* result);
+    bool method_close(const BydaoValueList& args, BydaoValue* result);
+    bool method_read(const BydaoValueList& args, BydaoValue* result);
+    bool method_readLine(const BydaoValueList& args, BydaoValue* result);
+    bool method_readLines(const BydaoValueList& args, BydaoValue* result);
+    bool method_write(const BydaoValueList& args, BydaoValue* result);
+    bool method_writeLine(const BydaoValueList& args, BydaoValue* result);
+    bool method_append(const BydaoValueList& args, BydaoValue* result);
+    bool method_copy(const BydaoValueList& args, BydaoValue* result);
+    bool method_move(const BydaoValueList& args, BydaoValue* result);
+    bool method_rename(const BydaoValueList& args, BydaoValue* result);
+    bool method_remove(const BydaoValueList& args, BydaoValue* result);
+    bool method_pos(const BydaoValueList& args, BydaoValue* result);
+    bool method_seek(const BydaoValueList& args, BydaoValue* result);
+    bool method_atEnd(const BydaoValueList& args, BydaoValue* result);
 
     QIODevice::OpenMode parseMode(const QString& mode);
 
-    using MethodPtr = bool (BydaoFileObject::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoFileObject::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
@@ -106,8 +108,8 @@ public:
     MetaData*   metaData() override;
 
     bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+                    const BydaoValueList& args,
+                    BydaoValue* result) override;
 
 protected:
     bool initialize() override;
@@ -115,17 +117,17 @@ protected:
 
 private:
     // Методы модуля
-    bool method_new(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_exists(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_copy(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_move(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_rename(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_remove(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_size(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_readAll(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_writeAll(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_new(const BydaoValueList& args, BydaoValue* result);
+    bool method_exists(const BydaoValueList& args, BydaoValue* result);
+    bool method_copy(const BydaoValueList& args, BydaoValue* result);
+    bool method_move(const BydaoValueList& args, BydaoValue* result);
+    bool method_rename(const BydaoValueList& args, BydaoValue* result);
+    bool method_remove(const BydaoValueList& args, BydaoValue* result);
+    bool method_size(const BydaoValueList& args, BydaoValue* result);
+    bool method_readAll(const BydaoValueList& args, BydaoValue* result);
+    bool method_writeAll(const BydaoValueList& args, BydaoValue* result);
 
-    using MethodPtr = bool (BydaoFileModule::*)(const QVector<BydaoValue>&, BydaoValue&);
+    using MethodPtr = bool (BydaoFileModule::*)(const BydaoValueList&, BydaoValue*);
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов

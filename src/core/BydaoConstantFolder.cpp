@@ -56,9 +56,9 @@ bool BydaoConstantFolder::isConstantExpression() {
     return result;
 }
 
-BydaoValue BydaoConstantFolder::evaluate() {
+BydaoValue* BydaoConstantFolder::evaluate() {
     savePos();
-    BydaoValue result = evaluateLogicalOr();
+    BydaoValue* result = evaluateLogicalOr();
 
     // Если после выражения остались непрочитанные токены - это ошибка
     if (m_parser->match(BydaoTokenType::Plus) ||
@@ -68,7 +68,7 @@ BydaoValue BydaoConstantFolder::evaluate() {
         m_parser->match(BydaoTokenType::Mod) ||
         m_parser->match(BydaoTokenType::LParen)) {
         restorePos();
-        return BydaoValue();  // null
+        return BydaoValue::get();  // null
     }
 
     return result;
@@ -87,15 +87,15 @@ bool BydaoConstantFolder::isConstantLogicalOr() {
     return true;
 }
 
-BydaoValue BydaoConstantFolder::evaluateLogicalOr() {
-    BydaoValue result = evaluateLogicalAnd();
+BydaoValue* BydaoConstantFolder::evaluateLogicalOr() {
+    BydaoValue* result = evaluateLogicalAnd();
 
     while (m_parser->match(BydaoTokenType::Or)) {
         m_parser->nextToken();
-        BydaoValue right = evaluateLogicalAnd();
+        BydaoValue* right = evaluateLogicalAnd();
 
-        bool boolResult = result.toBool() || right.toBool();
-        result = BydaoValue::fromBool(boolResult);
+        bool boolResult = result->toBool() || right->toBool();
+        result->set( BydaoBool::create( boolResult ) );
     }
     return result;
 }
@@ -113,15 +113,15 @@ bool BydaoConstantFolder::isConstantLogicalAnd() {
     return true;
 }
 
-BydaoValue BydaoConstantFolder::evaluateLogicalAnd() {
-    BydaoValue result = evaluateEquality();
+BydaoValue* BydaoConstantFolder::evaluateLogicalAnd() {
+    BydaoValue* result = evaluateEquality();
 
     while (m_parser->match(BydaoTokenType::And)) {
         m_parser->nextToken();
-        BydaoValue right = evaluateEquality();
+        BydaoValue* right = evaluateEquality();
 
-        bool boolResult = result.toBool() && right.toBool();
-        result = BydaoValue::fromBool(boolResult);
+        bool boolResult = result->toBool() && right->toBool();
+        result->set( BydaoBool::create( boolResult ) );
     }
     return result;
 }
@@ -140,33 +140,33 @@ bool BydaoConstantFolder::isConstantEquality() {
     return true;
 }
 
-BydaoValue BydaoConstantFolder::evaluateEquality() {
-    BydaoValue result = evaluateComparison();
+BydaoValue* BydaoConstantFolder::evaluateEquality() {
+    BydaoValue* result = evaluateComparison();
 
     while (true) {
         if (m_parser->match(BydaoTokenType::Equal)) {
             m_parser->nextToken();
-            BydaoValue right = evaluateComparison();
+            BydaoValue* right = evaluateComparison();
 
             bool eq = false;
-            if (result.isObject() && right.isObject()) {
-                eq = result.toObject()->eq(right).toBool();
+            if (result->isObject() && right->isObject()) {
+                eq = result->toObject()->eq(right)->toBool();
             } else {
-                eq = (result.toString() == right.toString());
+                eq = (result->toString() == right->toString());
             }
-            result = BydaoValue::fromBool(eq);
+            result->set( BydaoBool::create( eq ) );
         }
         else if (m_parser->match(BydaoTokenType::NotEqual)) {
             m_parser->nextToken();
-            BydaoValue right = evaluateComparison();
+            BydaoValue* right = evaluateComparison();
 
             bool neq = true;
-            if (result.isObject() && right.isObject()) {
-                neq = result.toObject()->neq(right).toBool();
+            if (result->isObject() && right->isObject()) {
+                neq = result->toObject()->neq(right)->toBool();
             } else {
-                neq = (result.toString() != right.toString());
+                neq = (result->toString() != right->toString());
             }
-            result = BydaoValue::fromBool(neq);
+            result->set( BydaoBool::create( neq ) );
         }
         else {
             break;
@@ -191,57 +191,57 @@ bool BydaoConstantFolder::isConstantComparison() {
     return true;
 }
 
-BydaoValue BydaoConstantFolder::evaluateComparison() {
-    BydaoValue result = evaluateAddition();
+BydaoValue* BydaoConstantFolder::evaluateComparison() {
+    BydaoValue* result = evaluateAddition();
 
     while (true) {
         if (m_parser->match(BydaoTokenType::Less)) {
             m_parser->nextToken();
-            BydaoValue right = evaluateAddition();
+            BydaoValue* right = evaluateAddition();
 
             bool lt = false;
-            if (result.isObject() && right.isObject()) {
-                lt = result.toObject()->lt(right).toBool();
+            if (result->isObject() && right->isObject()) {
+                lt = result->toObject()->lt(right)->toBool();
             } else {
-                lt = (result.toReal() < right.toReal());
+                lt = (result->toReal() < right->toReal());
             }
-            result = BydaoValue::fromBool(lt);
+            result->set( BydaoBool::create(lt) );
         }
         else if (m_parser->match(BydaoTokenType::Greater)) {
             m_parser->nextToken();
-            BydaoValue right = evaluateAddition();
+            BydaoValue* right = evaluateAddition();
 
             bool gt = false;
-            if (result.isObject() && right.isObject()) {
-                gt = result.toObject()->gt(right).toBool();
+            if (result->isObject() && right->isObject()) {
+                gt = result->toObject()->gt(right)->toBool();
             } else {
-                gt = (result.toReal() > right.toReal());
+                gt = (result->toReal() > right->toReal());
             }
-            result = BydaoValue::fromBool(gt);
+            result->set( BydaoBool::create(gt) );
         }
         else if (m_parser->match(BydaoTokenType::LessEqual)) {
             m_parser->nextToken();
-            BydaoValue right = evaluateAddition();
+            BydaoValue* right = evaluateAddition();
 
             bool le = false;
-            if (result.isObject() && right.isObject()) {
-                le = result.toObject()->le(right).toBool();
+            if (result->isObject() && right->isObject()) {
+                le = result->toObject()->le(right)->toBool();
             } else {
-                le = (result.toReal() <= right.toReal());
+                le = (result->toReal() <= right->toReal());
             }
-            result = BydaoValue::fromBool(le);
+            result->set( BydaoBool::create(le) );
         }
         else if (m_parser->match(BydaoTokenType::GreaterEqual)) {
             m_parser->nextToken();
-            BydaoValue right = evaluateAddition();
+            BydaoValue* right = evaluateAddition();
 
             bool ge = false;
-            if (result.isObject() && right.isObject()) {
-                ge = result.toObject()->ge(right).toBool();
+            if (result->isObject() && right->isObject()) {
+                ge = result->toObject()->ge(right)->toBool();
             } else {
-                ge = (result.toReal() >= right.toReal());
+                ge = (result->toReal() >= right->toReal());
             }
-            result = BydaoValue::fromBool(ge);
+            result->set( BydaoBool::create(ge) );
         }
         else {
             break;
@@ -264,31 +264,31 @@ bool BydaoConstantFolder::isConstantAddition() {
     return true;
 }
 
-BydaoValue BydaoConstantFolder::evaluateAddition() {
-    BydaoValue result = evaluateTerm();
+BydaoValue* BydaoConstantFolder::evaluateAddition() {
+    BydaoValue* result = evaluateTerm();
 
     while (true) {
         if (m_parser->match(BydaoTokenType::Plus)) {
             m_parser->nextToken();
-            BydaoValue right = evaluateTerm();
+            BydaoValue* right = evaluateTerm();
 
-            if (result.isObject() && right.isObject()) {
-                result = result.toObject()->add(right);
+            if (result->isObject() && right->isObject()) {
+                result = result->toObject()->add(right);
             } else {
                 // Fallback для простых типов
-                double val = result.toReal() + right.toReal();
-                result = BydaoValue::fromReal(val);
+                double val = result->toReal() + right->toReal();
+                result->set( BydaoReal::create(val) );
             }
         }
         else if (m_parser->match(BydaoTokenType::Minus)) {
             m_parser->nextToken();
-            BydaoValue right = evaluateTerm();
+            BydaoValue* right = evaluateTerm();
 
-            if (result.isObject() && right.isObject()) {
-                result = result.toObject()->sub(right);
+            if (result->isObject() && right->isObject()) {
+                result = result->toObject()->sub(right);
             } else {
-                double val = result.toReal() - right.toReal();
-                result = BydaoValue::fromReal(val);
+                double val = result->toReal() - right->toReal();
+                result->set( BydaoReal::create(val) );
             }
         }
         else {
@@ -323,49 +323,49 @@ bool BydaoConstantFolder::isConstantTerm() {
     return true;
 }
 
-BydaoValue BydaoConstantFolder::evaluateTerm() {
+BydaoValue* BydaoConstantFolder::evaluateTerm() {
 //    qDebug() << "<< evaluateTerm: starting at pos" << m_parser->m_pos;
-    BydaoValue result = evaluateUnary();
+    BydaoValue* result = evaluateUnary();
 //    qDebug() << "<< evaluateTerm: left =" << result.toString() << "at pos" << m_parser->m_pos;
 
     while (true) {
         if (m_parser->match(BydaoTokenType::Mul)) {
 //            qDebug() << "<< evaluateTerm: found * at pos" << m_parser->m_pos;
             m_parser->nextToken();
-            BydaoValue right = evaluateUnary();
+            BydaoValue* right = evaluateUnary();
 //            qDebug() << "<< evaluateTerm: right =" << right.toString();
 
-            if (result.isObject() && right.isObject()) {
-                result = result.toObject()->mul(right);
+            if (result->isObject() && right->isObject()) {
+                result = result->toObject()->mul(right);
             } else {
-                double val = result.toReal() * right.toReal();
-                result = BydaoValue::fromReal(val);
+                double val = result->toReal() * right->toReal();
+                result->set( BydaoReal::create(val) );
             }
         }
         else if (m_parser->match(BydaoTokenType::Div)) {
 //            qDebug() << "<< evaluateTerm: found / at pos" << m_parser->m_pos;
             m_parser->nextToken();
-            BydaoValue right = evaluateUnary();
+            BydaoValue* right = evaluateUnary();
 //            qDebug() << "<< evaluateTerm: right =" << right.toString();
 
-            if (result.isObject() && right.isObject()) {
-                result = result.toObject()->div(right);
+            if (result->isObject() && right->isObject()) {
+                result = result->toObject()->div(right);
             } else {
-                double val = result.toReal() / right.toReal();
-                result = BydaoValue::fromReal(val);
+                double val = result->toReal() / right->toReal();
+                result->set( BydaoReal::create(val) );
             }
         }
         else if (m_parser->match(BydaoTokenType::Mod)) {
 //            qDebug() << "<< evaluateTerm: found % at pos" << m_parser->m_pos;
             m_parser->nextToken();
-            BydaoValue right = evaluateUnary();
+            BydaoValue* right = evaluateUnary();
 //            qDebug() << "<< evaluateTerm: right =" << right.toString();
 
-            if (result.isObject() && right.isObject()) {
-                result = result.toObject()->mod(right);
+            if (result->isObject() && right->isObject()) {
+                result = result->toObject()->mod(right);
             } else {
-                qint64 val = result.toInt() % right.toInt();
-                result = BydaoValue::fromInt(val);
+                qint64 val = result->toInt() % right->toInt();
+                result->set( BydaoInt::create(val) );
             }
         }
         else {
@@ -387,19 +387,19 @@ bool BydaoConstantFolder::isConstantUnary() {
     return isConstantPrimary();
 }
 
-BydaoValue BydaoConstantFolder::evaluateUnary() {
+BydaoValue* BydaoConstantFolder::evaluateUnary() {
     if (m_parser->match(BydaoTokenType::Not)) {
         m_parser->nextToken();
-        BydaoValue val = evaluateUnary();
-        return BydaoValue::fromBool(!val.toBool());
+        BydaoValue* val = evaluateUnary();
+        return BydaoValue::get( BydaoBool::create( ! val->toBool() ) );
     }
     if (m_parser->match(BydaoTokenType::Minus)) {
         m_parser->nextToken();
-        BydaoValue val = evaluateUnary();
-        if (val.isObject()) {
-            return val.toObject()->neg();
+        BydaoValue* val = evaluateUnary();
+        if (val->isObject()) {
+            return val->toObject()->neg();
         }
-        return BydaoValue::fromReal(-val.toReal());
+        return BydaoValue::get( BydaoReal::create( -val->toReal() ) );
     }
     return evaluatePrimary();
 }
@@ -444,7 +444,7 @@ bool BydaoConstantFolder::isConstantPrimary() {
     return false;
 }
 
-BydaoValue BydaoConstantFolder::evaluatePrimary() {
+BydaoValue* BydaoConstantFolder::evaluatePrimary() {
     // Числа
     if (m_parser->match(BydaoTokenType::Number)) {
         QString text = m_parser->m_current.text;
@@ -453,9 +453,10 @@ BydaoValue BydaoConstantFolder::evaluatePrimary() {
 //        qDebug() << "evaluatePrimary: number" << text;  // ОТЛАДКА
 
         if (text.contains('.') || text.contains('e') || text.contains('E')) {
-            return BydaoValue::fromReal(text.toDouble());
-        } else {
-            return BydaoValue::fromInt(text.toLongLong());
+            return BydaoValue::get( BydaoReal::create( text.toDouble() ) );
+        }
+        else {
+            return BydaoValue::get( BydaoInt::create(text.toLongLong()) );
         }
     }
 
@@ -463,23 +464,23 @@ BydaoValue BydaoConstantFolder::evaluatePrimary() {
     if (m_parser->match(BydaoTokenType::String)) {
         QString text = m_parser->m_current.text;
         m_parser->nextToken();
-        return BydaoValue::fromString(text);
+        return BydaoValue::get( BydaoString::create(text) );
     }
 
     // Булевы значения
     if (m_parser->match(BydaoTokenType::True)) {
         m_parser->nextToken();
-        return BydaoValue::fromBool(true);
+        return BydaoValue::get( BydaoBool::create(true) );
     }
     if (m_parser->match(BydaoTokenType::False)) {
         m_parser->nextToken();
-        return BydaoValue::fromBool(false);
+        return BydaoValue::get( BydaoBool::create(false) );
     }
 
     // Null
     if (m_parser->match(BydaoTokenType::Null)) {
         m_parser->nextToken();
-        return BydaoValue( BydaoNull::instance() );  // null
+        return BydaoValue::get();  // null
     }
 
     // Идентификаторы (другие константы)
@@ -493,19 +494,19 @@ BydaoValue BydaoConstantFolder::evaluatePrimary() {
         if (info.isConstant) {
             return info.constValue;
         }
-        // Если это не константа, возвращаем null (но до этого мы должны были проверить)
-        return BydaoValue();
+        // Если это не константа, возвращаем null
+        return BydaoValue::get();
     }
 
     // Выражения в скобках
     if (m_parser->match(BydaoTokenType::LParen)) {
         m_parser->nextToken();
-        BydaoValue result = evaluateLogicalOr();
+        BydaoValue* result = evaluateLogicalOr();
         m_parser->expect(BydaoTokenType::RParen);
         return result;
     }
 
-    return BydaoValue();  // null
+    return BydaoValue::get();  // null
 }
 
 } // namespace BydaoScript

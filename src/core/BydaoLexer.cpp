@@ -201,8 +201,8 @@ BydaoToken BydaoLexer::readOperator(QChar ch) {
     return BydaoToken(BydaoTokenType::Error, QString(ch), m_line, startCol);
 }
 
-QVector<BydaoToken> BydaoLexer::tokenize() {
-    QVector<BydaoToken> tokens;
+QList<BydaoToken> BydaoLexer::tokenize() {
+    QList<BydaoToken> tokens;
     int length = m_source.length();
     while (m_pos < length) {
         skipWhitespace();

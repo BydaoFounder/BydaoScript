@@ -87,8 +87,8 @@ void BydaoFileModule::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoFileModule::callMethod(const QString& name,
-                                 const QVector<BydaoValue>& args,
-                                 BydaoValue& result) {
+                                 const BydaoValueList& args,
+                                 BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -98,80 +98,80 @@ bool BydaoFileModule::callMethod(const QString& name,
 
 // ========== Методы модуля ==========
 
-bool BydaoFileModule::method_new(const QVector<BydaoValue>& args, BydaoValue& result) {
-    QString name = (args.size() == 1) ? args[0].toString() : "";
-    result = BydaoValue(new BydaoFileObject( name ));
+bool BydaoFileModule::method_new(const BydaoValueList& args, BydaoValue* result) {
+    QString name = (args.size() == 1) ? args[0]->toString() : "";
+    result->set( new BydaoFileObject( name ) );
     return true;
 }
 
-bool BydaoFileModule::method_exists(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileModule::method_exists(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    result = BydaoValue::fromBool( QFileInfo::exists(args[0].toString()) );
+    result->set( BydaoBool::create( QFileInfo::exists(args[0]->toString()) ) );
     return true;
 }
 
-bool BydaoFileModule::method_copy(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileModule::method_copy(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 2) return false;
-    bool ok = QFile::copy(args[0].toString(), args[1].toString());
-    result = BydaoValue::fromBool(ok);
+    bool ok = QFile::copy(args[0]->toString(), args[1]->toString());
+    result->set( BydaoBool::create(ok) );
     return true;
 }
 
-bool BydaoFileModule::method_move(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileModule::method_move(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 2) return false;
-    bool ok = QFile::rename(args[0].toString(), args[1].toString());
-    result = BydaoValue::fromBool(ok);
+    bool ok = QFile::rename(args[0]->toString(), args[1]->toString());
+    result->set( BydaoBool::create(ok) );
     return true;
 }
 
-bool BydaoFileModule::method_rename(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileModule::method_rename(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 2) return false;
-    bool ok = QFile::rename(args[0].toString(), args[1].toString());
-    result = BydaoValue::fromBool(ok);
+    bool ok = QFile::rename(args[0]->toString(), args[1]->toString());
+    result->set( BydaoBool::create(ok) );
     return true;
 }
 
-bool BydaoFileModule::method_remove(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileModule::method_remove(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    bool ok = QFile::remove(args[0].toString());
-    result = BydaoValue::fromBool(ok);
+    bool ok = QFile::remove(args[0]->toString());
+    result->set( BydaoBool::create(ok) );
     return true;
 }
 
-bool BydaoFileModule::method_size(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileModule::method_size(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
-    qint64 size = QFileInfo(args[0].toString()).size();
-    result = BydaoValue::fromInt( size );
+    qint64 size = QFileInfo(args[0]->toString()).size();
+    result->set( BydaoInt::create( size ) );
     return true;
 }
 
-bool BydaoFileModule::method_readAll(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileModule::method_readAll(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
-    QFile file(args[0].toString());
+    QFile file(args[0]->toString());
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream in(&file);
         QString content = in.readAll();
         file.close();
-        result = BydaoValue(BydaoString::create(content));
+        result->set( BydaoString::create(content) );
         return true;
     }
-    result = BydaoValue(BydaoNull::instance());
+    result = BydaoValue::get();
     return false;
 }
 
-bool BydaoFileModule::method_writeAll(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileModule::method_writeAll(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 2) return false;
 
-    QFile file(args[0].toString());
+    QFile file(args[0]->toString());
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&file);
-        out << args[1].toString();
+        out << args[1]->toString();
         file.close();
-        result = BydaoValue::fromBool( true );
+        result->set( BydaoBool::create( true ) );
         return true;
     }
-    result = BydaoValue::fromBool( false );
+    result->set( BydaoBool::create( false ) );
     return false;
 }
 
@@ -251,8 +251,8 @@ void BydaoFileObject::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoFileObject::callMethod(const QString& name,
-                                const QVector<BydaoValue>& args,
-                                BydaoValue& result) {
+                                const BydaoValueList& args,
+                                BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -279,14 +279,14 @@ QIODevice::OpenMode BydaoFileObject::parseMode(const QString& mode) {
 
 // ========== Методы объекта ==========
 
-bool BydaoFileObject::method_open(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_open(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) return false;
 
     if (m_file.isOpen()) {
         m_file.close();
     }
 
-    QIODevice::OpenMode flags = parseMode(args[0].toString());
+    QIODevice::OpenMode flags = parseMode(args[0]->toString());
     bool ok = m_file.open(flags);
 
     if (ok && (flags & QIODevice::Text)) {
@@ -294,12 +294,13 @@ bool BydaoFileObject::method_open(const QVector<BydaoValue>& args, BydaoValue& r
         m_stream = new QTextStream(&m_file);
     }
 
-    result = BydaoValue::fromBool( ok );
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoFileObject::method_close(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_close(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
+    Q_UNUSED(result);
 
     if (m_stream) {
         delete m_stream;
@@ -308,81 +309,78 @@ bool BydaoFileObject::method_close(const QVector<BydaoValue>& args, BydaoValue& 
     if (m_file.isOpen()) {
         m_file.close();
     }
-    result = BydaoValue(BydaoNull::instance());
     return true;
 }
 
-bool BydaoFileObject::method_read(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_read(const BydaoValueList& args, BydaoValue* result) {
     if (!m_stream) {
-        result = BydaoValue(BydaoNull::instance());
         return false;
     }
 
-    qint64 maxlen = args.size() > 0 ? args[0].toInt() : -1;
+    qint64 maxlen = args.size() > 0 ? args[0]->toInt() : -1;
 
     if (maxlen < 0) {
-        result = BydaoValue(BydaoString::create(m_stream->readAll()));
-    } else {
-        result = BydaoValue(BydaoString::create(m_stream->read(maxlen)));
+        result->set( BydaoString::create(m_stream->readAll()) );
+    }
+    else {
+        result->set( BydaoString::create(m_stream->read(maxlen)) );
     }
     return true;
 }
 
-bool BydaoFileObject::method_readLine(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_readLine(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
 
     if (!m_stream) {
-        result = BydaoValue(BydaoNull::instance());
         return false;
     }
 
-    result = BydaoValue(BydaoString::create(m_stream->readLine()));
+    result->set( BydaoString::create(m_stream->readLine()) );
     return true;
 }
 
-bool BydaoFileObject::method_readLines(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_readLines(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
 
     if (!m_stream) {
-        result = BydaoValue(new BydaoArray());
+        result->set( new BydaoArray() );
         return false;
     }
 
-    auto* array = new BydaoArray();
+    auto* array = new BydaoStringArray();
     while (!m_stream->atEnd()) {
         QString line = m_stream->readLine();
-        array->append(BydaoValue(BydaoString::create(line)));
+        array->append( BydaoValue::get( BydaoString::create(line) ) );
     }
-
-    result = BydaoValue(array);
+    result->set( array );
     return true;
 }
 
-bool BydaoFileObject::method_write(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_write(const BydaoValueList& args, BydaoValue* result) {
     if (!m_stream || args.size() != 1) {
-        result = BydaoValue::fromBool( false );
+        result->set( BydaoBool::create( false ) );
         return false;
     }
 
-    *m_stream << args[0].toString();
-    result = BydaoValue::fromBool( true );
+    *m_stream << args[0]->toString();
+    result->set( BydaoBool::create( true ) );
     return true;
 }
 
-bool BydaoFileObject::method_writeLine(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_writeLine(const BydaoValueList& args, BydaoValue* result) {
     if (!m_stream || args.size() != 1) {
-        result = BydaoValue::fromBool( false );
+        result->set( BydaoBool::create( false ) );
         return false;
     }
 
-    *m_stream << args[0].toString() << Qt::endl;
-    result = BydaoValue::fromBool( true );
+    *m_stream << args[0]->toString() << Qt::endl;
+    result->set( BydaoBool::create( true ) );
     return true;
 }
 
-bool BydaoFileObject::method_append(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_append(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) {
-        result = BydaoValue::fromBool( false );
+        result->set( BydaoBool::create( false ) );
         return false;
     }
 
@@ -397,7 +395,7 @@ bool BydaoFileObject::method_append(const QVector<BydaoValue>& args, BydaoValue&
     bool ok = m_file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text);
     if (ok) {
         QTextStream appender(&m_file);
-        appender << args[0].toString();
+        appender << args[0]->toString();
         m_file.close();
     }
 
@@ -405,77 +403,75 @@ bool BydaoFileObject::method_append(const QVector<BydaoValue>& args, BydaoValue&
         m_file.open(oldMode);
     }
 
-    result = BydaoValue::fromBool( ok );
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoFileObject::method_copy(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_copy(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) {
-        result = BydaoValue::fromBool( false );
+        result->set( BydaoBool::create( false ) );
         return false;
     }
 
-    bool ok = QFile::copy(m_file.fileName(), args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    bool ok = QFile::copy(m_file.fileName(), args[0]->toString());
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoFileObject::method_move(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_move(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) {
-        result = BydaoValue::fromBool( false );
+        result->set( BydaoBool::create( false ) );
         return false;
     }
 
-    bool ok = QFile::rename(m_file.fileName(), args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    bool ok = QFile::rename(m_file.fileName(), args[0]->toString());
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoFileObject::method_rename(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_rename(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) {
-        result = BydaoValue::fromBool( false );
+        result->set( BydaoBool::create( false ) );
         return false;
     }
 
     QFileInfo info(m_file.fileName());
-    QString newPath = info.absolutePath() + "/" + args[0].toString();
+    QString newPath = info.absolutePath() + "/" + args[0]->toString();
     bool ok = QFile::rename(m_file.fileName(), newPath);
-    result = BydaoValue::fromBool( ok );
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoFileObject::method_remove(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_remove(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
 
-    bool wasOpen = m_file.isOpen();
-    if (wasOpen) {
+    if ( m_file.isOpen() ) {
         m_file.close();
     }
-    bool ok = m_file.remove();
-    result = BydaoValue::fromBool( ok );
+    result->set( BydaoBool::create( m_file.remove() ) );
     return true;
 }
 
-bool BydaoFileObject::method_pos(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_pos(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue::fromInt( m_file.pos() );
+    result->set( BydaoInt::create( m_file.pos() ) );
     return true;
 }
 
-bool BydaoFileObject::method_seek(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_seek(const BydaoValueList& args, BydaoValue* result) {
     if (args.size() != 1) {
-        result = BydaoValue::fromBool( false );
+        result->set( BydaoBool::create( false ) );
         return false;
     }
 
-    bool ok = m_file.seek(args[0].toInt());
-    result = BydaoValue::fromBool( ok );
+    bool ok = m_file.seek(args[0]->toInt());
+    result->set( BydaoBool::create( ok ) );
     return true;
 }
 
-bool BydaoFileObject::method_atEnd(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_atEnd(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue::fromBool( m_file.atEnd() );
+    result->set( BydaoBool::create( m_file.atEnd() ) );
     return true;
 }
 

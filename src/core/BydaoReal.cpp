@@ -64,7 +64,7 @@ MetaData*   BydaoReal::metaData() {
     return metaData;
 }
 
-QVector<BydaoReal*> BydaoReal::s_cache;
+QList<BydaoReal*> BydaoReal::s_cache;
 
 BydaoReal::BydaoReal(double value)
     : BydaoObject()
@@ -86,8 +86,8 @@ void BydaoReal::registerMethod(const QString& name, MethodPtr method) {
 }
 
 bool BydaoReal::callMethod(const QString& name,
-                          const QVector<BydaoValue>& args,
-                          BydaoValue& result) {
+                          const BydaoValueList& args,
+                          BydaoValue* result) {
     auto it = m_methods.find(name);
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
@@ -95,263 +95,241 @@ bool BydaoReal::callMethod(const QString& name,
     return false;
 }
 
-bool BydaoReal::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoReal::method_toString(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(QString::number(m_value)));
+    result->set(BydaoString::create(QString::number(m_value)));
     return true;
 }
 
-bool BydaoReal::method_toFixed(const QVector<BydaoValue>& args, BydaoValue& result) {
-    int decimals = args.size() > 0 ? (int)args[0].toInt() : 0;
-    result = BydaoValue(BydaoString::create(QString::number(m_value,'f',decimals)));
+bool BydaoReal::method_toFixed(const BydaoValueList& args, BydaoValue* result) {
+    int decimals = args.size() > 0 ? (int)args[0]->toInt() : 0;
+    result->set(BydaoString::create(QString::number(m_value,'f',decimals)));
     return true;
 }
 
-bool BydaoReal::method_toInt(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoReal::method_toInt(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoInt::create((qint64)m_value));
+    result->set(BydaoInt::create((qint64)m_value));
     return true;
 }
 
-bool BydaoReal::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoReal::method_toBool(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(m_value != 0.0));
+    result->set(BydaoBool::create(m_value != 0.0));
     return true;
 }
 
-bool BydaoReal::method_abs(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoReal::method_abs(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoReal::create(std::abs(m_value)));
+    result->set( BydaoReal::create(std::abs(m_value)));
     return true;
 }
 
-bool BydaoReal::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoReal::method_isNull(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(false));
+    result->set(BydaoBool::create(false));
     return true;
 }
 
-bool BydaoReal::method_round(const QVector<BydaoValue>& args, BydaoValue& result) {
-    int decimals = args.size() > 0 ? (int)args[0].toInt() : 0;
+bool BydaoReal::method_round(const BydaoValueList& args, BydaoValue* result) {
+    int decimals = args.size() > 0 ? (int)args[0]->toInt() : 0;
     double multiplier = std::pow(10.0, decimals);
     double rounded = std::round(m_value * multiplier) / multiplier;
-    result = BydaoValue( BydaoReal::create(rounded));
+    result->set( BydaoReal::create(rounded));
     return true;
 }
 
-bool BydaoReal::method_floor(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoReal::method_floor(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoReal::create(std::floor(m_value)));
+    result->set( BydaoReal::create(std::floor(m_value)));
     return true;
 }
 
-bool BydaoReal::method_ceil(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoReal::method_ceil(const BydaoValueList& args, BydaoValue* result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoReal::create(std::ceil(m_value)));
+    result->set( BydaoReal::create(std::ceil(m_value)));
     return true;
 }
 
 // ========== Операции ==========
 
-BydaoValue BydaoReal::add(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::add(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
-        return BydaoValue::fromReal(m_value + otherInt->value());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
+        return BydaoValue::get( BydaoReal::create(m_value + otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
-        return BydaoValue::fromReal(m_value + otherReal->m_value);
-    }
-    case TYPE_STRING: {
-        // Конкатенация: число + строка = строка
-        QString str = QString::number(m_value) + other.toString();
-        return BydaoValue::fromString(str);
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
+        return BydaoValue::get( BydaoReal::create(m_value + otherReal->m_value) );
     }
     default:
-        return BydaoValue::fromReal(m_value + other.toReal());
+        return BydaoValue::get( BydaoReal::create(m_value + other->toReal()) );
     }
 }
 
-void    BydaoReal::addToValue(const BydaoValue& other) {
-    switch (other.typeId()) {
+void    BydaoReal::addToValue(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
         m_value += otherInt->value();
         break;
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
         m_value += otherReal->m_value;
         break;
     }
     default:
-        m_value += other.toReal();
+        m_value += other->toReal();
     }
 }
 
-BydaoValue BydaoReal::sub(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::sub(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
-        return BydaoValue::fromReal(m_value - otherInt->value());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
+        return BydaoValue::get( BydaoReal::create(m_value - otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
-        return BydaoValue::fromReal(m_value - otherReal->m_value);
-    }
-    case TYPE_STRING: {
-        bool ok;
-        double val = other.toString().toDouble(&ok);
-        if (ok) return BydaoValue::fromReal(m_value - val);
-        return BydaoValue();
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
+        return BydaoValue::get( BydaoReal::create(m_value - otherReal->m_value) );
     }
     default:
-        return BydaoValue::fromReal(m_value - other.toReal());
+        return BydaoValue::get( BydaoReal::create(m_value - other->toReal()) );
     }
 }
 
-BydaoValue BydaoReal::mul(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::mul(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
-        return BydaoValue::fromReal(m_value * otherInt->value());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
+        return BydaoValue::get( BydaoReal::create(m_value * otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
-        return BydaoValue::fromReal(m_value * otherReal->m_value);
-    }
-    case TYPE_STRING: {
-        bool ok;
-        double val = other.toString().toDouble(&ok);
-        if (ok) return BydaoValue::fromReal(m_value * val);
-        return BydaoValue();
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
+        return BydaoValue::get( BydaoReal::create(m_value * otherReal->m_value) );
     }
     default:
-        return BydaoValue::fromReal(m_value * other.toReal());
+        return BydaoValue::get( BydaoReal::create(m_value * other->toReal()) );
     }
 }
 
-BydaoValue BydaoReal::div(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::div(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
         if (otherInt->value() == 0) {
-            return BydaoValue();  // null
+            return BydaoValue::get();  // null
         }
-        return BydaoValue::fromReal( m_value / otherInt->value());
+        return BydaoValue::get( BydaoReal::create( m_value / otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
         if (otherReal->m_value == 0.0) {
-            return BydaoValue();
+            return BydaoValue::get();
         }
-        return BydaoValue::fromReal(m_value / otherReal->m_value);
+        return BydaoValue::get( BydaoReal::create(m_value / otherReal->m_value) );
     }
-    case TYPE_STRING: {
-        bool ok;
-        double val = other.toString().toDouble(&ok);
-        if ( val == 0.0) {
-            return BydaoValue();
-        }
-        return BydaoValue::fromReal(m_value / val);
     }
-    default:
-        return BydaoValue::fromReal(m_value / other.toReal());
+    double d = other->toReal();
+    if ( d == 0.0 ) {
+        return BydaoValue::get();
     }
+    return BydaoValue::get( BydaoReal::create(m_value / d ) );
 }
 
-BydaoValue BydaoReal::neg() {
-    return BydaoValue( BydaoReal::create(-m_value) );
+BydaoValue* BydaoReal::neg() {
+    return BydaoValue::get( BydaoReal::create(-m_value) );
 }
 
-BydaoValue BydaoReal::eq(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::eq(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
-        return BydaoValue::fromBool(m_value == otherInt->value());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value == otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
-        return BydaoValue::fromBool(m_value == otherReal->m_value);
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value == otherReal->m_value) );
     }
     default:
-        return BydaoValue::fromBool(m_value == other.toReal());
+        return BydaoValue::get( BydaoBool::create(m_value == other->toReal()) );
     }
 }
 
-BydaoValue BydaoReal::neq(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::neq(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
-        return BydaoValue::fromBool(m_value != otherInt->value());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value != otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
-        return BydaoValue::fromBool(m_value != otherReal->m_value);
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value != otherReal->m_value) );
     }
     default:
-        return BydaoValue::fromBool(m_value != other.toReal());
+        return BydaoValue::get( BydaoBool::create(m_value != other->toReal()) );
     }
 }
 
-BydaoValue BydaoReal::lt(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::lt(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
-        return BydaoValue::fromBool(m_value < otherInt->value());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value < otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
-        return BydaoValue::fromBool(m_value < otherReal->m_value);
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value < otherReal->m_value) );
     }
     default:
-        return BydaoValue::fromBool(m_value < other.toReal());
+        return BydaoValue::get( BydaoBool::create(m_value < other->toReal()) );
     }
 }
 
-BydaoValue BydaoReal::le(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::le(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
-        return BydaoValue::fromBool(m_value <= otherInt->value());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value <= otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
-        return BydaoValue::fromBool(m_value <= otherReal->m_value);
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value <= otherReal->m_value) );
     }
     default:
-        return BydaoValue::fromBool(m_value <= other.toReal());
+        return BydaoValue::get( BydaoBool::create(m_value <= other->toReal()) );
     }
 }
 
-BydaoValue BydaoReal::gt(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::gt(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
-        return BydaoValue::fromBool(m_value > otherInt->value());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value > otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
-        return BydaoValue::fromBool(m_value > otherReal->m_value);
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value > otherReal->m_value) );
     }
     default:
-        return BydaoValue::fromBool(m_value > other.toReal());
+        return BydaoValue::get( BydaoBool::create(m_value > other->toReal()) );
     }
 }
 
-BydaoValue BydaoReal::ge(const BydaoValue& other) {
-    switch (other.typeId()) {
+BydaoValue* BydaoReal::ge(const BydaoValue* other) {
+    switch (other->typeId()) {
     case TYPE_INT: {
-        const auto* otherInt = (const BydaoInt*)(other.toObject());
-        return BydaoValue::fromBool(m_value >= otherInt->value());
+        const auto* otherInt = (const BydaoInt*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value >= otherInt->value()) );
     }
     case TYPE_REAL: {
-        const auto* otherReal = (const BydaoReal*)(other.toObject());
-        return BydaoValue::fromBool(m_value >= otherReal->m_value);
+        const auto* otherReal = (const BydaoReal*)(other->toObject());
+        return BydaoValue::get( BydaoBool::create(m_value >= otherReal->m_value) );
     }
     default:
-        return BydaoValue::fromBool(m_value >= other.toReal());
+        return BydaoValue::get( BydaoBool::create(m_value >= other->toReal()) );
     }
 }
 

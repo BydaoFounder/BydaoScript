@@ -63,17 +63,23 @@ bool BydaoArrayIterator::isValid() const {
     return m_array && m_index >= 0 && m_index < m_array->size();
 }
 
-BydaoValue BydaoArrayIterator::key() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
-    return BydaoValue::fromInt(m_index);
+BydaoValue* BydaoArrayIterator::key() const {
+    BydaoValue* result = BydaoValue::get();
+    if ( isValid() ) {
+        result->set( BydaoInt::create( m_index ) );
+    }
+    return result;
 }
 
-BydaoValue BydaoArrayIterator::value() const {
-    if ( ! isValid() ) {
-//        qDebug() << "Iterator not valid, index:" << m_index;
-        return BydaoValue(BydaoNull::instance());
+BydaoValue* BydaoArrayIterator::value() const {
+    BydaoValue* result = BydaoValue::get();
+    if ( isValid() ) {
+        BydaoValue* val = m_array->at(m_index);
+        if ( val ) {
+            result->set( val->toObject() );
+        }
     }
-    return m_array->at(m_index);
+    return result;
 }
 
 } // namespace BydaoScript
