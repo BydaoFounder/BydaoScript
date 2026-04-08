@@ -46,10 +46,6 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     m_modulePaths << QCoreApplication::applicationDirPath();
     m_modulePaths << QCoreApplication::applicationDirPath() + "/modules";
 
-    // Добавляем пустую строку под индексом 0
-
-    addString("");
-
     // Добавляем константу NULL, чтобы все другие константы имели индекс > 0
 
     addNullConstant();
@@ -100,7 +96,6 @@ BydaoParser::~BydaoParser() {
 // ============================================================
 
 qint16 BydaoParser::addString(const QString& str) {
-    if (str.isEmpty()) return 0;  // индекс 0 зарезервирован для пустой строки
 
     auto it = m_stringIndex.find(str);
     if (it != m_stringIndex.end())
@@ -1715,14 +1710,6 @@ bool BydaoParser::parseAddition() {
                 int constIndex = m_bytecode.takeLast().arg1;
                 int leftVarIndex = m_bytecode.takeLast().arg1;
                 emitCode( BydaoOpCode::VarAdd, leftVarIndex, -constIndex, op);
-                continue;
-            }
-            if ( m_bytecode[size-2].op == BydaoOpCode::Load ) {
-
-                // Сложение переменной и значяения на стеке
-
-                int leftVarIndex = m_bytecode.takeAt( size - 2 ).arg1;
-                emitCode( BydaoOpCode::VarAdd, leftVarIndex, 0, op);
                 continue;
             }
         }

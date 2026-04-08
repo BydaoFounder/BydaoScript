@@ -109,9 +109,6 @@ QString BydaoDisassembler::disassembleStringTable(const QVector<QString>& string
     QTextStream out(&result);
 
     for (int i = 0; i < stringTable.size(); i++) {
-        if (stringTable[i].isEmpty())
-            continue;
-
         if (m_colorOutput)
             out << GREEN << QString("%1: ").arg(QString("s%1").arg(i), 4) << RESET << ": ";
         else
@@ -269,7 +266,7 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
             else if ( instr.arg2 < 0 )  // с константой
                 args << QString("v%1 c%2").arg(instr.arg1).arg(-instr.arg2);
             else                        // со значением на стеке
-                args << QString("v%1 stk");
+                args << QString("v%1 stk").arg(instr.arg1);
         }
         break;
 
@@ -279,13 +276,13 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
         else if ( instr.arg2 < 0 )
             args << QString("v%1 c%2").arg(instr.arg1).arg( -instr.arg2 );
         else
-            args << QString("v%1 stk");
+            args << QString("v%1 stk").arg(instr.arg1);
         break;
 
     case BydaoOpCode::VarDecl:
         if (instr.arg1 >= 0 && instr.arg1 < stringTable.size() && !stringTable[instr.arg1].isEmpty()) {
             args << "'" + formatString(stringTable[instr.arg1]) + "'";
-            if ( instr.arg2 < 0 ) {
+            if ( instr.arg2 <= 0 ) {
                 // инициализация константным значением
                 args << QString(" c%1").arg( -instr.arg2 );
             }
@@ -357,7 +354,7 @@ QString BydaoDisassembler::formatArg(const BydaoInstruction& instr,
     case BydaoOpCode::GetIter:
     case BydaoOpCode::ItNext:
         if ( instr.arg1 > 0 ) {
-            args << QString("%v1").arg(instr.arg1);
+            args << QString("v%1").arg(instr.arg1);
         }
         break;
 
