@@ -124,7 +124,7 @@ public:
 
 private:
     // Выполнение одной инструкции
-    bool execute(const BydaoInstruction& instr);
+    inline bool execute(const BydaoInstruction& instr);
 
     // Вспомогательные методы
     void error(const QString& msg, const BydaoInstruction& instr);
