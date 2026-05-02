@@ -20,18 +20,24 @@ namespace BydaoScript {
 
 class BydaoBool : public BydaoObject {
 
-    static QVector<BydaoBool*> s_cache;
-    static const int MAX_CACHE_SIZE = 1024;
+    // static QVector<BydaoBool*> s_cache;
+    // static const int MAX_CACHE_SIZE = 1024;
+
+    static BydaoBool* s_true;
+    static BydaoBool* s_false;
 
 protected:
 
     void release() override {
+        unref();
+/*
         if (s_cache.size() < MAX_CACHE_SIZE) {
             m_refCount = 0;  // сбрасываем для следующего использования
             s_cache.append(this);
         } else {
             delete this;
         }
+*/
     }
 
     explicit BydaoBool(bool value = false);
@@ -39,12 +45,28 @@ protected:
 public:
 
     static BydaoBool* create(bool value) {
+        if ( value ) {
+            if ( ! s_true ) {
+                s_true = new BydaoBool( true );
+            }
+            s_true->ref();
+            return s_true;
+        }
+        else {
+            if ( ! s_false ) {
+                s_false = new BydaoBool( false );
+            }
+            s_false->ref();
+            return s_false;
+        }
+/*
         if (!s_cache.isEmpty()) {
             BydaoBool* obj = s_cache.takeLast();
             obj->m_value = value;
             return obj;
         }
         return new BydaoBool(value);
+*/
     }
 
     // Получить мета-данные

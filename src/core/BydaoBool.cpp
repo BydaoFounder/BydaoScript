@@ -38,7 +38,10 @@ MetaData*   BydaoBool::metaData() {
     return metaData;
 }
 
-QVector<BydaoBool*> BydaoBool::s_cache;
+// QVector<BydaoBool*> BydaoBool::s_cache;
+
+BydaoBool* BydaoBool::s_true = nullptr;
+BydaoBool* BydaoBool::s_false = nullptr;
 
 BydaoBool::BydaoBool(bool value)
     : BydaoObject()
