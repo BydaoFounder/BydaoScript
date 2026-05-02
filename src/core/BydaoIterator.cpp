@@ -55,13 +55,13 @@ bool BydaoIterator::callMethod(const QString& name,
 
 bool BydaoIterator::method_next(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(next()));
+    result = BydaoValue( BydaoBool::create(next()), BydaoTypeId::TYPE_BOOL );
     return true;
 }
 
 bool BydaoIterator::method_isValid(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(isValid()));
+    result = BydaoValue( BydaoBool::create(isValid()), BydaoTypeId::TYPE_BOOL );
     return true;
 }
 

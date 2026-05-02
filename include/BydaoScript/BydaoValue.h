@@ -39,7 +39,7 @@ enum BydaoTypeId {
 class BydaoValue {
 public:
     BydaoValue();
-    explicit BydaoValue(BydaoObject* obj);
+    BydaoValue(BydaoObject* obj, BydaoTypeId typeId );
     BydaoValue(const BydaoValue& other);
     ~BydaoValue();
 
@@ -71,8 +71,7 @@ public:
     static BydaoValue fromReal(double value);
     static BydaoValue fromBool(bool value);
     static BydaoValue fromString(const QString& value);
-    static BydaoValue fromObject(BydaoObject* obj);
-    //    static BydaoValue fromArray(class BydaoArray* array);
+    static BydaoValue fromNull();
 
 private:
 

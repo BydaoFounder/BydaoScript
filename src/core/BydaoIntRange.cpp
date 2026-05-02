@@ -51,7 +51,7 @@ bool BydaoIntRange::callMethod(const QString& name,
 }
 
 BydaoValue BydaoIntRange::iter() {
-    return BydaoValue(new BydaoIntRangeIterator(this));
+    return BydaoValue( new BydaoIntRangeIterator(this), BydaoTypeId::TYPE_OBJECT );
 }
 
 // BydaoIntRange::method_iter()
@@ -114,13 +114,13 @@ bool BydaoIntRangeIterator::isValid() const {
 }
 
 BydaoValue BydaoIntRangeIterator::key() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
-    return BydaoValue( BydaoInt::create(m_current - m_start) );
+    if (!isValid()) return BydaoValue::fromNull();
+    return BydaoValue( BydaoInt::create(m_current - m_start), BydaoTypeId::TYPE_INT );
 }
 
 BydaoValue BydaoIntRangeIterator::value() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
-    return BydaoValue( BydaoInt::create(m_current) );
+    if (!isValid()) return BydaoValue::fromNull();
+    return BydaoValue( BydaoInt::create(m_current), BydaoTypeId::TYPE_INT );
 }
 
 } // namespace BydaoScript

@@ -23,18 +23,10 @@ namespace BydaoScript {
 
 BydaoValue::BydaoValue() : m_obj(nullptr), m_typeId(TYPE_UNKNOWN) {}
 
-BydaoValue::BydaoValue(BydaoObject* obj) : m_obj(obj) {
+BydaoValue::BydaoValue(BydaoObject* obj, BydaoTypeId typeId ) : m_obj(obj) {
     if (m_obj) {
         m_obj->ref();
-        QString typeName = m_obj->typeName();
-        if (typeName == "Int") m_typeId = TYPE_INT;
-        else if (typeName == "Real") m_typeId = TYPE_REAL;
-        else if (typeName == "Bool") m_typeId = TYPE_BOOL;
-        else if (typeName == "String") m_typeId = TYPE_STRING;
-        else if (typeName == "Array") m_typeId = TYPE_ARRAY;
-        else if (typeName == "Null") m_typeId = TYPE_NULL;
-        else if (typeName.endsWith("Module")) m_typeId = TYPE_MODULE;
-        else m_typeId = TYPE_OBJECT;
+        m_typeId = typeId;
     }
     else {
         m_typeId = TYPE_NULL;
@@ -111,23 +103,23 @@ BydaoValue& BydaoValue::operator=(BydaoValue&& other) noexcept {
 
 // Фабричные методы
 BydaoValue BydaoValue::fromInt(qint64 value) {
-    return BydaoValue( BydaoInt::create(value) );
+    return BydaoValue( BydaoInt::create(value), BydaoTypeId::TYPE_INT );
 }
 
 BydaoValue BydaoValue::fromReal(double value) {
-    return BydaoValue( BydaoReal::create(value));
+    return BydaoValue( BydaoReal::create(value), BydaoTypeId::TYPE_REAL);
 }
 
 BydaoValue BydaoValue::fromBool(bool value) {
-    return BydaoValue( BydaoBool::create(value) );
+    return BydaoValue( BydaoBool::create(value), BydaoTypeId::TYPE_BOOL );
 }
 
 BydaoValue BydaoValue::fromString(const QString& value) {
-    return BydaoValue(BydaoString::create(value));
+    return BydaoValue(BydaoString::create(value), BydaoTypeId::TYPE_STRING);
 }
 
-BydaoValue BydaoValue::fromObject(BydaoObject* obj) {
-    return BydaoValue(obj);
+BydaoValue BydaoValue::fromNull() {
+    return BydaoValue(BydaoNull::instance(), BydaoTypeId::TYPE_NULL );
 }
 
 // BydaoValue BydaoValue::fromArray(BydaoArray* array) {

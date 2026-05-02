@@ -46,12 +46,12 @@ bool BydaoStringIterator::isValid() const {
 }
 
 BydaoValue BydaoStringIterator::key() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
+    if (!isValid()) return BydaoValue::fromNull();
     return BydaoValue::fromInt(m_index);
 }
 
 BydaoValue BydaoStringIterator::value() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
+    if (!isValid()) return BydaoValue::fromNull();
     return BydaoValue::fromString(QString(m_string->value().at(m_index)));
 }
 

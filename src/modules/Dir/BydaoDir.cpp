@@ -73,7 +73,7 @@ bool BydaoDirModule::callMethod(const QString& name,
 
 bool BydaoDirModule::method_open(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
-    result = BydaoValue(new BydaoDirObject(args[0].toString()));
+    result = BydaoValue(new BydaoDirObject(args[0].toString()), BydaoTypeId::TYPE_OBJECT);
     return true;
 }
 
@@ -83,9 +83,9 @@ bool BydaoDirModule::method_list(const QVector<BydaoValue>& args, BydaoValue& re
     auto entries = dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
     auto* array = new BydaoArray();
     foreach (const QString& entry, entries) {
-        array->append(BydaoValue(BydaoString::create(entry)));
+        array->append(BydaoValue( BydaoString::create(entry), BydaoTypeId::TYPE_STRING ));
     }
-    result = BydaoValue(array);
+    result = BydaoValue(array, BydaoTypeId::TYPE_ARRAY);
     return true;
 }
 
@@ -98,7 +98,7 @@ bool BydaoDirModule::method_cd(const QVector<BydaoValue>& args, BydaoValue& resu
 
 bool BydaoDirModule::method_current(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(QDir::currentPath()));
+    result = BydaoValue( BydaoString::create(QDir::currentPath()), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
@@ -168,9 +168,9 @@ bool BydaoDirObject::method_list(const QVector<BydaoValue>& args, BydaoValue& re
     auto entries = m_dir.entryList(nameFilters, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
     auto* array = new BydaoArray();
     for (const QString& entry : entries) {
-        array->append(BydaoValue(BydaoString::create(entry)));
+        array->append( BydaoValue( BydaoString::create(entry), BydaoTypeId::TYPE_STRING ) );
     }
-    result = BydaoValue(array);
+    result = BydaoValue(array, BydaoTypeId::TYPE_ARRAY);
     return true;
 }
 
@@ -203,7 +203,7 @@ bool BydaoDirObject::method_exists(const QVector<BydaoValue>& args, BydaoValue& 
 
 bool BydaoDirObject::method_current(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(m_dir.absolutePath()));
+    result = BydaoValue( BydaoString::create(m_dir.absolutePath()), BydaoTypeId::TYPE_STRING );
     return true;
 }
 

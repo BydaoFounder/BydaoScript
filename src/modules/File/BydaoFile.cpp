@@ -100,7 +100,7 @@ bool BydaoFileModule::callMethod(const QString& name,
 
 bool BydaoFileModule::method_new(const QVector<BydaoValue>& args, BydaoValue& result) {
     QString name = (args.size() == 1) ? args[0].toString() : "";
-    result = BydaoValue(new BydaoFileObject( name ));
+    result = BydaoValue(new BydaoFileObject( name ), BydaoTypeId::TYPE_OBJECT);
     return true;
 }
 
@@ -153,10 +153,10 @@ bool BydaoFileModule::method_readAll(const QVector<BydaoValue>& args, BydaoValue
         QTextStream in(&file);
         QString content = in.readAll();
         file.close();
-        result = BydaoValue(BydaoString::create(content));
+        result = BydaoValue( BydaoString::create(content), BydaoTypeId::TYPE_STRING );
         return true;
     }
-    result = BydaoValue(BydaoNull::instance());
+    result = BydaoValue::fromNull();
     return false;
 }
 
@@ -308,22 +308,22 @@ bool BydaoFileObject::method_close(const QVector<BydaoValue>& args, BydaoValue& 
     if (m_file.isOpen()) {
         m_file.close();
     }
-    result = BydaoValue(BydaoNull::instance());
+    result = BydaoValue::fromNull();
     return true;
 }
 
 bool BydaoFileObject::method_read(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (!m_stream) {
-        result = BydaoValue(BydaoNull::instance());
+        result = BydaoValue::fromNull();
         return false;
     }
 
     qint64 maxlen = args.size() > 0 ? args[0].toInt() : -1;
 
     if (maxlen < 0) {
-        result = BydaoValue(BydaoString::create(m_stream->readAll()));
+        result = BydaoValue( BydaoString::create(m_stream->readAll()), BydaoTypeId::TYPE_STRING );
     } else {
-        result = BydaoValue(BydaoString::create(m_stream->read(maxlen)));
+        result = BydaoValue( BydaoString::create(m_stream->read(maxlen)), BydaoTypeId::TYPE_STRING );
     }
     return true;
 }
@@ -332,11 +332,11 @@ bool BydaoFileObject::method_readLine(const QVector<BydaoValue>& args, BydaoValu
     Q_UNUSED(args);
 
     if (!m_stream) {
-        result = BydaoValue(BydaoNull::instance());
+        result = BydaoValue::fromNull();
         return false;
     }
 
-    result = BydaoValue(BydaoString::create(m_stream->readLine()));
+    result = BydaoValue( BydaoString::create(m_stream->readLine()), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
@@ -344,17 +344,17 @@ bool BydaoFileObject::method_readLines(const QVector<BydaoValue>& args, BydaoVal
     Q_UNUSED(args);
 
     if (!m_stream) {
-        result = BydaoValue(new BydaoArray());
+        result = BydaoValue(new BydaoArray(), BydaoTypeId::TYPE_ARRAY);
         return false;
     }
 
     auto* array = new BydaoArray();
     while (!m_stream->atEnd()) {
         QString line = m_stream->readLine();
-        array->append(BydaoValue(BydaoString::create(line)));
+        array->append( BydaoValue( BydaoString::create(line), BydaoTypeId::TYPE_STRING ) );
     }
 
-    result = BydaoValue(array);
+    result = BydaoValue(array, BydaoTypeId::TYPE_ARRAY);
     return true;
 }
 

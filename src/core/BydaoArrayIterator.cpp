@@ -72,14 +72,13 @@ bool BydaoArrayIterator::isValid() const {
 }
 
 BydaoValue BydaoArrayIterator::key() const {
-    if (!isValid()) return BydaoValue(BydaoNull::instance());
+    if (!isValid()) return BydaoValue::fromNull();
     return BydaoValue::fromInt(m_index);
 }
 
 BydaoValue BydaoArrayIterator::value() const {
     if ( ! isValid() ) {
-//        qDebug() << "Iterator not valid, index:" << m_index;
-        return BydaoValue(BydaoNull::instance());
+        return BydaoValue::fromNull();
     }
     return m_array->at(m_index);
 }

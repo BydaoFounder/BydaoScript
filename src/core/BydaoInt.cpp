@@ -50,7 +50,7 @@ bool BydaoInt::callMethod(const QString& name,
 
 bool BydaoInt::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(QString::number(m_value)));
+    result = BydaoValue(BydaoString::create(QString::number(m_value)), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
@@ -62,37 +62,37 @@ bool BydaoInt::method_toReal(const QVector<BydaoValue>& args, BydaoValue& result
 
 bool BydaoInt::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoBool::create(m_value != 0));
+    result = BydaoValue( BydaoBool::create(m_value != 0), BydaoTypeId::TYPE_BOOL);
     return true;
 }
 
 bool BydaoInt::method_abs(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoInt::create(m_value >= 0 ? m_value : -m_value));
+    result = BydaoValue( BydaoInt::create(m_value >= 0 ? m_value : -m_value), BydaoTypeId::TYPE_INT );
     return true;
 }
 
 bool BydaoInt::method_negate(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoInt::create(-m_value));
+    result = BydaoValue(BydaoInt::create(-m_value), BydaoTypeId::TYPE_INT);
     return true;
 }
 
 bool BydaoInt::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(false));
+    result = BydaoValue( BydaoBool::create(false), BydaoTypeId::TYPE_BOOL );
     return true;
 }
 
 bool BydaoInt::method_toHex(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create( QString::number(m_value, 16)));
+    result = BydaoValue(BydaoString::create( QString::number(m_value, 16)), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
 bool BydaoInt::method_toBin(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create( QString::number(m_value, 2)));
+    result = BydaoValue(BydaoString::create( QString::number(m_value, 2)), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
@@ -101,7 +101,7 @@ bool BydaoInt::method_toBin(const QVector<BydaoValue>& args, BydaoValue& result)
 BydaoValue BydaoInt::add(const BydaoValue& other) {
     switch (other.typeId()) {
     case TYPE_INT: {
-        return BydaoValue( BydaoInt::create(m_value + ((BydaoInt*)other.toObject())->m_value) );
+        return BydaoValue( BydaoInt::create(m_value + ((BydaoInt*)other.toObject())->m_value), BydaoTypeId::TYPE_INT );
     }
     case TYPE_REAL: {
         const auto* otherReal = (BydaoReal*)(other.toObject());

@@ -73,17 +73,17 @@ bool BydaoVM::load(const QVector<BydaoConstant>& constants,
             if (c.stringIndex < (quint32)m_stringTable.size()) {
                 m_constantValues.append(BydaoValue::fromString(m_stringTable[c.stringIndex]));
             } else {
-                m_constantValues.append(BydaoValue(BydaoNull::instance()));
+                m_constantValues.append(BydaoValue::fromNull());
             }
             break;
         case CONST_BOOL:
             m_constantValues.append(BydaoValue::fromBool(c.boolValue != 0));
             break;
         case CONST_NULL:
-            m_constantValues.append(BydaoValue(BydaoNull::instance()));
+            m_constantValues.append(BydaoValue::fromNull());
             break;
         default:
-            m_constantValues.append(BydaoValue(BydaoNull::instance()));
+            m_constantValues.append(BydaoValue::fromNull());
             break;
         }
     }
@@ -198,7 +198,7 @@ void BydaoVM::dumpStack(const QString& label) {
 // ========== Доступ к переменным ==========
 
 BydaoValue& BydaoVM::getVariable(int varIndex, const BydaoInstruction& instr) {
-    static BydaoValue nullValue(BydaoNull::instance());
+    static BydaoValue nullValue = BydaoValue::fromNull();
     
     if (varIndex < 0 || varIndex >= m_scopeStack.size()) {
         error("Invalid variable index", instr);
@@ -209,7 +209,7 @@ BydaoValue& BydaoVM::getVariable(int varIndex, const BydaoInstruction& instr) {
 }
 
 const BydaoValue& BydaoVM::getVariable(int varIndex, const BydaoInstruction& instr) const {
-    static BydaoValue nullValue(BydaoNull::instance());
+    static BydaoValue nullValue = BydaoValue::fromNull();
 
     Q_UNUSED(instr);
 
@@ -714,7 +714,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             error("ITNEXT on non-object", instr);
             return false;
         }
-        m_stack.push( BydaoValue( BydaoBool::create( obj->callBoolMethod(0) ) ) );
+        m_stack.push( BydaoValue( BydaoBool::create( obj->callBoolMethod(0) ), BydaoTypeId::TYPE_BOOL ) );
         break;
     }
     
@@ -845,11 +845,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             return false;
         }
 
-        BydaoValue obj = m_stack.pop();
-        if (!obj.isObject()) {
-            error("METHOD on non-object", instr);
-            return false;
-        }
+        // BydaoValue obj = m_stack.pop();
+        // if (!obj.isObject()) {
+        //     error("METHOD on non-object", instr);
+        //     return false;
+        // }
 
         if (instr.arg1 < 0 || m_stringTable.size() <= instr.arg1 ) {
             error("Invalid method name index", instr);
@@ -858,7 +858,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         QString methodName = m_stringTable[instr.arg1];
 
         // Кладём объект и имя метода на стек для последующего CALL
-        m_stack.push(obj);
+        // m_stack.push(obj);
         m_stack.push(BydaoValue::fromString(methodName));
 
         if ( m_traceMode ) {
@@ -1045,7 +1045,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         RuntimeVar var;
         var.name = alias;
-        var.value = BydaoValue(module);
+        var.value = BydaoValue(module, BydaoTypeId::TYPE_MODULE);
         m_scopeStack.append(var);
 
         m_moduleName[alias] = varIndex;
@@ -1098,7 +1098,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         // Кладём массив на стек
-        m_stack.push(BydaoValue(array));
+        m_stack.push( BydaoValue(array, BydaoTypeId::TYPE_ARRAY) );
         break;
     }
 

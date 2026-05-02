@@ -95,7 +95,7 @@ bool BydaoArray::callMethod(const QString& name,
 }
 
 BydaoValue BydaoArray::iter() {
-    return BydaoValue(new BydaoArrayIterator(this));
+    return BydaoValue(new BydaoArrayIterator(this), BydaoTypeId::TYPE_OBJECT);
 }
 
 // ========== Реализация методов массива ==========
@@ -104,7 +104,7 @@ BydaoValue BydaoArray::at(qint64 index) const {
     if (index >= 0 && index < m_elements.size()) {
         return m_elements[index];
     }
-    return BydaoValue(BydaoNull::instance());
+    return BydaoValue::fromNull();
 }
 
 void BydaoArray::set(qint64 index, const BydaoValue& value) {
@@ -121,7 +121,7 @@ BydaoValue  BydaoArray::get(const BydaoValue& index) {
     if (0 <= idx && idx < m_elements.size()) {
         return m_elements[idx];
     }
-    return BydaoValue(BydaoNull::instance());
+    return BydaoValue::fromNull();
 }
 
 void BydaoArray::append(const BydaoValue& value) {
@@ -148,7 +148,7 @@ void BydaoArray::clear() {
 
 bool BydaoArray::method_iter(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(new BydaoArrayIterator(this));
+    result = BydaoValue(new BydaoArrayIterator(this), BydaoTypeId::TYPE_OBJECT);
     return true;
 }
 
@@ -192,7 +192,7 @@ bool BydaoArray::method_push(const QVector<BydaoValue>& args, BydaoValue& result
 bool BydaoArray::method_pop(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
     if (m_elements.isEmpty()) {
-        result = BydaoValue(BydaoNull::instance());
+        result = BydaoValue::fromNull();
     } else {
         result = m_elements.takeLast();
     }
@@ -202,7 +202,7 @@ bool BydaoArray::method_pop(const QVector<BydaoValue>& args, BydaoValue& result)
 bool BydaoArray::method_shift(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
     if (m_elements.isEmpty()) {
-        result = BydaoValue(BydaoNull::instance());
+        result = BydaoValue::fromNull();
     } else {
         result = m_elements.takeFirst();
     }
@@ -225,7 +225,7 @@ bool BydaoArray::method_slice(const QVector<BydaoValue>& args, BydaoValue& resul
     if (start < 0) start = 0;
     if (end > m_elements.size()) end = m_elements.size();
     if (start >= end) {
-        result = BydaoValue(new BydaoArray());
+        result = BydaoValue(new BydaoArray(), BydaoTypeId::TYPE_ARRAY);
         return true;
     }
 
@@ -233,7 +233,7 @@ bool BydaoArray::method_slice(const QVector<BydaoValue>& args, BydaoValue& resul
     for (qint64 i = start; i < end; i++) {
         newArray->append(m_elements[i]);
     }
-    result = BydaoValue(newArray);
+    result = BydaoValue( newArray, BydaoTypeId::TYPE_ARRAY );
     return true;
 }
 

@@ -479,7 +479,7 @@ BydaoValue BydaoConstantFolder::evaluatePrimary() {
     // Null
     if (m_parser->match(BydaoTokenType::Null)) {
         m_parser->nextToken();
-        return BydaoValue( BydaoNull::instance() );  // null
+        return BydaoValue::fromNull();
     }
 
     // Идентификаторы (другие константы)

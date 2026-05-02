@@ -97,37 +97,37 @@ bool BydaoReal::callMethod(const QString& name,
 
 bool BydaoReal::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(QString::number(m_value)));
+    result = BydaoValue(BydaoString::create(QString::number(m_value)), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
 bool BydaoReal::method_toFixed(const QVector<BydaoValue>& args, BydaoValue& result) {
     int decimals = args.size() > 0 ? (int)args[0].toInt() : 0;
-    result = BydaoValue(BydaoString::create(QString::number(m_value,'f',decimals)));
+    result = BydaoValue(BydaoString::create(QString::number(m_value,'f',decimals)), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
 bool BydaoReal::method_toInt(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoInt::create((qint64)m_value));
+    result = BydaoValue(BydaoInt::create((qint64)m_value), BydaoTypeId::TYPE_INT);
     return true;
 }
 
 bool BydaoReal::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(m_value != 0.0));
+    result = BydaoValue(BydaoBool::create(m_value != 0.0), BydaoTypeId::TYPE_BOOL);
     return true;
 }
 
 bool BydaoReal::method_abs(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoReal::create(std::abs(m_value)));
+    result = BydaoValue( BydaoReal::create(std::abs(m_value)), BydaoTypeId::TYPE_REAL );
     return true;
 }
 
 bool BydaoReal::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(false));
+    result = BydaoValue(BydaoBool::create(false), BydaoTypeId::TYPE_BOOL);
     return true;
 }
 
@@ -135,19 +135,19 @@ bool BydaoReal::method_round(const QVector<BydaoValue>& args, BydaoValue& result
     int decimals = args.size() > 0 ? (int)args[0].toInt() : 0;
     double multiplier = std::pow(10.0, decimals);
     double rounded = std::round(m_value * multiplier) / multiplier;
-    result = BydaoValue( BydaoReal::create(rounded));
+    result = BydaoValue( BydaoReal::create(rounded), BydaoTypeId::TYPE_REAL );
     return true;
 }
 
 bool BydaoReal::method_floor(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoReal::create(std::floor(m_value)));
+    result = BydaoValue( BydaoReal::create(std::floor(m_value)), BydaoTypeId::TYPE_REAL );
     return true;
 }
 
 bool BydaoReal::method_ceil(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue( BydaoReal::create(std::ceil(m_value)));
+    result = BydaoValue( BydaoReal::create(std::ceil(m_value)), BydaoTypeId::TYPE_REAL );
     return true;
 }
 
@@ -262,7 +262,7 @@ BydaoValue BydaoReal::div(const BydaoValue& other) {
 }
 
 BydaoValue BydaoReal::neg() {
-    return BydaoValue( BydaoReal::create(-m_value) );
+    return BydaoValue( BydaoReal::create(-m_value), BydaoTypeId::TYPE_REAL );
 }
 
 BydaoValue BydaoReal::eq(const BydaoValue& other) {

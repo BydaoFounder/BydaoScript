@@ -96,17 +96,17 @@ private:
     static BydaoValue itValue(BydaoObject* self) {
         auto* iter = static_cast<BydaoIntRangeIterator*>(self);
         if ( iter->m_current >= iter->m_start && iter->m_current < iter->m_end ) {
-            return BydaoValue( BydaoInt::create( iter->m_current) );
+            return BydaoValue( BydaoInt::create( iter->m_current ), BydaoTypeId::TYPE_INT );
         }
-        return BydaoValue( BydaoNull::instance() );
+        return BydaoValue::fromNull();
     }
 
     static BydaoValue itKey(BydaoObject* self) {
         auto* iter = static_cast<BydaoIntRangeIterator*>(self);
         if ( iter->m_current >= iter->m_start && iter->m_current < iter->m_end ) {
-            return BydaoValue( BydaoInt::create( iter->m_current - iter->m_start ) );
+            return BydaoValue( BydaoInt::create( iter->m_current - iter->m_start ), BydaoTypeId::TYPE_INT );
         }
-        return BydaoValue( BydaoNull::instance() );
+        return BydaoValue::fromNull();
     }
 
     // Статические методы
@@ -133,10 +133,10 @@ private:
         auto* iter = static_cast<BydaoIntRangeIterator*>(self);
 
         if ( iter->m_current >= iter->m_start && iter->m_current < iter->m_end ) {
-            result = BydaoValue( BydaoInt::create( iter->m_current) );
+            result = BydaoValue( BydaoInt::create( iter->m_current), BydaoTypeId::TYPE_INT );
         }
         else {
-            result = BydaoValue(BydaoNull::instance());
+            result = BydaoValue::fromNull();
         }
         return true;
     }
@@ -147,10 +147,10 @@ private:
         auto* iter = static_cast<BydaoIntRangeIterator*>(self);
 
         if ( iter->m_current >= iter->m_start && iter->m_current < iter->m_end ) {
-            result = BydaoValue( BydaoInt::create( iter->m_current - iter->m_start ) );
+            result = BydaoValue( BydaoInt::create( iter->m_current - iter->m_start ), BydaoTypeId::TYPE_INT );
         }
         else {
-            result = BydaoValue(BydaoNull::instance());
+            result = BydaoValue::fromNull();
         }
         return true;
     }

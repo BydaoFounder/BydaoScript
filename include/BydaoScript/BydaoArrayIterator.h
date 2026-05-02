@@ -54,7 +54,7 @@ protected:
         if ( iter->m_array && iter->m_index >= 0 && iter->m_index < iter->m_array->size() ) {
             return iter->m_array->at( iter->m_index );
         }
-        return BydaoValue( BydaoNull::instance() );
+        return BydaoValue::fromNull();
     }
 
     static BydaoValue itKey(BydaoObject* self) {
@@ -62,7 +62,7 @@ protected:
         if ( iter->m_array && iter->m_index >= 0 && iter->m_index < iter->m_array->size() ) {
             return BydaoValue::fromInt( iter->m_index) ;
         }
-        return BydaoValue( BydaoNull::instance() );
+        return BydaoValue::fromNull();
     }
 
     BydaoArray* m_array;

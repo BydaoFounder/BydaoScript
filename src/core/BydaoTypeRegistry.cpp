@@ -25,7 +25,7 @@ void BydaoTypeRegistry::ensureInitialized() {
     // Инициализация встроенных классов
     auto* intClass = new BydaoIntClass();
     intClass->ref();
-    s_classes["Int"] = BydaoValue(intClass);
+    s_classes["Int"] = BydaoValue(intClass, BydaoTypeId::TYPE_OBJECT);
     
     // TODO: добавить другие классы
     // s_classes["String"] = BydaoValue(new BydaoStringClass());

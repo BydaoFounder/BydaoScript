@@ -143,11 +143,11 @@ bool BydaoIntClass::method_range(const QVector<BydaoValue>& args, BydaoValue& re
     qint64 end = args[1].toInt();
     
     if (start >= end) {
-        result = BydaoValue(new BydaoIntRange(0, 0));  // пустой диапазон
+        result = BydaoValue( new BydaoIntRange(0, 0), BydaoTypeId::TYPE_OBJECT );  // пустой диапазон
         return true;
     }
     
-    result = BydaoValue(new BydaoIntRange(start, end));
+    result = BydaoValue( new BydaoIntRange(start, end), BydaoTypeId::TYPE_OBJECT );
     return true;
 }
 

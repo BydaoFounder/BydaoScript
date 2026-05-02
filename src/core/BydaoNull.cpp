@@ -73,19 +73,19 @@ bool BydaoNull::callMethod(const QString& name,
 
 bool BydaoNull::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create("null"));
+    result = BydaoValue(BydaoString::create("null"), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
 bool BydaoNull::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(false));
+    result = BydaoValue(BydaoBool::create(false), BydaoTypeId::TYPE_BOOL);
     return true;
 }
 
 bool BydaoNull::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoBool::create(true));
+    result = BydaoValue(BydaoBool::create(true), BydaoTypeId::TYPE_BOOL);
     return true;
 }
 
