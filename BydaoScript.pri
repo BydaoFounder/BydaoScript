@@ -5,7 +5,8 @@ QT += core
 CONFIG += c++17
 CONFIG += debug_and_release
 CONFIG += strict_c++
-#CONFIG += precompile_header
+# Включаем GNU расширения C++17
+CONFIG += gnu++17
 
 # Общие макросы
 DEFINES += BYDAOSCRIPT_LIBRARY
@@ -17,9 +18,3 @@ INCLUDEPATH += $$PWD/include
 # Оптимизация
 QMAKE_CXXFLAGS_RELEASE += -O2
 QMAKE_CXXFLAGS_DEBUG += -O0 -g
-
-# Предкомпилированные заголовки (опционально)
-# PRECOMPILED_HEADER = $$PWD/include/BydaoScript/stable.h
-
-HEADERS += \
-    $$PWD/include/BydaoScript/BydaoIntRange.h

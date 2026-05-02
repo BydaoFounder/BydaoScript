@@ -133,7 +133,7 @@ bool BydaoVM::run() {
             timer.start();
         }
         
-        if (!execute(instr)) {
+        if ( ! execute( instr ) ) {
             return false;
         }
         
@@ -247,14 +247,98 @@ void BydaoVM::error(const QString& msg, const BydaoInstruction& instr) {
 // ========== Выполнение инструкций ==========
 
 bool BydaoVM::execute(const BydaoInstruction& instr) {
-    switch (instr.op) {
 
-    case BydaoOpCode::Load: {
+    static void* dispatch_table[] = {
+        // Управление
+        &&Op_Nop,
+        &&Op_Halt,
+
+        // Переменные и области видимости
+        &&Op_ConstDecl,
+        &&Op_VarDecl,
+        &&Op_Drop,
+        &&Op_Load,
+        &&Op_Store,
+        &&Op_AddStore,
+        &&Op_SubStore,
+        &&Op_MulStore,
+        &&Op_DivStore,
+        &&Op_ModStore,
+
+        // Константы
+        &&Op_PushConst,
+
+        // Арифметика
+        &&Op_Add,
+        &&Op_Sub,
+        &&Op_Neg,
+        &&Op_Mul,
+        &&Op_Div,
+        &&Op_Mod,
+        &&Op_VarAdd,
+
+        // Сравнение
+        &&Op_Eq,
+        &&Op_Neq,
+        &&Op_Lt,
+        &&Op_Gt,
+        &&Op_Le,
+        &&Op_Ge,
+
+        // Сравнение переменных
+        &&Op_VarLt,
+
+        // Логические
+        &&Op_And,
+        &&Op_Or,
+        &&Op_Not,
+
+        // Итераторы
+        &&Op_GetIter,
+        &&Op_ItNext,
+        &&Op_ItValue,
+        &&Op_ItKey,
+
+        // Доступ к членам
+        &&Op_Member,
+        &&Op_SetMember,
+        &&Op_Method,
+        &&Op_Index,
+        &&Op_Call,
+        &&Op_CallVoid,
+
+        // Переходы
+        &&Op_Jump,
+        &&Op_JumpIfFalse,
+        &&Op_JumpIfTrue,
+
+        // Области видимости
+        &&Op_ScopeDrop,
+
+        // Модули и типы
+        &&Op_UseModule,
+        &&Op_TypeClass,
+
+        // Массивы
+        &&Op_PushArray
+    };
+
+    goto *dispatch_table[ instr.op ];
+
+    // ===== Управление =====
+    Op_Nop:
+        return true;
+
+    Op_Halt:
+        m_running = false;
+        return true;
+
+    Op_Load: {
         m_stack.push( getVariable(instr.arg1, instr) );
-        break;
+        return true;
     }
 
-    case BydaoOpCode::Store: {
+    Op_Store: {
         if ( instr.arg2 > 0 ) {
             setVariable(instr.arg1, getVariable( instr.arg2, instr ), instr);
         }
@@ -264,49 +348,49 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         else {
             setVariable(instr.arg1, m_stack.pop(), instr);
         }
-        break;
+        return true;
     }
 
     // ===== Области видимости =====
 
-    case BydaoOpCode::ScopeDrop:
+    Op_ScopeDrop:
         m_scopeStack.resize(instr.arg1);
-        break;
+        return true;
 
     // ===== Переходы =====
-    case BydaoOpCode::Jump: {
+    Op_Jump: {
         m_pc = instr.arg1;
-        break;
+        return true;
     }
 
-    case BydaoOpCode::JumpIfFalse: {
+    Op_JumpIfFalse: {
         BydaoValue cond = m_stack.pop();
         if (!cond.toBool()) {
             m_pc = instr.arg1;
         }
-        break;
+        return true;
     }
 
-    case BydaoOpCode::JumpIfTrue: {
+    Op_JumpIfTrue: {
         BydaoValue cond = m_stack.pop();
         if (cond.toBool()) {
             m_pc = instr.arg1;
         }
-        break;
+        return true;
     }
     
     // ===== Переменные =====
 
-    case BydaoOpCode::ConstDecl: {
+    Op_ConstDecl: {
         QString name = m_stringTable[instr.arg1];
         RuntimeVar var;
         var.name = name;
         var.value = m_constantValues[ instr.arg2 ];
         m_scopeStack.append(var);
-        break;
+        return true;
     }
 
-    case BydaoOpCode::VarDecl: {
+    Op_VarDecl: {
         if ( instr.arg1 >= 0 ) {    // задано название переменной
 
             RuntimeVar var;
@@ -330,18 +414,18 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             var.name = QString("__tmp_%1").arg(varIndex);
             m_scopeStack.append(var);
         }
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Drop: {
+    Op_Drop: {
         int varIndex = instr.arg1;
         if (varIndex >= 0 && varIndex < m_scopeStack.size()) {
             m_scopeStack.removeAt( varIndex );
         }
-        break;
+        return true;
     }
 
-    case BydaoOpCode::VarAdd: {
+    Op_VarAdd: {
 
         if ( instr.arg2 < 0 ) {         // сложение переменной с константой
             BydaoValue& a = getVariable(instr.arg1, instr);
@@ -369,10 +453,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             }
             m_stack.push( a.toObject()->add(b) );
         }
-        break;
+        return true;
     }
 
-    case BydaoOpCode::AddStore: {
+    Op_AddStore: {
 
         if ( instr.arg2 > 0 ) {         // прибавить к переменной значение переменной
             BydaoValue& b = getVariable(instr.arg2, instr);
@@ -403,10 +487,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             }
             obj->addToValue(b);
         }
-        break;
+        return true;
     }
 
-    case BydaoOpCode::SubStore: {
+    Op_SubStore: {
         BydaoValue b = m_stack.pop();
         BydaoValue& a = getVariable(instr.arg1, instr);
         if (!a.isObject() || !b.isObject()) {
@@ -416,10 +500,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         BydaoValue val = a.toObject()->sub(b);
         setVariable(instr.arg1, val, instr);
-        break;
+        return true;
     }
 
-    case BydaoOpCode::MulStore: {
+    Op_MulStore: {
         BydaoValue b = m_stack.pop();
         BydaoValue& a = getVariable(instr.arg1, instr);
         if (!a.isObject() || !b.isObject()) {
@@ -429,10 +513,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         BydaoValue val = a.toObject()->mul(b);
         setVariable(instr.arg1, val, instr);
-        break;
+        return true;
     }
 
-    case BydaoOpCode::DivStore: {
+    Op_DivStore: {
         BydaoValue b = m_stack.pop();
         BydaoValue& a = getVariable(instr.arg1, instr);
         if (!a.isObject() || !b.isObject()) {
@@ -442,10 +526,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         BydaoValue val = a.toObject()->div(b);
         setVariable(instr.arg1, val, instr);
-        break;
+        return true;
     }
 
-    case BydaoOpCode::ModStore: {
+    Op_ModStore: {
         BydaoValue b = m_stack.pop();
         BydaoValue& a = getVariable(instr.arg1, instr);
         if (!a.isObject() || !b.isObject()) {
@@ -455,11 +539,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         BydaoValue val = a.toObject()->mod(b);
         setVariable(instr.arg1, val, instr);
-        break;
+        return true;
     }
 
     // ===== Константы =====
-    case BydaoOpCode::PushConst: {
+    Op_PushConst: {
         if ( instr.arg1 >= 0 && instr.arg1 < m_constantValues.size() ) {
 //            m_stack.push( m_constantValues[instr.arg1].copy() );
             m_stack.push( m_constantValues[instr.arg1] );
@@ -468,11 +552,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             error("Invalid constant index", instr);
             return false;
         }
-        break;
+        return true;
     }
     
     // ===== Арифметика =====
-    case BydaoOpCode::Add: {
+    Op_Add: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
@@ -482,10 +566,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->add(b));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Sub: {
+    Op_Sub: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
@@ -495,10 +579,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->sub(b));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Mul: {
+    Op_Mul: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
@@ -508,10 +592,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->mul(b));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Div: {
+    Op_Div: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
@@ -521,10 +605,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->div(b));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Mod: {
+    Op_Mod: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
@@ -534,10 +618,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->mod(b));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Neg: {
+    Op_Neg: {
         BydaoValue a = m_stack.pop();
         
         if (!a.isObject()) {
@@ -546,11 +630,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->neg());
-        break;
+        return true;
     }
     
     // ===== Сравнение =====
-    case BydaoOpCode::Eq: {
+    Op_Eq: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
@@ -558,28 +642,28 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             // Сравнение с null
             bool result = (a.isNull() && b.isNull());
             m_stack.push(BydaoValue::fromBool(result));
-            break;
+            return true;
         }
         
         m_stack.push(a.toObject()->eq(b));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Neq: {
+    Op_Neq: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
         if (!a.isObject() || !b.isObject()) {
             bool result = !(a.isNull() && b.isNull());
             m_stack.push(BydaoValue::fromBool(result));
-            break;
+            return true;
         }
         
         m_stack.push(a.toObject()->neq(b));
-        break;
+        return true;
     }
 
-    case BydaoOpCode::Lt: {
+    Op_Lt: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
 
@@ -589,10 +673,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         m_stack.push(a.toObject()->lt(b));
-        break;
+        return true;
     }
 
-    case BydaoOpCode::VarLt: {
+    Op_VarLt: {
         if ( instr.arg2 < 0 ) {         // Сравнение переменной с константой
             BydaoValue& a = getVariable( instr.arg1, instr );
             BydaoValue& b = m_constantValues[ -instr.arg2 ];
@@ -621,10 +705,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             }
             m_stack.push(a.toObject()->lt(b));
         }
-        break;
+        return true;
     }
 
-    case BydaoOpCode::Gt: {
+    Op_Gt: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
@@ -634,10 +718,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->gt(b));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Le: {
+    Op_Le: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
@@ -647,10 +731,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->le(b));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Ge: {
+    Op_Ge: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
@@ -660,37 +744,37 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->ge(b));
-        break;
+        return true;
     }
     
     // ===== Логические операции =====
-    case BydaoOpCode::And: {
+    Op_And: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
         bool result = a.toBool() && b.toBool();
         m_stack.push(BydaoValue::fromBool(result));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Or: {
+    Op_Or: {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
         bool result = a.toBool() || b.toBool();
         m_stack.push(BydaoValue::fromBool(result));
-        break;
+        return true;
     }
     
-    case BydaoOpCode::Not: {
+    Op_Not: {
         BydaoValue a = m_stack.pop();
         m_stack.push(BydaoValue::fromBool(!a.toBool()));
-        break;
+        return true;
     }
     
     // ===== Итераторы =====
 
-    case BydaoOpCode::GetIter: {
+    Op_GetIter: {
         BydaoValue obj = m_stack.pop();
 
         if ( ! obj.isObject() ) {
@@ -705,20 +789,20 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         setVariable( instr.arg1, it, instr );
-        break;
+        return true;
     }
 
-    case BydaoOpCode::ItNext: {
+    Op_ItNext: {
         auto* obj = getVariable(instr.arg1, instr).toObject();
         if ( ! obj ) {
             error("ITNEXT on non-object", instr);
             return false;
         }
         m_stack.push( BydaoValue( BydaoBool::create( obj->callBoolMethod(0) ) ) );
-        break;
+        return true;
     }
     
-    case BydaoOpCode::ItValue: {
+    Op_ItValue: {
         auto* obj = getVariable(instr.arg1, instr).toObject();
         if ( ! obj ) {
             error("ITVALUE on non-object", instr);
@@ -730,10 +814,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         else {
             setVariable( instr.arg2, obj->callValueMethod(0), instr );
         }
-        break;
+        return true;
     }
     
-    case BydaoOpCode::ItKey: {
+    Op_ItKey: {
         auto* obj = getVariable( instr.arg1,instr).toObject();
         if ( ! obj ) {
             error("ITKEY on non-object", instr);
@@ -745,10 +829,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         else {
             setVariable( instr.arg2, obj->callValueMethod( 1 ), instr );
         }
-        break;
+        return true;
     }
 
-    case BydaoOpCode::Index: {
+    Op_Index: {
         BydaoValue obj = m_stack.pop();
         BydaoValue index = m_stack.pop();
 
@@ -758,12 +842,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             error("INDEX not supported for Null value", instr);
             return false;
         }
-        break;
+        return true;
     }
 
     // ===== Доступ к членам =====
 
-    case BydaoOpCode::Member: {
+    Op_Member: {
         if (m_traceMode ) {
             dumpStack("Before MEMBER at PC " + QString::number(m_pc-1));
         }
@@ -799,10 +883,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         m_stack.push( value );
-        break;
+        return true;
     }
 
-    case BydaoOpCode::SetMember: {
+    Op_SetMember: {
         if (m_traceMode ) {
             dumpStack("Before SETMEMBER at PC " + QString::number(m_pc-1));
         }
@@ -832,10 +916,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             return false;
         }
 
-        break;
+        return true;
     }
 
-    case BydaoOpCode::Method: {
+    Op_Method: {
         if ( m_traceMode ) {
             dumpStack("Before METHOD at PC " + QString::number(m_pc-1));
         }
@@ -865,10 +949,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             qDebug() << "  prepared for method call";
             dumpStack("After METHOD");
         }
-        break;
+        return true;
     }
 
-    case BydaoOpCode::Call: {
+    Op_Call: {
         int argCount = instr.arg1;
         if ( m_traceMode ) {
             dumpStack("Before CALL at PC " + QString::number(m_pc-1) +
@@ -934,10 +1018,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
                       .arg(obj.toObject()->typeName()), instr);
             return false;
         }
-        break;
+        return true;
     }
 
-    case BydaoOpCode::CallVoid: {
+    Op_CallVoid: {
         int argCount = instr.arg1;
         if ( m_traceMode ) {
             dumpStack("Before CALLVOID at PC " + QString::number(m_pc-1) +
@@ -1005,11 +1089,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
                       .arg(obj.toObject()->typeName()), instr);
             return false;
         }
-        break;
+        return true;
     }
 
     // ===== Модули и типы =====
-    case BydaoOpCode::UseModule: {
+    Op_UseModule: {
 
         QString moduleName;
         QString alias;
@@ -1029,7 +1113,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         
         // Проверяем, не загружен ли уже модуль
         if ( m_moduleName.contains( alias ) ) {
-            break;
+            return true;
         }
         
         QString errorMsg;
@@ -1050,10 +1134,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         m_moduleName[alias] = varIndex;
         
-        break;
+        return true;
     }
     
-    case BydaoOpCode::TypeClass: {
+    Op_TypeClass: {
         QString typeName;
         if (instr.arg1 >= 0 && instr.arg1 < m_stringTable.size()) {
             typeName = m_stringTable[instr.arg1];
@@ -1069,11 +1153,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(typeClass);
-        break;
+        return true;
     }
     
     // ===== Массивы =====
-    case BydaoOpCode::PushArray: {
+    Op_PushArray: {
         int count = instr.arg1;
 
         // Создаём новый массив
@@ -1099,20 +1183,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Кладём массив на стек
         m_stack.push(BydaoValue(array));
-        break;
-    }
-
-    // ===== Управление =====
-    case BydaoOpCode::Nop:
-        break;
-
-    case BydaoOpCode::Halt:
-        m_running = false;
-        break;
-
-    default:
-        error("Unknown opcode: " + QString::number((int)instr.op), instr);
-        return false;
+        return true;
     }
     
     return true;

@@ -22,7 +22,8 @@ namespace BydaoScript {
 // Инструкции байткода (1 байт)
 enum BydaoOpCode : quint8 {
     // Управление
-    Nop = 0, Halt,
+    Nop = 0,
+    Halt,
 
     // Переменные и области видимости
     ConstDecl,      // определение константы: arg1 - индекс имени, arg2 - индекс константы
@@ -40,8 +41,12 @@ enum BydaoOpCode : quint8 {
     PushConst,      // arg1 = индекс в таблице констант
 
     // Арифметика
-    Add, Sub, Neg,
-    Mul, Div, Mod,
+    Add,
+    Sub,
+    Neg,
+    Mul,
+    Div,
+    Mod,
     VarAdd,         // сложение переменной:
                     // arg1 > 0 - индекс левой переменной
                     // arg2 > 0 - индекс правой переменной
@@ -49,7 +54,12 @@ enum BydaoOpCode : quint8 {
                     // arg2 = 0 - сложение переменной со значением на стеке
 
     // Сравнение
-    Eq, Neq, Lt, Gt, Le, Ge,
+    Eq,
+    Neq,
+    Lt,
+    Gt,
+    Le,
+    Ge,
 
     // Сравнение переменных
     VarLt,          // arg1 == 0, arg2 == 0 - сравнение двух значений на стеке
@@ -58,7 +68,9 @@ enum BydaoOpCode : quint8 {
                     // arg1 > 0 - индекс левой переменной, arg2 = 0 - сравнение со значением на стеке
 
     // Логические
-    And, Or, Not,
+    And,
+    Or,
+    Not,
 
     // Итераторы
     GetIter,     // obj.iter() - получение итератора, arg1 - индекс переменной для итератора
