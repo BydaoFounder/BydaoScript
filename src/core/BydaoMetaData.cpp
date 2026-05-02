@@ -95,6 +95,7 @@ FuncMetaData::FuncMetaData(){
     retType = "Void";
     isStatic = false;
     isImmutable = false;
+    index = -1;
 }
 
 FuncMetaData::FuncMetaData( const FuncMetaData& func ){
@@ -102,12 +103,21 @@ FuncMetaData::FuncMetaData( const FuncMetaData& func ){
     retType = func.retType;
     isStatic = func.isStatic;
     isImmutable = func.isImmutable;
+    index = func.index;
 }
 
 FuncMetaData::FuncMetaData( const QString& retType, bool isStatic, bool isImmutable ) {
     this->retType = retType;
     this->isStatic = isStatic;
     this->isImmutable = isImmutable;
+    this->index = -1;
+}
+
+FuncMetaData::FuncMetaData( int index, const QString& retType, bool isStatic, bool isImmutable ) {
+    this->retType = retType;
+    this->isStatic = isStatic;
+    this->isImmutable = isImmutable;
+    this->index = index;
 }
 
 FuncMetaData::FuncMetaData( const FuncArgMetaDataList& argList, const QString& retType,
@@ -116,6 +126,7 @@ FuncMetaData::FuncMetaData( const FuncArgMetaDataList& argList, const QString& r
     this->retType = retType;
     this->isStatic = isStatic;
     this->isImmutable = isImmutable;
+    this->index = -1;
 }
 
 FuncMetaData&   FuncMetaData::append( const FuncArgMetaData& arg ) {

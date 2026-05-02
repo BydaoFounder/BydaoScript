@@ -22,6 +22,7 @@
 #include "BydaoScript/BydaoNull.h"
 #include "BydaoScript/BydaoTypeRegistry.h"
 #include "BydaoScript/BydaoIterator.h"
+#include "BydaoScript/BydaoIntRange.h"
 #include <QElapsedTimer>
 #include <QDebug>
 
@@ -376,28 +377,31 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         if ( instr.arg2 > 0 ) {         // прибавить к переменной значение переменной
             BydaoValue& b = getVariable(instr.arg2, instr);
             BydaoValue& a = getVariable(instr.arg1, instr);
-            if (!a.isObject() || !b.isObject()) {
+            BydaoObject* obj = a.toObject();
+            if ( obj == nullptr ) {
                 error("'+=' operation on non-object", instr);
                 return false;
             }
-            a.toObject()->addToValue(b);
+            obj->addToValue(b);
         }
         else if ( instr.arg2 < 0 ) {    // прибавить к переменной значение константы
             BydaoValue& a = getVariable(instr.arg1, instr);
-            if ( ! a.isObject() ) {
+            BydaoObject* obj = a.toObject();
+            if ( obj == nullptr ) {
                 error("'+=' operation on non-object", instr);
                 return false;
             }
-            a.toObject()->addToValue( m_constantValues[ -instr.arg2 ] );
+            obj->addToValue( m_constantValues[ -instr.arg2 ] );
         }
         else {                          // прибавить к переменной значение со стека
             BydaoValue b = m_stack.pop();
             BydaoValue& a = getVariable(instr.arg1, instr);
-            if (!a.isObject() || !b.isObject()) {
+            BydaoObject* obj = a.toObject();
+            if ( obj == nullptr ) {
                 error("'+=' operation on non-object", instr);
                 return false;
             }
-            a.toObject()->addToValue(b);
+            obj->addToValue(b);
         }
         break;
     }
@@ -705,41 +709,41 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::ItNext: {
-        auto* iter = (BydaoIterator*)( getVariable( instr.arg1,instr).toObject() );
-        if (!iter) {
-            error("ITNEXT on non-iterator", instr);
+        auto* obj = getVariable(instr.arg1, instr).toObject();
+        if ( ! obj ) {
+            error("ITNEXT on non-object", instr);
             return false;
         }
-        m_stack.push( BydaoValue( BydaoBool::create( iter->next() ) ) ); // BydaoValue::fromBool( iter->next() ) );
+        m_stack.push( BydaoValue( BydaoBool::create( obj->callBoolMethod(0) ) ) );
         break;
     }
     
     case BydaoOpCode::ItValue: {
-        auto* iter = (BydaoIterator*)( getVariable( instr.arg1,instr).toObject() );
-        if (!iter) {
-            error("ITVALUE on non-iterator", instr);
+        auto* obj = getVariable(instr.arg1, instr).toObject();
+        if ( ! obj ) {
+            error("ITVALUE on non-object", instr);
             return false;
         }
         if ( instr.arg2 == 0 ) {
-            m_stack.push( iter->value() );
+            m_stack.push( obj->callValueMethod(0) );
         }
         else {
-            setVariable( instr.arg2, iter->value(), instr );
+            setVariable( instr.arg2, obj->callValueMethod(0), instr );
         }
         break;
     }
     
     case BydaoOpCode::ItKey: {
-        auto* iter = (BydaoIterator*)( getVariable( instr.arg1,instr).toObject() );
-        if (!iter) {
-            error("ITKEY on non-iterator", instr);
+        auto* obj = getVariable( instr.arg1,instr).toObject();
+        if ( ! obj ) {
+            error("ITKEY on non-object", instr);
             return false;
         }
         if ( instr.arg2 == 0 ) {
-            m_stack.push( iter->key() );
+            m_stack.push( obj->callValueMethod( 1 ) );
         }
         else {
-            setVariable( instr.arg2, iter->key(), instr );
+            setVariable( instr.arg2, obj->callValueMethod( 1 ), instr );
         }
         break;
     }

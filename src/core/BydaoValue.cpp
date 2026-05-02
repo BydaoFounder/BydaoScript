@@ -46,11 +46,6 @@ BydaoValue::BydaoValue(const BydaoValue& other)
     if (m_obj) m_obj->ref();
 }
 
-BydaoValue::BydaoValue(BydaoValue&& other) noexcept
-    : m_obj(other.m_obj), m_typeId(other.m_typeId) {
-    other.m_obj = nullptr;
-}
-
 BydaoValue::~BydaoValue() {
     if (m_obj) m_obj->unref();
 }
@@ -86,20 +81,30 @@ BydaoValue& BydaoValue::operator=(const BydaoValue& other) {
     return *this;
 }
 
+
+// Конструктор перемещения
+BydaoValue::BydaoValue(BydaoValue&& other) noexcept
+    : m_obj(other.m_obj)        // забираем указатель
+    , m_typeId(other.m_typeId)  // забираем typeId
+{
+    // Обнуляем источник, чтобы его деструктор не тронул объект
+    other.m_obj = nullptr;
+    other.m_typeId = TYPE_UNKNOWN;
+}
+
+// Оператор перемещения
 BydaoValue& BydaoValue::operator=(BydaoValue&& other) noexcept {
     if (this != &other) {
+        // Освобождаем свой текущий объект (если есть)
         if (m_obj) {
-            if ( m_obj->getRef() == 1 ) {
-                if ( other.m_obj && m_typeId == other.m_typeId ) {
-                    m_obj->assign( other.m_obj );
-                    return *this;
-                }
-            }
             m_obj->unref();
         }
+        // Забираем чужой
         m_obj = other.m_obj;
         m_typeId = other.m_typeId;
+        // Обнуляем источник
         other.m_obj = nullptr;
+        other.m_typeId = TYPE_UNKNOWN;
     }
     return *this;
 }

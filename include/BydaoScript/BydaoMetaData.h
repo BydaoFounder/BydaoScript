@@ -101,9 +101,15 @@ struct FuncMetaData {
      */
     bool                isImmutable;
 
+    /**
+     * Индекс функции для прямого вызова через таблицу функций.
+     */
+    int                 index;
+
     FuncMetaData();
     FuncMetaData( const FuncMetaData& func );
     FuncMetaData( const QString& retType, bool isStatic, bool isImmutable );
+    FuncMetaData( int index, const QString& retType, bool isStatic, bool isImmutable );
     FuncMetaData( const FuncArgMetaDataList& argList, const QString& retType, bool isStatic, bool isImmutable );
 
     FuncMetaData&   append( const FuncArgMetaData& arg );

@@ -31,7 +31,28 @@ public:
     inline void unref() { if (--m_refCount == 0) release(); }
     inline int getRef() { return m_refCount; }
 
-    // Единственный метод вызова
+    // Тип — обычный указатель на функцию
+    using StdMethod = bool (*)(BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result);
+    using BoolMethod = bool (*)(BydaoObject* self);
+    using ValueMethod = BydaoValue (*)(BydaoObject* self);
+
+    QVector<StdMethod> m_stdMethodTable;
+    QVector<BoolMethod> m_boolMethodTable;
+    QVector<ValueMethod> m_valueMethodTable;
+
+    inline bool callStdMethod( int index, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        return m_stdMethodTable[index](this, args, result);
+    }
+
+    inline bool callBoolMethod( int index ) {
+        return m_boolMethodTable[index](this);
+    }
+
+    inline BydaoValue callValueMethod( int index ) {
+        return m_valueMethodTable[index](this);
+    }
+
+    // Метод вызова функции по имени
     virtual bool callMethod(const QString& name,
                             const QVector<BydaoValue>& args,
                             BydaoValue& result) = 0;

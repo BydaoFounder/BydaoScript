@@ -15,6 +15,7 @@
 
 #include "BydaoIterator.h"
 #include "BydaoArray.h"
+#include "BydaoNull.h"
 
 namespace BydaoScript {
 
@@ -36,6 +37,34 @@ public:
     BydaoValue value() const override;
 
 protected:
+
+    static bool itNext(BydaoObject* self) {
+        auto* iter = static_cast<BydaoArrayIterator*>(self);
+        if ( ! iter->m_array ) return false;
+        return ++iter->m_index < iter->m_array->size();
+    }
+
+    static bool itIsValid(BydaoObject* self) {
+        auto* iter = static_cast<BydaoArrayIterator*>(self);
+        return iter->m_array && iter->m_index >= 0 && iter->m_index < iter->m_array->size();
+    }
+
+    static BydaoValue itValue(BydaoObject* self) {
+        auto* iter = static_cast<BydaoArrayIterator*>(self);
+        if ( iter->m_array && iter->m_index >= 0 && iter->m_index < iter->m_array->size() ) {
+            return iter->m_array->at( iter->m_index );
+        }
+        return BydaoValue( BydaoNull::instance() );
+    }
+
+    static BydaoValue itKey(BydaoObject* self) {
+        auto* iter = static_cast<BydaoArrayIterator*>(self);
+        if ( iter->m_array && iter->m_index >= 0 && iter->m_index < iter->m_array->size() ) {
+            return BydaoValue::fromInt( iter->m_index) ;
+        }
+        return BydaoValue( BydaoNull::instance() );
+    }
+
     BydaoArray* m_array;
     int m_index;
 };

@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "BydaoScript/BydaoIntRange.h"
-#include "BydaoScript/BydaoNull.h"
-#include "BydaoScript/BydaoInt.h"
 
 namespace BydaoScript {
 
@@ -72,9 +70,11 @@ MetaData*   BydaoIntRangeIterator::metaData() {
         metaData = new MetaData();
         metaData->extend = "Iter";
         metaData
-            // методы объекта
-            ->append( "next",    FuncMetaData("Bool", false, false) )
-            .append( "isValid",  FuncMetaData("Bool", false, false) )
+            // стандартные методы объекта
+            ->append( "next",    FuncMetaData( 0, "Bool", false, false) )
+            .append( "value",    FuncMetaData( 1, "Int", false, false) )
+            .append( "key",      FuncMetaData( 2, "Int", false, false) )
+            .append( "isValid",  FuncMetaData( 3, "Bool", false, false) )
             ;
         metaData
             // переменные объекта
@@ -89,6 +89,20 @@ BydaoIntRangeIterator::BydaoIntRangeIterator( BydaoIntRange* range ) {
     m_start = range->start();
     m_end = range->end();
     m_current = m_start - 1;
+
+    m_stdMethodTable.resize(4);
+    m_stdMethodTable[0] = &BydaoIntRangeIterator::nextImpl;
+    m_stdMethodTable[1] = &BydaoIntRangeIterator::valueImpl;
+    m_stdMethodTable[2] = &BydaoIntRangeIterator::keyImpl;
+    m_stdMethodTable[3] = &BydaoIntRangeIterator::isValidImpl;
+
+    m_boolMethodTable.resize( 2 );
+    m_boolMethodTable[0] = &BydaoIntRangeIterator::itNext;
+    m_boolMethodTable[1] = &BydaoIntRangeIterator::itIsValid;
+
+    m_valueMethodTable.resize( 2 );
+    m_valueMethodTable[0] = &BydaoIntRangeIterator::itValue;
+    m_valueMethodTable[1] = &BydaoIntRangeIterator::itKey;
 }
 
 bool BydaoIntRangeIterator::next() {

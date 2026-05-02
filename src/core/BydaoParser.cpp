@@ -1348,7 +1348,8 @@ bool BydaoParser::parseEnum() {
     int loopStart = m_bytecode.size();
 
     // iter.next()
-    emitCode(BydaoOpCode::ItNext, iterInfo.varIndex, 0, token);
+    FuncMetaData nextMetaData = iterMetaData->func( "next" );
+    emitCode(BydaoOpCode::ItNext, iterInfo.varIndex, nextMetaData.index, token);
 
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 

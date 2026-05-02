@@ -27,10 +27,70 @@ struct RuntimeVar {
     BydaoValue value;    // значение
 };
 
-// Область видимости в runtime
-// struct RuntimeScope {
-//     QVector<RuntimeVar> vars;           // переменные в этой области
-// };
+class BydaoValueStack {
+
+static constexpr int MAX_STACK = 1024;
+
+public:
+    BydaoValueStack() : m_stackTop(0) {}
+
+    ~BydaoValueStack() {
+        // Вызываем деструкторы для всех активных элементов
+        for (int i = 0; i < m_stackTop; ++i) {
+            reinterpret_cast<BydaoValue*>(&m_storage[i * sizeof(BydaoValue)])->~BydaoValue();
+        }
+    }
+
+    void push(BydaoValue&& v) {
+        Q_ASSERT(m_stackTop < MAX_STACK);
+        // Placement new: конструируем BydaoValue в сырой памяти
+        new (&m_storage[m_stackTop * sizeof(BydaoValue)]) BydaoValue(std::move(v));
+        ++m_stackTop;
+    }
+
+    // Для lvalue — копирование (безопасно, оригинал остаётся жив)
+    void push(const BydaoValue& v) {
+        new (&m_storage[m_stackTop * sizeof(BydaoValue)]) BydaoValue(v);
+        ++m_stackTop;
+    }
+
+    BydaoValue pop() {
+        Q_ASSERT(m_stackTop > 0);
+        --m_stackTop;
+        BydaoValue result = std::move(*reinterpret_cast<BydaoValue*>(&m_storage[m_stackTop * sizeof(BydaoValue)]));
+        // Ручной вызов деструктора для опустошённого элемента
+        reinterpret_cast<BydaoValue*>(&m_storage[m_stackTop * sizeof(BydaoValue)])->~BydaoValue();
+        return result;
+    }
+
+    BydaoValue& top() {
+        return *reinterpret_cast<BydaoValue*>(&m_storage[(m_stackTop - 1) * sizeof(BydaoValue)]);
+    }
+
+    int size() const { return m_stackTop; }
+    bool isEmpty() const { return m_stackTop == 0; }
+
+    void clear() {
+        // Вызываем деструкторы для всех активных элементов
+        while ( m_stackTop > 0 ) {
+            reinterpret_cast<BydaoValue*>(&m_storage[ (--m_stackTop)  * sizeof(BydaoValue) ])->~BydaoValue();
+        }
+    }
+
+    // Неконстантная версия (для изменяемого доступа)
+    BydaoValue& operator[](int index) {
+        return *reinterpret_cast<BydaoValue*>(&m_storage[index * sizeof(BydaoValue)]);
+    }
+
+    // Константная версия (для доступа только на чтение)
+    const BydaoValue& operator[](int index) const {
+        return *reinterpret_cast<const BydaoValue*>(&m_storage[index * sizeof(BydaoValue)]);
+    }
+
+private:
+    alignas(BydaoValue) unsigned char m_storage[sizeof(BydaoValue) * MAX_STACK];
+    int m_stackTop;
+};
 
 class BydaoVM {
 public:
@@ -81,10 +141,10 @@ private:
     QVector<BydaoInstruction> m_code;         // код
 
     // Состояние выполнения
-    int m_pc;                    // program counter
-    bool m_running;              // флаг выполнения
-    QStack<BydaoValue> m_stack;  // стек значений
-    QList<RuntimeVar>  m_scopeStack;  // стек областей видимости
+    int m_pc;                           // program counter
+    bool m_running;                     // флаг выполнения
+    BydaoValueStack     m_stack;        // стек значений
+    QList<RuntimeVar>   m_scopeStack;   // стек областей видимости
 
     // Ошибки
     QString m_lastError;

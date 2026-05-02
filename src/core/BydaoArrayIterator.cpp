@@ -44,6 +44,14 @@ BydaoArrayIterator::BydaoArrayIterator(BydaoArray* array)
     if (m_array) {
         m_array->ref();
     }
+
+    m_boolMethodTable.resize( 2 );
+    m_boolMethodTable[0] = &BydaoArrayIterator::itNext;
+    m_boolMethodTable[1] = &BydaoArrayIterator::itIsValid;
+
+    m_valueMethodTable.resize( 2 );
+    m_valueMethodTable[0] = &BydaoArrayIterator::itValue;
+    m_valueMethodTable[1] = &BydaoArrayIterator::itKey;
 }
 
 BydaoArrayIterator::~BydaoArrayIterator() {

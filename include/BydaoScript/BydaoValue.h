@@ -41,10 +41,14 @@ public:
     BydaoValue();
     explicit BydaoValue(BydaoObject* obj);
     BydaoValue(const BydaoValue& other);
-    BydaoValue(BydaoValue&& other) noexcept;
     ~BydaoValue();
 
     BydaoValue& operator=(const BydaoValue& other);
+
+    // Конструктор перемещения
+    BydaoValue(BydaoValue&& other) noexcept;
+
+    // Оператор перемещения
     BydaoValue& operator=(BydaoValue&& other) noexcept;
 
     BydaoValue copy();

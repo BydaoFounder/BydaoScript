@@ -15,6 +15,8 @@
 
 #include "BydaoIterator.h"
 #include "BydaoMetaData.h"
+#include "BydaoNull.h"
+#include "BydaoInt.h"
 
 namespace BydaoScript {
 
@@ -80,6 +82,78 @@ public:
     };
 
 private:
+
+    static bool itNext(BydaoObject* self) {
+        auto* iter = static_cast<BydaoIntRangeIterator*>(self);
+        return ( ++iter->m_current < iter->m_end );
+    }
+
+    static bool itIsValid(BydaoObject* self) {
+        auto* iter = static_cast<BydaoIntRangeIterator*>(self);
+        return ( iter->m_current >= iter->m_start && iter->m_current < iter->m_end );
+    }
+
+    static BydaoValue itValue(BydaoObject* self) {
+        auto* iter = static_cast<BydaoIntRangeIterator*>(self);
+        if ( iter->m_current >= iter->m_start && iter->m_current < iter->m_end ) {
+            return BydaoValue( BydaoInt::create( iter->m_current) );
+        }
+        return BydaoValue( BydaoNull::instance() );
+    }
+
+    static BydaoValue itKey(BydaoObject* self) {
+        auto* iter = static_cast<BydaoIntRangeIterator*>(self);
+        if ( iter->m_current >= iter->m_start && iter->m_current < iter->m_end ) {
+            return BydaoValue( BydaoInt::create( iter->m_current - iter->m_start ) );
+        }
+        return BydaoValue( BydaoNull::instance() );
+    }
+
+    // Статические методы
+    static bool nextImpl(BydaoObject* self,
+                         const QVector<BydaoValue>&,
+                         BydaoValue& result) {
+        Q_UNUSED( result );
+        auto* iter = static_cast<BydaoIntRangeIterator*>(self);
+        result = BydaoValue::fromBool( ++iter->m_current < iter->m_end );
+        return true;
+    }
+
+    static bool isValidImpl(BydaoObject* self,
+                            const QVector<BydaoValue>&,
+                            BydaoValue& result) {
+        auto* iter = static_cast<BydaoIntRangeIterator*>(self);
+        result = BydaoValue::fromBool( iter->m_current >= iter->m_start && iter->m_current < iter->m_end );
+        return true;
+    }
+
+    static bool valueImpl(BydaoObject* self,
+                          const QVector<BydaoValue>&,
+                          BydaoValue& result) {
+        auto* iter = static_cast<BydaoIntRangeIterator*>(self);
+
+        if ( iter->m_current >= iter->m_start && iter->m_current < iter->m_end ) {
+            result = BydaoValue( BydaoInt::create( iter->m_current) );
+        }
+        else {
+            result = BydaoValue(BydaoNull::instance());
+        }
+        return true;
+    }
+
+    static bool keyImpl(BydaoObject* self,
+                        const QVector<BydaoValue>&,
+                        BydaoValue& result) {
+        auto* iter = static_cast<BydaoIntRangeIterator*>(self);
+
+        if ( iter->m_current >= iter->m_start && iter->m_current < iter->m_end ) {
+            result = BydaoValue( BydaoInt::create( iter->m_current - iter->m_start ) );
+        }
+        else {
+            result = BydaoValue(BydaoNull::instance());
+        }
+        return true;
+    }
 
     qint64 m_start;
     qint64 m_end;
