@@ -29,7 +29,6 @@ class BydaoBool : public BydaoObject {
 protected:
 
     void release() override {
-        unref();
 /*
         if (s_cache.size() < MAX_CACHE_SIZE) {
             m_refCount = 0;  // сбрасываем для следующего использования
