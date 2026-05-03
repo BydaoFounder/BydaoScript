@@ -17,6 +17,7 @@
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoInt.h"
 #include "BydaoScript/BydaoReal.h"
+#include "BydaoScript/BydaoNull.h"
 #include "BydaoScript/BydaoArray.h"
 
 namespace BydaoScript {

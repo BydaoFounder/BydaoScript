@@ -26,18 +26,18 @@ MetaData*   BydaoIntClass::metaData() {
         metaData = new MetaData();
         metaData
             // Методы класса
-            ->append( "range",  FuncMetaData("IntRange", true, true)
+            ->append( "range",  FuncMetaData(0,"IntRange", true, true)
                                   << FuncArgMetaData("from","Int")
                                   << FuncArgMetaData("to","Int")
                      )
             .append( "parse",   FuncMetaData("Int", true, true)
                                  << FuncArgMetaData("str","String")
                     )
-            .append( "max",     FuncMetaData("Int", true, true)
+            .append( "max",     FuncMetaData(1,"Int", true, true)
                                << FuncArgMetaData("arg1","Int")
                                << FuncArgMetaData("arg2","Int")
                     )
-            .append( "min",     FuncMetaData("Int", true, true)
+            .append( "min",     FuncMetaData(2,"Int", true, true)
                                << FuncArgMetaData("arg1","Int")
                                << FuncArgMetaData("arg2","Int")
                     )
@@ -117,6 +117,11 @@ BydaoIntClass::BydaoIntClass()
     registerMethod("max",       &BydaoIntClass::method_max);
     registerMethod("min",       &BydaoIntClass::method_min);
     registerMethod("random",    &BydaoIntClass::method_random);
+
+    m_stdMethodTable.resize(1);
+    m_stdMethodTable[0] = &BydaoIntClass::rangeImpl;
+    m_stdMethodTable[1] = &BydaoIntClass::maxImpl;
+    m_stdMethodTable[2] = &BydaoIntClass::minImpl;
 }
 
 void BydaoIntClass::registerMethod(const QString& name, MethodPtr method) {
@@ -137,17 +142,19 @@ bool BydaoIntClass::callMethod(const QString& name,
 
 // Int.range(start, end) -> возвращает итератор по числам от start до end-1
 bool BydaoIntClass::method_range(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() != 2) return false;
+    if (args.size() != 2) {
+        setError("Invalid argument count");
+        return false;
+    }
     
     qint64 start = args[0].toInt();
     qint64 end = args[1].toInt();
-    
     if (start >= end) {
         result = BydaoValue( new BydaoIntRange(0, 0), BydaoTypeId::TYPE_OBJECT );  // пустой диапазон
-        return true;
     }
-    
-    result = BydaoValue( new BydaoIntRange(start, end), BydaoTypeId::TYPE_OBJECT );
+    else {
+        result = BydaoValue( new BydaoIntRange(start, end), BydaoTypeId::TYPE_OBJECT );
+    }
     return true;
 }
 

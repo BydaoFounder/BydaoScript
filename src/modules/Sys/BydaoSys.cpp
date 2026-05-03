@@ -31,41 +31,6 @@ extern "C" {
     }
 }
 
-// ==========================================
-
-// BydaoModuleInfoImpl* BydaoSysModule::createInfo() {
-//     auto* info = new BydaoModuleInfoImpl();
-//     info->m_name = "Sys";
-//     info->m_version = "1.0.0";
-
-//     info->m_methods = {
-//         {"out",         {"text"}},
-//         {"outln",       {"text"}},
-//         {"in",          {"prompt"}},
-//         {"err",         {"text"}},
-//         {"errln",       {"text"}},
-//         {"run",         {"command"}},
-//         {"exec",        {"program", "args"}},
-//         {"shell",       {"command"}},
-//         {"getenv",      {"name"}},
-//         {"setenv",      {"name", "value"}},
-//         {"unsetenv",    {"name"}},
-//         {"env",         {}},
-//         {"sleep",       {"ms"}},
-//         {"time",        {}},
-//         {"date",        {}},
-//         {"datetime",    {}},
-//         {"platform",    {}},
-//         {"currentDir",  {}},
-//         {"setCurrentDir", {"path"}},
-//         {"tempDir",     {}},
-//         {"homeDir",     {}},
-//         {"drives",      {}}
-//     };
-
-//     return info;
-// }
-
 // ========== BydaoSysModule ==========
 
 #define REGISTER_MODULE_METHOD(name) \
@@ -168,16 +133,11 @@ bool BydaoSysModule::method_out(const QVector<BydaoValue>& args, BydaoValue& res
 }
 
 bool BydaoSysModule::method_outln(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() > 1) return false;
-
-    if (args.size() == 1) {
-        // Выводим текст
-        QTextStream& out = *m_outStream;
-        out << args[0].toString();
-    }
-
-    // В любом случае добавляем перевод строки
     QTextStream& out = *m_outStream;
+    int argCnt = args.size();
+    for ( int i = 0; i < argCnt; ++i ) {
+        out << args[ i ].toString();
+    }
     out << Qt::endl;
     out.flush();
 

@@ -24,17 +24,6 @@ BydaoIterator::BydaoIterator()
     registerMethod("isValid", &BydaoIterator::method_isValid);
     registerMethod("key", &BydaoIterator::method_key);
     registerMethod("value", &BydaoIterator::method_value);
-
-    // Регистрируем свойства для доступа через точку
-    // registerProperty("key",
-    //                  [this]() { return this->getKey(); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
-
-    // registerProperty("value",
-    //                  [this]() { return this->getValue(); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
 }
 
 BydaoIterator::~BydaoIterator() {}

@@ -15,7 +15,6 @@
 
 #include "BydaoIterator.h"
 #include "BydaoArray.h"
-#include "BydaoNull.h"
 
 namespace BydaoScript {
 

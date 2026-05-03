@@ -60,12 +60,14 @@ public:
 
 private:
     // Вспомогательные методы
-    QString formatInstruction(int index, const BydaoInstruction& instr,
+    QString formatInstruction(int index, const QVector<BydaoInstruction>& code,
                               const QVector<BydaoConstant>& constants,
                               const QVector<QString>& stringTable,
                               const QVector<BydaoDebugInfo>* debugInfo = nullptr);
 
-    QString formatArg(const BydaoInstruction& instr, const QVector<BydaoConstant>& constants, const QVector<QString>& stringTable);
+    QString formatArg(int index, const QVector<BydaoInstruction>& code,
+                      const QVector<BydaoConstant>& constants,
+                      const QVector<QString>& stringTable);
     QString formatConstant(const BydaoConstant& c, const QVector<QString>& stringTable);
     QString formatString(const QString& str);
 

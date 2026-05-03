@@ -43,6 +43,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Mod] = "MOD";
         names[BydaoOpCode::Neg] = "NEG";
         names[BydaoOpCode::VarAdd] = "VARADD";
+        names[BydaoOpCode::VarDiv] = "VARDIV";
         names[BydaoOpCode::Eq] = "EQ";
         names[BydaoOpCode::Neq] = "NEQ";
         names[BydaoOpCode::Lt] = "LT";
@@ -68,7 +69,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::JumpIfTrue] = "JMPT";
         names[BydaoOpCode::ScopeDrop] = "SCOPEDROP";
         names[BydaoOpCode::UseModule] = "USE";
-        names[BydaoOpCode::TypeClass] = "TYPECLASS";
+        names[BydaoOpCode::UseBuiltin] = "BUILTIN";
         names[BydaoOpCode::PushArray] = "PUSHARRAY";
     }
     return names.value(op, "???");
@@ -333,7 +334,7 @@ bool BydaoBytecode::validate(const QVector<BydaoInstruction>& code,
         if (instr.op == BydaoOpCode::VarDecl ||
             instr.op == BydaoOpCode::Member ||
             instr.op == BydaoOpCode::UseModule ||
-            instr.op == BydaoOpCode::TypeClass) {
+            instr.op == BydaoOpCode::UseBuiltin) {
             
             if (instr.arg1 < 0 || instr.arg1 >= stringTable.size()) {
                 if (error) *error = QString("Invalid string index: %1").arg(instr.arg1);

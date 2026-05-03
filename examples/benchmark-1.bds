@@ -3,8 +3,8 @@ use Sys
 const cnt = 1000000
 const one = 1
 var t1 = Sys.time()
-var i = 0
 var sum = 0
+var i = 0
 while i < 1000000 next i = i + 1 {
     sum = sum + i
 }
@@ -12,10 +12,19 @@ t1 = Sys.time() - t1
 Sys.outln( 'time: ' + t1 + ' msec, sum = ' + sum )
 
 t1 = Sys.time()
-i = 0
 sum = 0
+i = 0
 while i < cnt next i += one {
     sum += i
+}
+t1 = Sys.time() - t1
+Sys.outln( 'time: ' + t1 + ' msec, sum = ' + sum )
+
+t1 = Sys.time()
+sum = 0
+i = 0
+while i < cnt next i += one {
+    sum += Int.min( i, cnt / 5 )
 }
 t1 = Sys.time() - t1
 Sys.outln( 'time: ' + t1 + ' msec, sum = ' + sum )

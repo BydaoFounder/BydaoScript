@@ -31,22 +31,25 @@ public:
     inline void unref() { if (--m_refCount == 0) release(); }
     inline int getRef() { return m_refCount; }
 
-    // Тип — обычный указатель на функцию
+    // Тип указателя на стандартную функцию объекта
     using StdMethod = bool (*)(BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result);
-    using BoolMethod = bool (*)(BydaoObject* self);
-    using ValueMethod = BydaoValue (*)(BydaoObject* self);
-
     QVector<StdMethod> m_stdMethodTable;
-    QVector<BoolMethod> m_boolMethodTable;
-    QVector<ValueMethod> m_valueMethodTable;
 
     inline bool callStdMethod( int index, const QVector<BydaoValue>& args, BydaoValue& result ) {
         return m_stdMethodTable[index](this, args, result);
     }
 
+    // Тип указателя на функцию объекта без аргументов, которая возвращает логическое значение
+    using BoolMethod = bool (*)(BydaoObject* self);
+    QVector<BoolMethod> m_boolMethodTable;
+
     inline bool callBoolMethod( int index ) {
         return m_boolMethodTable[index](this);
     }
+
+    // Тип указателя на функцию объекта без аргументов, которая возвращает значение BydaoValue
+    using ValueMethod = BydaoValue (*)(BydaoObject* self);
+    QVector<ValueMethod> m_valueMethodTable;
 
     inline BydaoValue callValueMethod( int index ) {
         return m_valueMethodTable[index](this);
@@ -82,6 +85,20 @@ public:
     virtual BydaoObject* copy() {
         qWarning() << "copy not implemented for" << typeName();
         return nullptr;
+    }
+
+    // ---------- Обработка ошибок -------------------------------
+
+    void        setError( const QString& errorText ) {
+        m_errorText = errorText;
+    }
+
+    QString     lastError() {
+        return m_errorText;
+    }
+
+    void        clearError() {
+        m_errorText.clear();
     }
 
     // ========== Операции (с реализацией по умолчанию) ==========
@@ -191,6 +208,8 @@ protected:
     virtual void release() {
         delete this;
     }
+
+    QString     m_errorText;
 };
 
 } // namespace BydaoScript

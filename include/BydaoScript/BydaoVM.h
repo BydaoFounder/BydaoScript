@@ -63,6 +63,14 @@ public:
         return result;
     }
 
+    void    popTo( BydaoValue& result ) {
+        Q_ASSERT(m_stackTop > 0);
+        --m_stackTop;
+        result = std::move(*reinterpret_cast<BydaoValue*>(&m_storage[m_stackTop * sizeof(BydaoValue)]));
+        // Ручной вызов деструктора для опустошённого элемента
+        reinterpret_cast<BydaoValue*>(&m_storage[m_stackTop * sizeof(BydaoValue)])->~BydaoValue();
+    }
+
     BydaoValue& top() {
         return *reinterpret_cast<BydaoValue*>(&m_storage[(m_stackTop - 1) * sizeof(BydaoValue)]);
     }
@@ -133,6 +141,13 @@ private:
     void setVariable(int varIndex, const BydaoValue& value, const BydaoInstruction& instr);
 
     void dumpStack(const QString& label = QString());
+
+    struct BuiltinType {
+        QString     name;
+        BydaoValue  typeValue;
+    };
+    QList<BuiltinType>  s_builtinTypes;
+    BydaoValue&     getBuiltinType(int index);
 
     // Таблицы из байткода
     QVector<BydaoConstant> m_constants;      // исходные константы

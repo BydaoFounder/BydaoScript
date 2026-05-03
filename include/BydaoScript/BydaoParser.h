@@ -44,12 +44,6 @@ struct LoopInfo {
     QVector<int> nexts;  // индексы инструкций JUMP для next
 };
 
-// Информация о встроенном типе
-struct BuiltinTypeInfo {
-    QString name;
-    QHash<QString, int> methods;  // имя метода -> количество аргументов (-1 = varargs)
-};
-
 class BydaoParser {
 public:
     explicit BydaoParser(const QVector<BydaoToken>& tokens);
@@ -207,8 +201,8 @@ private:
     // Модули и типы
     QStringList m_modulePaths;
 
-    // Информация о встроенном типе
-    QHash<QString, BuiltinTypeInfo> m_builtinTypes;
+    // Список втсроенных типов
+    QList<QString> m_builtinTypes;
 
     // Счётчики
     int m_iteratorCounter;
@@ -249,7 +243,7 @@ private:
             this->operand = operand;
         }
     };
-    QStack< TypeInfo >          m_typeStack;
+    QStack< TypeInfo >      m_typeStack;
 };
 
 } // namespace BydaoScript

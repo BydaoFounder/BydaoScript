@@ -48,6 +48,29 @@ private:
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;
+
+    static bool rangeImpl(BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result) {
+        auto* obj = static_cast<BydaoIntClass*>(self);
+        return obj->method_range( args, result );
+    }
+
+    static bool maxImpl(BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result) {
+        Q_UNUSED( self );
+        qint64 a = args[0].toInt();
+        qint64 b = args[1].toInt();
+        result = BydaoValue::fromInt(a > b ? a : b);
+
+        return true;
+    }
+
+    static bool minImpl(BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result) {
+        Q_UNUSED( self );
+        qint64 a = args[0].toInt();
+        qint64 b = args[1].toInt();
+        result = BydaoValue::fromInt(a < b ? a : b);
+        return true;
+    }
+
 };
 
 } // namespace BydaoScript

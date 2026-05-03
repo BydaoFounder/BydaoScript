@@ -149,14 +149,18 @@ bool BydaoFileModule::method_readAll(const QVector<BydaoValue>& args, BydaoValue
     if (args.size() != 1) return false;
 
     QFile file(args[0].toString());
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if ( ! file.exists() ) {
+        setError( QString( "file '%1' not found" ).arg( file.fileName() ) );
+        return false;
+    }
+    if ( file.open(QIODevice::ReadOnly | QIODevice::Text) ) {
         QTextStream in(&file);
         QString content = in.readAll();
         file.close();
         result = BydaoValue( BydaoString::create(content), BydaoTypeId::TYPE_STRING );
         return true;
     }
-    result = BydaoValue::fromNull();
+    setError( QString( "cannot open file '%1'" ).arg( file.fileName() ) );
     return false;
 }
 
@@ -164,6 +168,10 @@ bool BydaoFileModule::method_writeAll(const QVector<BydaoValue>& args, BydaoValu
     if (args.size() != 2) return false;
 
     QFile file(args[0].toString());
+    if ( ! file.exists() ) {
+        setError( QString( "file '%1' not found" ).arg( file.fileName() ) );
+        return false;
+    }
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&file);
         out << args[1].toString();
@@ -171,7 +179,7 @@ bool BydaoFileModule::method_writeAll(const QVector<BydaoValue>& args, BydaoValu
         result = BydaoValue::fromBool( true );
         return true;
     }
-    result = BydaoValue::fromBool( false );
+    setError( QString( "cannot open file '%1'" ).arg( file.fileName() ) );
     return false;
 }
 

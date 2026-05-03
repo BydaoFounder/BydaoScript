@@ -173,10 +173,11 @@ BydaoValue BydaoInt::div(const BydaoValue& other) {
     switch (other.typeId()) {
     case TYPE_INT: {
         const auto* otherInt = (BydaoInt*)(other.toObject());
-        if (otherInt->m_value == 0) {
-            return BydaoValue();  // null
+        qint64 otherVal = otherInt->m_value;
+        if (otherVal != 0) {
+            return BydaoValue::fromInt( m_value / otherVal );
         }
-        return BydaoValue::fromInt(m_value / otherInt->m_value );
+        return BydaoValue();  // null
     }
     case TYPE_REAL: {
         const auto* otherReal = (BydaoReal*)(other.toObject());
