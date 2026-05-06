@@ -67,6 +67,9 @@ enum BydaoOpCode : quint8 {
     // Логические
     And, Or, Not,
 
+    // Битовые
+    BitAnd, BitXor, BitOr,
+
     // Итераторы
     GetIter,     // obj.iter() - получение итератора, arg1 - индекс переменной для итератора
     ItNext,      // вызов iter.next() -> bool, arg1 - индекс переменной итератора

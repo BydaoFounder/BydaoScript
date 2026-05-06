@@ -197,6 +197,9 @@ BydaoToken BydaoLexer::readOperator(QChar ch) {
         case ',': return BydaoToken(BydaoTokenType::Comma, ",", m_line, startCol);
         case '.': return BydaoToken(BydaoTokenType::Dot, ".", m_line, startCol);
         case ':': return BydaoToken(BydaoTokenType::Colon, ":", m_line, startCol);
+        case '&': return BydaoToken(BydaoTokenType::BitAnd, "&", m_line, startCol);
+        case '|': return BydaoToken(BydaoTokenType::BitOr, "|", m_line, startCol);
+        case '^': return BydaoToken(BydaoTokenType::BitXor, "^", m_line, startCol);
     }
     return BydaoToken(BydaoTokenType::Error, QString(ch), m_line, startCol);
 }

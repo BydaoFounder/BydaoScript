@@ -133,6 +133,9 @@ private:
     bool parseExpression();
     bool parseLogicalOr();
     bool parseLogicalAnd();
+    bool parseBitOr();
+    bool parseBitXor();
+    bool parseBitAnd();
     bool parseEquality();
     bool parseComparison();
     bool parseAddition();

@@ -54,6 +54,9 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::And] = "AND";
         names[BydaoOpCode::Or] = "OR";
         names[BydaoOpCode::Not] = "NOT";
+        names[BydaoOpCode::BitAnd] = "BITAND";
+        names[BydaoOpCode::BitOr] = "BITOR";
+        names[BydaoOpCode::BitXor] = "BITXOR";
         names[BydaoOpCode::GetIter] = "GETITER";
         names[BydaoOpCode::ItNext] = "ITNEXT";
         names[BydaoOpCode::ItKey] = "ITKEY";

@@ -98,6 +98,36 @@ bool BydaoInt::method_toBin(const QVector<BydaoValue>& args, BydaoValue& result)
 
 // ========== Операции ==========
 
+BydaoValue BydaoInt::bitAnd(const BydaoValue& other) {
+    switch (other.typeId()) {
+    case TYPE_INT: {
+        return BydaoValue( BydaoInt::create(m_value & ((BydaoInt*)other.toObject())->m_value), BydaoTypeId::TYPE_INT );
+    }
+    default:
+        return BydaoValue::fromInt(m_value & other.toInt());
+    }
+}
+
+BydaoValue BydaoInt::bitOr(const BydaoValue& other) {
+    switch (other.typeId()) {
+    case TYPE_INT: {
+        return BydaoValue( BydaoInt::create(m_value | ((BydaoInt*)other.toObject())->m_value), BydaoTypeId::TYPE_INT );
+    }
+    default:
+        return BydaoValue::fromInt(m_value | other.toInt());
+    }
+}
+
+BydaoValue BydaoInt::bitXor(const BydaoValue& other) {
+    switch (other.typeId()) {
+    case TYPE_INT: {
+        return BydaoValue( BydaoInt::create(m_value ^ ((BydaoInt*)other.toObject())->m_value), BydaoTypeId::TYPE_INT );
+    }
+    default:
+        return BydaoValue::fromInt(m_value ^ other.toInt());
+    }
+}
+
 BydaoValue BydaoInt::add(const BydaoValue& other) {
     switch (other.typeId()) {
     case TYPE_INT: {

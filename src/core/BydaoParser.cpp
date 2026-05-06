@@ -1502,7 +1502,7 @@ bool BydaoParser::parseLogicalOr() {
 
 bool BydaoParser::parseLogicalAnd() {
     BydaoToken leftToken = m_current;
-    if (!parseEquality()) return false;
+    if (!parseBitOr()) return false;
 
     while (match(BydaoTokenType::And)) {
 
@@ -1516,7 +1516,7 @@ bool BydaoParser::parseLogicalAnd() {
         nextToken();
 
         BydaoToken rightToken = m_current;
-        if (!parseEquality()) return false;
+        if (!parseBitOr()) return false;
 
         // Проверить тип правого операнда
 
@@ -1525,6 +1525,102 @@ bool BydaoParser::parseLogicalAnd() {
         }
 
         emitCode(BydaoOpCode::And, 0, 0, op);
+    }
+
+    return true;
+}
+
+bool BydaoParser::parseBitOr() {
+    BydaoToken leftToken = m_current;
+    if (!parseBitXor()) return false;
+
+    while ( match(BydaoTokenType::BitOr) ) {
+
+        // Проверить тип левого операнда операции
+
+        if ( ! checkTypeConvert( "Int", leftToken ) ) {
+            return false;
+        }
+
+        BydaoToken op = m_current;
+        nextToken();
+
+        BydaoToken rightToken = m_current;
+        if (!parseBitXor()) return false;
+
+        // Проверить тип правого операнда
+
+        if ( ! checkTypeConvert( "Int", rightToken ) ) {
+            return false;
+        }
+
+        m_typeStack.push( TypeInfo( "Int", Expr ) );
+
+        emitCode(BydaoOpCode::BitOr, 0, 0, op);
+    }
+
+    return true;
+}
+
+bool BydaoParser::parseBitXor() {
+    BydaoToken leftToken = m_current;
+    if (!parseBitAnd()) return false;
+
+    while ( match(BydaoTokenType::BitXor) ) {
+
+        // Проверить тип левого операнда операции
+
+        if ( ! checkTypeConvert( "Int", leftToken ) ) {
+            return false;
+        }
+
+        BydaoToken op = m_current;
+        nextToken();
+
+        BydaoToken rightToken = m_current;
+        if (!parseBitAnd()) return false;
+
+        // Проверить тип правого операнда
+
+        if ( ! checkTypeConvert( "Int", rightToken ) ) {
+            return false;
+        }
+
+        m_typeStack.push( TypeInfo( "Int", Expr ) );
+
+        emitCode(BydaoOpCode::BitXor, 0, 0, op);
+    }
+
+    return true;
+}
+
+bool BydaoParser::parseBitAnd() {
+    BydaoToken leftToken = m_current;
+    if (!parseEquality()) return false;
+
+    while ( match(BydaoTokenType::BitAnd) ) {
+
+        // Проверить тип левого операнда операции
+
+        if ( ! checkTypeConvert( "Int", leftToken ) ) {
+            return false;
+        }
+
+        BydaoToken op = m_current;
+        nextToken();
+
+        BydaoToken rightToken = m_current;
+        if (!parseEquality()) return false;
+
+        // Проверить тип правого операнда
+
+        if ( ! checkTypeConvert( "Int", rightToken ) ) {
+            return false;
+        }
+
+        m_typeStack.push( TypeInfo( "Int", Expr ) );
+
+        emitCode(BydaoOpCode::BitAnd, 0, 0, op);
     }
 
     return true;

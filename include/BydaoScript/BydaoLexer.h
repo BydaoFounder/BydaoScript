@@ -29,6 +29,7 @@ enum class BydaoTokenType {
     Plus, Minus,
     Mul, Div, Mod,
     And, Or, Not,
+    BitAnd, BitXor, BitOr,
 
     // Сравнение
     Equal, NotEqual, Less, Greater, LessEqual, GreaterEqual,

@@ -574,7 +574,48 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_stack.push(a.toObject()->neg());
         break;
     }
-    
+
+    // ===== Битовые ======
+
+    case BydaoOpCode::BitAnd: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = m_stack.pop();
+
+        if (!a.isObject() || !b.isObject()) {
+            error("bit AND operation on non-object", instr);
+            return false;
+        }
+
+        m_stack.push(a.toObject()->bitAnd(b));
+        break;
+    }
+
+    case BydaoOpCode::BitOr: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = m_stack.pop();
+
+        if (!a.isObject() || !b.isObject()) {
+            error("bit OR operation on non-object", instr);
+            return false;
+        }
+
+        m_stack.push(a.toObject()->bitOr(b));
+        break;
+    }
+
+    case BydaoOpCode::BitXor: {
+        BydaoValue b = m_stack.pop();
+        BydaoValue a = m_stack.pop();
+
+        if (!a.isObject() || !b.isObject()) {
+            error("bit XOR operation on non-object", instr);
+            return false;
+        }
+
+        m_stack.push(a.toObject()->bitXor(b));
+        break;
+    }
+
     // ===== Сравнение =====
     case BydaoOpCode::Eq: {
         BydaoValue b = m_stack.pop();

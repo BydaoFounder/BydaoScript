@@ -108,6 +108,24 @@ public:
         qWarning() << "assign not implemented for" << typeName();
     }
 
+    virtual BydaoValue bitAnd(const BydaoValue& other) {
+        Q_UNUSED( other );
+        qWarning() << "bit AND not supported for" << typeName();
+        return BydaoValue();  // null
+    }
+
+    virtual BydaoValue bitOr(const BydaoValue& other) {
+        Q_UNUSED( other );
+        qWarning() << "bit OR not supported for" << typeName();
+        return BydaoValue();  // null
+    }
+
+    virtual BydaoValue bitXor(const BydaoValue& other) {
+        Q_UNUSED( other );
+        qWarning() << "bit XOR not supported for" << typeName();
+        return BydaoValue();  // null
+    }
+
     virtual BydaoValue add(const BydaoValue& other) {
         Q_UNUSED( other );
         qWarning() << "add not supported for" << typeName();

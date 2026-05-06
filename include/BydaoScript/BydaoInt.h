@@ -63,6 +63,9 @@ public:
     void    assign( BydaoObject* obj ) override {
         m_value = ((BydaoInt*)obj)->m_value;
     }
+    BydaoValue bitAnd(const BydaoValue& other) override;
+    BydaoValue bitOr(const BydaoValue& other) override;
+    BydaoValue bitXor(const BydaoValue& other) override;
     BydaoValue add(const BydaoValue& other) override;
     void       addToValue(const BydaoValue& other) override;
     BydaoValue sub(const BydaoValue& other) override;
