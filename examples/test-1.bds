@@ -1,0 +1,219 @@
+use Sys
+
+// ============================================
+// Базовые тесты логических условий
+// ============================================
+
+// Тест 1: Равенство и неравенство
+var test1_passed = true
+var test_name = "basic equality"
+
+var a = 5
+var b = 5
+var c = 3
+
+if (a == b) {
+    Sys.outln("[PASS] " + test_name + ": equality works")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": 5 == 5 failed")
+    test1_passed = false
+}
+
+if (a != c) {
+    Sys.outln("[PASS] " + test_name + ": inequality works")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": 5 != 3 failed")
+    test1_passed = false
+}
+
+// Тест 2: Сравнения >, <, >=, <=
+test_name = "comparison operators"
+var test2_passed = true
+
+if (10 > 5) {
+    Sys.outln("[PASS] " + test_name + ": 10 > 5")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": 10 > 5")
+    test2_passed = false
+}
+
+if (3 < 7) {
+    Sys.outln("[PASS] " + test_name + ": 3 < 7")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": 3 < 7")
+    test2_passed = false
+}
+
+if (5 >= 5) {
+    Sys.outln("[PASS] " + test_name + ": 5 >= 5")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": 5 >= 5")
+    test2_passed = false
+}
+
+if (4 <= 6) {
+    Sys.outln("[PASS] " + test_name + ": 4 <= 6")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": 4 <= 6")
+    test2_passed = false
+}
+
+// Тест 3: Логические операторы AND, OR, NOT
+test_name = "logical operators"
+var test3_passed = true
+
+// AND
+if 5 > 3 && 2 < 4 {
+    Sys.outln("[PASS] " + test_name + ": AND works")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": (5>3) && (2<4) failed")
+    test3_passed = false
+}
+
+if ((5 > 3) && (5 < 3)) {
+    Sys.outln("[FAIL] " + test_name + ": false AND should be false")
+    test3_passed = false
+} else {
+    Sys.outln("[PASS] " + test_name + ": false AND correctly false")
+}
+
+// OR
+if ((5 > 3) || (5 < 3)) {
+    Sys.outln("[PASS] " + test_name + ": OR works")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": true OR false failed")
+    test3_passed = false
+}
+
+if ((5 < 3) || (2 > 4)) {
+    Sys.outln("[FAIL] " + test_name + ": false OR false should be false")
+    test3_passed = false
+} else {
+    Sys.outln("[PASS] " + test_name + ": false OR correctly false")
+}
+
+// NOT
+if (! (5 < 3)) {
+    Sys.outln("[PASS] " + test_name + ": NOT works")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": not false failed")
+    test3_passed = false
+}
+
+if (! (5 > 3)) {
+    Sys.outln("[FAIL] " + test_name + ": not true should be false")
+    test3_passed = false
+} else {
+    Sys.outln("[PASS] " + test_name + ": not true correctly false")
+}
+
+// Тест 4: Сложные условия
+test_name = "complex conditions"
+var test4_passed = true
+
+var x = 10
+var y = 20
+var z = 15
+
+if ((x < y) && (y > z) && (x < z)) {
+    Sys.outln("[PASS] " + test_name + ": complex true condition")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": complex true condition returned false")
+    test4_passed = false
+}
+
+if ((x < z) || (z > y) || (z == 15)) {
+    Sys.outln("[PASS] " + test_name + ": complex true condition")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": complex true condition failed")
+    test4_passed = false
+}
+
+// Тест 5: Вложенные условия в цикле
+test_name = "conditions in loop"
+var test5_passed = true
+var counter = 0
+var i = 0
+
+while i < 20 next i = i + 1 {
+    if ((i % 2 == 0) && (i > 5)) {
+        counter = counter + 1
+    }
+}
+
+// Должно сработать для i = 6,8,10,12,14,16,18 (7 раз)
+if (counter == 7) {
+    Sys.outln("[PASS] " + test_name + ": loop with conditions")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": expected 7, got " + counter)
+    test5_passed = false
+}
+
+// Тест 6: Приоритет операторов
+test_name = "operator precedence"
+var test6_passed = true
+
+// not имеет высший приоритет
+if ( ! true && false == false ) {
+    Sys.outln("[FAIL] " + test_name + ": precedence issue")
+    test6_passed = false
+} else {
+    Sys.outln("[PASS] " + test_name + ": ! binds tighter than &&")
+}
+
+// Тест 7: Граничные случаи
+test_name = "edge cases"
+var test7_passed = true
+
+// Сравнение с null (если есть)
+var obj = null
+if (obj == null) {
+    Sys.outln("[PASS] " + test_name + ": null equality")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": null check failed")
+    test7_passed = false
+}
+
+// Цепочка сравнений (если поддерживается)
+// if ((5 > 3) && (3 > 1)) альтернатива для цепочки
+
+// Тест 8: Сравнение разных типов (осторожно!)
+test_name = "type comparison"
+var test8_passed = true
+
+if (5 == 5) {
+    Sys.outln("[PASS] " + test_name + ": int comparison")
+} else {
+    Sys.outln("[FAIL] " + test_name + ": int comparison failed")
+    test8_passed = false
+}
+
+// ============================================
+// ИТОГОВЫЙ ОТЧЁТ
+// ============================================
+Sys.outln("")
+Sys.outln("=== TEST SUMMARY ===")
+
+var total = 0
+var passed = 0
+
+// Считаем (временно, пока нет функций)
+// Ручной подсчёт:
+Sys.outln("Test 1 (equality): " + test1_passed)
+Sys.outln("Test 2 (comparisons): " + test2_passed)
+Sys.outln("Test 3 (logic ops): " + test3_passed)
+Sys.outln("Test 4 (complex): " + test4_passed)
+Sys.outln("Test 5 (loop): " + test5_passed)
+Sys.outln("Test 6 (precedence): " + test6_passed)
+Sys.outln("Test 7 (edge cases): " + test7_passed)
+Sys.outln("Test 8 (type comparison): " + test8_passed)
+
+// Итоговая проверка (все ли тесты прошли)
+if (test1_passed && test2_passed && test3_passed && test4_passed &&
+    test5_passed && test6_passed && test7_passed && test8_passed ) {
+    Sys.outln("")
+    Sys.outln("✓ ALL TESTS PASSED")
+} else {
+    Sys.outln("")
+    Sys.outln("✗ SOME TESTS FAILED")
+}

@@ -118,7 +118,7 @@ BydaoIntClass::BydaoIntClass()
     registerMethod("min",       &BydaoIntClass::method_min);
     registerMethod("random",    &BydaoIntClass::method_random);
 
-    m_stdMethodTable.resize(1);
+    m_stdMethodTable.resize(3);
     m_stdMethodTable[0] = &BydaoIntClass::rangeImpl;
     m_stdMethodTable[1] = &BydaoIntClass::maxImpl;
     m_stdMethodTable[2] = &BydaoIntClass::minImpl;

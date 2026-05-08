@@ -247,6 +247,18 @@ private:
         }
     };
     QStack< TypeInfo >      m_typeStack;
+
+    TypeInfo            getLastType() {
+        if ( m_typeStack.isEmpty() ) {
+            error( "Undefined expression type", m_current );
+            return TypeInfo("Indefined");
+        }
+        return m_typeStack.pop();
+    }
+
+    void                setLastType( const TypeInfo& type ) {
+        m_typeStack.push( type );
+    }
 };
 
 } // namespace BydaoScript

@@ -542,7 +542,7 @@ bool BydaoParser::parseBlock(bool requireBraces) {
 
 bool    BydaoParser::checkTypeStack( int typeStackSize, const BydaoToken& statementToken ) {
     if ( m_typeStack.size() > typeStackSize ) {
-        TypeInfo typeInfo = m_typeStack.pop();
+        TypeInfo typeInfo = getLastType();
         if ( typeInfo.type != "Void" ) {
             error("Invalid statement type '" + typeInfo.type +  "'", statementToken );
             return false;
@@ -552,7 +552,7 @@ bool    BydaoParser::checkTypeStack( int typeStackSize, const BydaoToken& statem
 }
 
 bool    BydaoParser::checkTypeConvert( const QString& typeName, const BydaoToken& token ) {
-    TypeInfo typeInfo = m_typeStack.pop();
+    TypeInfo typeInfo = getLastType();
     if ( typeInfo.type != typeName ) {
         return checkTypeConvert( typeInfo.type, typeName, token );
     }
@@ -712,7 +712,7 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
             error("Internal error: empty stack of value types");
             return false;
         }
-        TypeInfo typeInfo = m_typeStack.pop();
+        TypeInfo typeInfo = getLastType();
         if ( typeInfo.type == "Void" ) {
             error("Cannot assign void value", exprToken );
             return false;
@@ -819,7 +819,7 @@ bool BydaoParser::parseAssign() {
     if (!parseExpression()) {
         return false;
     }
-    TypeInfo exprType = m_typeStack.pop();
+    TypeInfo exprType = getLastType();
 
     QString varType = varInfo.type;
     if ( varType != "Null" && varType != exprType.type ) {
@@ -884,7 +884,7 @@ bool BydaoParser::parseAddAssign() {
     if (!parseExpression()) {
         return false;
     }
-    TypeInfo exprTypeInfo = m_typeStack.pop();
+    TypeInfo exprTypeInfo = getLastType();
 
     // Проверить, что тип переменной поддерживает операцию "+"
 
@@ -1063,7 +1063,7 @@ bool BydaoParser::parseIf() {
     if (!parseExpression()) {
         return false;
     }
-    TypeInfo exprTypeInfo = m_typeStack.pop();
+    TypeInfo exprTypeInfo = getLastType();
     if ( exprTypeInfo.type != "Bool" ) {
 
         if ( ! checkTypeConvert( exprTypeInfo.type, "Bool", exprToken ) ) {
@@ -1093,7 +1093,7 @@ bool BydaoParser::parseIf() {
         if (!parseExpression()) {
             return false;
         }
-        exprTypeInfo = m_typeStack.pop();
+        exprTypeInfo = getLastType();
         if ( exprTypeInfo.type != "Bool" ) {
 
             if ( ! checkTypeConvert( exprTypeInfo.type, "Bool", exprToken ) ) {
@@ -1138,7 +1138,7 @@ bool BydaoParser::parseWhile() {
     if (!parseExpression()) {
         return false;
     }
-    TypeInfo exprTypeInfo = m_typeStack.pop();
+    TypeInfo exprTypeInfo = getLastType();
     if ( exprTypeInfo.type != "Bool" ) {
 
         if ( ! checkTypeConvert( exprTypeInfo.type, "Bool", exprToken ) ) {
@@ -1222,7 +1222,7 @@ bool BydaoParser::parseIter() {
     if (!parseExpression()) {
         return false;
     }
-    TypeInfo exprTypeInfo = m_typeStack.pop();
+    TypeInfo exprTypeInfo = getLastType();
     MetaData* exprMetaData = m_metaData[ exprTypeInfo.type ];
     if ( ! exprMetaData ) {
         error("Unknown type '" + exprTypeInfo.type + "'", exprToken );
@@ -1296,7 +1296,7 @@ bool BydaoParser::parseEnum() {
     if (!parseExpression()) {
         return false;
     }
-    TypeInfo exprTypeInfo = m_typeStack.pop();
+    TypeInfo exprTypeInfo = getLastType();
     MetaData* exprMetaData = m_metaData[ exprTypeInfo.type ];
     if ( ! exprMetaData ) {
         error("Unknown type '" + exprTypeInfo.type + "'", exprToken );
@@ -1494,6 +1494,8 @@ bool BydaoParser::parseLogicalOr() {
             return false;
         }
 
+        setLastType( TypeInfo( "Bool", Expr ) );
+
         emitCode(BydaoOpCode::Or, 0, 0, op);
     }
 
@@ -1523,6 +1525,8 @@ bool BydaoParser::parseLogicalAnd() {
         if ( ! checkTypeConvert( "Bool", rightToken ) ) {
             return false;
         }
+
+        setLastType( TypeInfo( "Bool", Expr ) );
 
         emitCode(BydaoOpCode::And, 0, 0, op);
     }
@@ -1554,7 +1558,7 @@ bool BydaoParser::parseBitOr() {
             return false;
         }
 
-        m_typeStack.push( TypeInfo( "Int", Expr ) );
+        setLastType( TypeInfo( "Int", Expr ) );
 
         emitCode(BydaoOpCode::BitOr, 0, 0, op);
     }
@@ -1586,7 +1590,7 @@ bool BydaoParser::parseBitXor() {
             return false;
         }
 
-        m_typeStack.push( TypeInfo( "Int", Expr ) );
+        setLastType( TypeInfo( "Int", Expr ) );
 
         emitCode(BydaoOpCode::BitXor, 0, 0, op);
     }
@@ -1618,7 +1622,7 @@ bool BydaoParser::parseBitAnd() {
             return false;
         }
 
-        m_typeStack.push( TypeInfo( "Int", Expr ) );
+        setLastType( TypeInfo( "Int", Expr ) );
 
         emitCode(BydaoOpCode::BitAnd, 0, 0, op);
     }
@@ -1632,7 +1636,7 @@ bool BydaoParser::parseEquality() {
 
     while (match(BydaoTokenType::Equal) || match(BydaoTokenType::NotEqual)) {
 
-        TypeInfo leftTypeInfo = m_typeStack.pop();
+        TypeInfo leftTypeInfo = getLastType();
 
         bool isEq = match(BydaoTokenType::Equal);
         BydaoToken op = m_current;
@@ -1641,7 +1645,7 @@ bool BydaoParser::parseEquality() {
         BydaoToken rightToken = m_current;
         if (!parseComparison()) return false;
 
-        TypeInfo rightTypeInfo = m_typeStack.pop();
+        TypeInfo rightTypeInfo = getLastType();
 
         // Проверить наличие операции сравнения для левого операнда
 
@@ -1662,7 +1666,7 @@ bool BydaoParser::parseEquality() {
             }
         }
 
-        m_typeStack.push( TypeInfo("Bool", Expr ) );
+        setLastType( TypeInfo("Bool", Expr ) );
 
         emitCode(isEq ? BydaoOpCode::Eq : BydaoOpCode::Neq, 0, 0, op);
     }
@@ -1677,7 +1681,7 @@ bool BydaoParser::parseComparison() {
     while (match(BydaoTokenType::Less) || match(BydaoTokenType::Greater) ||
            match(BydaoTokenType::LessEqual) || match(BydaoTokenType::GreaterEqual)) {
 
-        TypeInfo leftTypeInfo = m_typeStack.pop();
+        TypeInfo leftTypeInfo = getLastType();
 
         BydaoOpCode opCode;
         QString operName;
@@ -1695,7 +1699,7 @@ bool BydaoParser::parseComparison() {
         BydaoToken rightToken = m_current;
         if (!parseAddition()) return false;
 
-        TypeInfo rightTypeInfo = m_typeStack.pop();
+        TypeInfo rightTypeInfo = getLastType();
 
         // Проверить наличие операции сравнения на равенство для левого операнда
 
@@ -1716,7 +1720,7 @@ bool BydaoParser::parseComparison() {
             }
         }
 
-        m_typeStack.push( TypeInfo("Bool", Expr) );
+        setLastType( TypeInfo("Bool", Expr) );
 
         int size = m_bytecode.size();
         if ( m_bytecode[size-1].op == BydaoOpCode::Load && m_bytecode[size-2].op == BydaoOpCode::Load ) {
@@ -1758,7 +1762,7 @@ bool BydaoParser::parseAddition() {
 
     while (match(BydaoTokenType::Plus) || match(BydaoTokenType::Minus)) {
 
-        TypeInfo leftTypeInfo = m_typeStack.pop();
+        TypeInfo leftTypeInfo = getLastType();
 
         bool isPlus = match(BydaoTokenType::Plus);
 
@@ -1767,7 +1771,7 @@ bool BydaoParser::parseAddition() {
 
         BydaoToken rightToken = m_current;
         if (!parseTerm()) return false;
-        TypeInfo rightTypeInfo = m_typeStack.pop();
+        TypeInfo rightTypeInfo = getLastType();
 
         // Проверить наличие операции сложения/вычитания для левого операнда
 
@@ -1792,7 +1796,7 @@ bool BydaoParser::parseAddition() {
                 return false;
             }
         }
-        m_typeStack.push( TypeInfo( resultType, Expr ) );
+        setLastType( TypeInfo( resultType, Expr ) );
 
         if ( isPlus ) {
             int size = m_bytecode.size();
@@ -1828,7 +1832,7 @@ bool BydaoParser::parseTerm() {
 
     while (match(BydaoTokenType::Mul) || match(BydaoTokenType::Div) || match(BydaoTokenType::Mod)) {
 
-        TypeInfo leftTypeInfo = m_typeStack.pop();
+        TypeInfo leftTypeInfo = getLastType();
 
         BydaoOpCode opCode;
         QString operName;
@@ -1844,7 +1848,7 @@ bool BydaoParser::parseTerm() {
 
         BydaoToken rightToken = m_current;
         if (!parseUnary()) return false;
-        TypeInfo rightTypeInfo = m_typeStack.pop();
+        TypeInfo rightTypeInfo = getLastType();
 
         // Проверить наличие операции для левого операнда
 
@@ -1868,7 +1872,7 @@ bool BydaoParser::parseTerm() {
                 return false;
             }
         }
-        m_typeStack.push( TypeInfo( resultType, Expr ) );
+        setLastType( TypeInfo( resultType, Expr ) );
 
         if ( opCode == BydaoOpCode::Div ) { // оптимизация операции деления
 
@@ -1921,7 +1925,7 @@ bool BydaoParser::parseNot() {
     if ( ! checkTypeConvert( "Bool", token ) ) {
         return false;
     }
-    m_typeStack.push( TypeInfo( "Bool", Expr ) );
+    setLastType( TypeInfo( "Bool", Expr ) );
 
     emitCode(BydaoOpCode::Not, 0, 0, op);
     return true;
@@ -1933,7 +1937,7 @@ bool BydaoParser::parseMinus() {
 
     BydaoToken token = m_current;
     if ( ! parseUnary() ) return false;
-    TypeInfo typeInfo = m_typeStack.pop();
+    TypeInfo typeInfo = getLastType();
 
     if ( ! checkTypeOper( typeInfo.type, "neg", token ) ) {
         return false;
@@ -1943,7 +1947,7 @@ bool BydaoParser::parseMinus() {
         error( "The '" + op.text + "' operation cannot be applied to a value of type '" + typeInfo.type + "'", token );
         return false;
     }
-    m_typeStack.push( TypeInfo( resultType, Expr ) );
+    setLastType( TypeInfo( resultType, Expr ) );
 
     emitCode(BydaoOpCode::Neg, 0, 0, op);
     return true;
@@ -1963,19 +1967,19 @@ bool BydaoParser::parsePrimaryBase() {
 
         if ( text.contains('x') || text.contains('X')) {
             constIndex = addConstant(text.toLongLong(nullptr,16));
-            m_typeStack.push( TypeInfo("Int", Const) );
+            setLastType( TypeInfo("Int", Const) );
         }
         else if (text.contains('.') || text.contains('e') || text.contains('E')) {
             constIndex = addConstant(text.toDouble());
-            m_typeStack.push( TypeInfo("Real", Const) );
+            setLastType( TypeInfo("Real", Const) );
         }
         else if ( text.contains('b') || text.contains('B')) {
             constIndex = addConstant(text.toLongLong(nullptr,2));
-            m_typeStack.push( TypeInfo("Int", Const) );
+            setLastType( TypeInfo("Int", Const) );
         }
         else {
             constIndex = addConstant(text.toLongLong());
-            m_typeStack.push( TypeInfo("Int", Const) );
+            setLastType( TypeInfo("Int", Const) );
         }
 
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
@@ -1987,7 +1991,7 @@ bool BydaoParser::parsePrimaryBase() {
         QString text = m_current.text;
         qint16 constIndex = addConstant(text);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
-        m_typeStack.push( TypeInfo("String", Const) );
+        setLastType( TypeInfo("String", Const) );
         nextToken();
         return true;
     }
@@ -2005,7 +2009,7 @@ bool BydaoParser::parsePrimaryBase() {
     if (match(BydaoTokenType::False)) {
         qint16 constIndex = addConstant(false);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
-        m_typeStack.push( TypeInfo("Bool", Const) );
+        setLastType( TypeInfo("Bool", Const) );
         nextToken();
         return true;
     }
@@ -2013,7 +2017,7 @@ bool BydaoParser::parsePrimaryBase() {
     if (match(BydaoTokenType::True)) {
         qint16 constIndex = addConstant(true);
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
-        m_typeStack.push( TypeInfo("Bool", Const) );
+        setLastType( TypeInfo("Bool", Const) );
         nextToken();
         return true;
     }
@@ -2021,7 +2025,7 @@ bool BydaoParser::parsePrimaryBase() {
     if (match(BydaoTokenType::Null)) {
         qint16 constIndex = addNullConstant();
         emitCode(BydaoOpCode::PushConst, constIndex, 0, m_current);
-        m_typeStack.push( TypeInfo("Null", Const) );
+        setLastType( TypeInfo("Null", Const) );
         nextToken();
         return true;
     }
@@ -2051,21 +2055,21 @@ bool BydaoParser::parsePrimary() {
                 nextToken(); // съедаем имя модуля
                 VariableInfo info = resolveVariable(name);
                 emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
-                m_typeStack.push( TypeInfo( name, Module ) );
+                setLastType( TypeInfo( name, Module ) );
             }
             else {                              // внутренний тип/класс
                 // Встроенный тип: Int, String, Array и т.д.
                 nextToken(); // съедаем имя типа
                 qint16 nameIdx = addString(name);
                 emitCode(BydaoOpCode::UseBuiltin, m_builtinTypes.indexOf( name ), nameIdx, nameToken);
-                m_typeStack.push( TypeInfo( name, Type ) );
+                setLastType( TypeInfo( name, Type ) );
             }
         }
         else if (isVariableDeclared(name)) {    // обычная переменная?
             nextToken(); // съедаем имя переменной
             VariableInfo info = resolveVariable(name);
             emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
-            m_typeStack.push( TypeInfo( info.type, Var ) );
+            setLastType( TypeInfo( info.type, Var ) );
         }
         else {
             error( QString( "Undeclared identifier '%1'" ).arg( name ) );
@@ -2135,7 +2139,7 @@ bool BydaoParser::parseCallSuffix() {
 
             const QStringList& argTypeList = func.argList[ argCount ].types;    // допустимые типы аргумента функции
 
-            TypeInfo exprTypeInfo = m_typeStack.pop();      // тип выражения аргумента
+            TypeInfo exprTypeInfo = getLastType();      // тип выражения аргумента
             QString exprType = exprTypeInfo.type;
             if ( ! argTypeList.contains( exprType ) ) {     // тип выражения не соответствует ни одному допустимому типу аргумента функции
 
@@ -2219,10 +2223,10 @@ bool BydaoParser::parseCallSuffix() {
     }
 
     // Удалим информацию о типе и методе
-    m_typeStack.pop();
+    getLastType();
 
     // Сохраним тип возвращаемого значения
-    m_typeStack.push( func.retType );
+    setLastType( func.retType );
 
     // Генерируем инструкцию CALL
     // Объект для вызова уже лежит на стеке (результат предыдущих операций)
@@ -2308,7 +2312,7 @@ bool BydaoParser::parseMemberSuffix() {
         if (!parseExpression()) {
             return false;
         }
-        TypeInfo exprTypeInfo = m_typeStack.pop();
+        TypeInfo exprTypeInfo = getLastType();
         QString exprType = exprTypeInfo.type;
 
         const VarMetaData varMetaData = objMetaData->var( memberName );
@@ -2327,7 +2331,7 @@ bool BydaoParser::parseMemberSuffix() {
             return false;
         }
 
-        m_typeStack.pop();
+        getLastType();
         emitCode(BydaoOpCode::SetMember, memberIdx, 0, exprToken);
 
     }
@@ -2342,8 +2346,8 @@ bool BydaoParser::parseMemberSuffix() {
 
         // Сохраним тип переменной
 
-        m_typeStack.pop();
-        m_typeStack.push( objType != "Any" ? objMetaData->var( memberName ).type : "Any" );
+        getLastType();
+        setLastType( objType != "Any" ? objMetaData->var( memberName ).type : "Any" );
 
         // Это доступ к свойству - используем MEMBER
 
@@ -2375,7 +2379,7 @@ bool BydaoParser::parseMemberSuffix() {
 
 bool    BydaoParser::parseMemberAssing() {
 
-    TypeInfo memberTypeInfo = m_typeStack.pop();
+    TypeInfo memberTypeInfo = getLastType();
     BydaoInstruction memberInst = m_bytecode.takeLast();
 
     // Символ '=' уже забрали.
@@ -2386,7 +2390,7 @@ bool    BydaoParser::parseMemberAssing() {
     if (!parseExpression()) {
         return false;
     }
-    TypeInfo exprTypeInfo = m_typeStack.pop();
+    TypeInfo exprTypeInfo = getLastType();
     QString exprType = exprTypeInfo.type;
 
     QString memberType = memberTypeInfo.type;
@@ -2454,7 +2458,7 @@ bool BydaoParser::parseArrayLiteral() {
 
     if (!expect(BydaoTokenType::RBracket)) return false;
 
-    m_typeStack.push( TypeInfo( "Array", Const ) );
+    setLastType( TypeInfo( "Array", Const ) );
 
     // Генерируем PushArray с количеством элементов
     // Элементы уже на стеке в правильном порядке (благодаря parseExpression)
