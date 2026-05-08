@@ -202,23 +202,6 @@ public:
         return BydaoValue();
     }
 
-    virtual BydaoValue and_(const BydaoValue& other) {
-        Q_UNUSED( other );
-        qWarning() << "and not supported for" << typeName();
-        return BydaoValue();
-    }
-
-    virtual BydaoValue or_(const BydaoValue& other) {
-        Q_UNUSED( other );
-        qWarning() << "or not supported for" << typeName();
-        return BydaoValue();
-    }
-
-    virtual BydaoValue not_() {
-        qWarning() << "not not supported for" << typeName();
-        return BydaoValue();
-    }
-
 protected:
 
     std::atomic<int> m_refCount{0};
