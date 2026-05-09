@@ -976,7 +976,8 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             QString methodName = nameValue.toString();
 
             // Получить объект, метод которого вызывается
-            obj = m_stack.pop().toObject();
+            const BydaoValue& objValue = m_stack.pop();
+            obj = objValue.toObject();
             if ( ! obj ) {
                 error( QString("call function '%1' of non-object").arg( methodName ), instr);
                 return false;

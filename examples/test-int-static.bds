@@ -1,0 +1,108 @@
+use Sys
+
+// Int.range
+var sum = 0
+enum Int.range(0, 10) as v {
+    sum += v
+}
+if sum == 45 {
+    Sys.outln("Sum range 0..9 success")
+}
+else {
+    Sys.outln("Sum range 0..9 failed")
+}
+
+// Int.parse
+var n = Int.parse("123")
+if n == 123 {
+    Sys.outln("Parse string '123' success")
+}
+else {
+    Sys.outln("Parse string '123' failed")
+}
+
+// Int.max/min
+var a = 5
+var b = 10
+if Int.min(a,b) == a {
+    Sys.outln("Int.min() success")
+}
+else {
+    Sys.outln("Int.min() failed")
+}
+if Int.max(a,b) == b {
+    Sys.outln("Int.max() success")
+}
+else {
+    Sys.outln("Int.max() failed")
+}
+
+// Int.random
+var r = Int.random(100,200)
+if 100 <= r && r < 200 {
+    Sys.outln("Int.ramdom(100,200) success")
+}
+else {
+    Sys.outln("Int.ramdom(100,200) failed")
+}
+
+// Manual iterator using
+var range = Int.range(5, 8).iter()
+var success = true
+while range.next() {
+    var key = range.key
+    var value = range.value
+    if key == 0 && value == 5 ||
+       key == 1 && value == 6 ||
+       range.key == 2 && range.value == 7 {
+        success = true
+    }
+    else {
+        success = false
+        break
+    }
+}
+if success {
+    Sys.outln("Int.range(5, 8).iter() success")
+}
+else {
+    Sys.outln("Int.range(5, 8).iter() failed")
+}
+
+// Iteration
+success = true
+iter Int.range(5, 8) as it {
+    var key = it.key
+    var value = it.value
+    if key == 0 && value == 5 ||
+       key == 1 && value == 6 ||
+       it.key == 2 && it.value == 7 {
+        success = true
+        next
+    }
+    else {
+        success = false
+        break
+    }
+}
+if success {
+    Sys.outln("iter Int.range(5, 8) success")
+}
+else {
+    Sys.outln("iter Int.range(5, 8) failed")
+}
+
+// Enumeration
+success = true
+enum Int.range(5, 8) as val {
+    if val != 5 && val != 6 && val != 7 {
+        success = false
+        break
+    }
+}
+if success {
+    Sys.outln("enum Int.range(5, 8) success")
+}
+else {
+    Sys.outln("enum Int.range(5, 8) failed")
+}

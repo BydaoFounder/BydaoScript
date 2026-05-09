@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <QRandomGenerator>
 
 #include "BydaoScript/BydaoIntClass.h"
 #include "BydaoScript/BydaoIntRange.h"
@@ -81,10 +80,12 @@ BydaoIntClass::BydaoIntClass()
 
     // Регистрация функций для вызова по индексу
 
-    m_stdMethodTable.resize(3);
+    m_stdMethodTable.resize(5);
     m_stdMethodTable[0] = &BydaoIntClass::rangeImpl;
     m_stdMethodTable[1] = &BydaoIntClass::maxImpl;
     m_stdMethodTable[2] = &BydaoIntClass::minImpl;
+    m_stdMethodTable[3] = &BydaoIntClass::parseImpl;
+    m_stdMethodTable[4] = &BydaoIntClass::randomImpl;
 }
 
 void BydaoIntClass::registerMethod(const QString& name, MethodPtr method) {

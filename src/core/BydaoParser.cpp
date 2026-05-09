@@ -1221,6 +1221,9 @@ bool BydaoParser::parseIter() {
     BydaoToken token = m_current;
     nextToken(); // iter
 
+    LoopInfo loop;
+    loop.conditionAddr = m_bytecode.size();
+
     BydaoToken exprToken = m_current;
     if (!parseExpression()) {
         return false;
@@ -1267,15 +1270,34 @@ bool BydaoParser::parseIter() {
 
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
 
+    m_loopStack.push(loop);
+    m_inLoop = true;
+
     // Тело цикла - parseBlock сам создаст область видимости
     if (!parseBlock(true)) {
+        m_inLoop = false;
+        m_loopStack.pop();
         return false;
+    }
+
+    m_inLoop = false;
+    loop = m_loopStack.pop();
+
+    if ( m_bytecode[ m_bytecode.size() - 1 ].op == BydaoOpCode::ScopeDrop ) {
+        loop.nextAddr = m_bytecode.size() - 1;
+    }
+    else {
+        loop.nextAddr = loopStart;
     }
 
     emitCode(BydaoOpCode::Jump, loopStart, 0);
 
-    // Патчим условный переход
-    m_bytecode[condJump].arg1 = m_bytecode.size();
+    loop.exitAddr = m_bytecode.size();
+
+    m_bytecode[condJump].arg1 = loop.exitAddr;
+
+    patchJumps(loop.breaks, loop.exitAddr);
+    patchJumps(loop.nexts, loop.nextAddr);
 
     // Очистка - удаляем переменную итератора
     emitCode(BydaoOpCode::Drop, iterInfo.varIndex, 0, iterToken);
@@ -1294,6 +1316,9 @@ bool BydaoParser::parseIter() {
 bool BydaoParser::parseEnum() {
     BydaoToken token = m_current;
     nextToken(); // enum
+
+    LoopInfo loop;
+    loop.conditionAddr = m_bytecode.size();
 
     BydaoToken exprToken = m_current;
     if (!parseExpression()) {
@@ -1364,15 +1389,34 @@ bool BydaoParser::parseEnum() {
     // Получаем значение и сохраняем в переменную
     emitCode(BydaoOpCode::ItValue, iterInfo.varIndex, varInfo.varIndex, token);
 
+    m_loopStack.push(loop);
+    m_inLoop = true;
+
     // Тело цикла - parseBlock сам создаст область видимости
     if (!parseBlock(true)) {
+        m_inLoop = false;
+        m_loopStack.pop();
         return false;
+    }
+
+    m_inLoop = false;
+    loop = m_loopStack.pop();
+
+    if ( m_bytecode[ m_bytecode.size() - 1 ].op == BydaoOpCode::ScopeDrop ) {
+        loop.nextAddr = m_bytecode.size() - 1;
+    }
+    else {
+        loop.nextAddr = loopStart;
     }
 
     emitCode(BydaoOpCode::Jump, loopStart, 0);
 
-    // Патчим условный переход
-    m_bytecode[condJump].arg1 = m_bytecode.size();
+    loop.exitAddr = m_bytecode.size();
+
+    m_bytecode[condJump].arg1 = loop.exitAddr;
+
+    patchJumps(loop.breaks, loop.exitAddr);
+    patchJumps(loop.nexts, loop.nextAddr);
 
     // Очистка - удаляем временный итератор
     emitCode(BydaoOpCode::Drop, iterInfo.varIndex, 0, token);

@@ -13,6 +13,8 @@
 // limitations under the License.
 #pragma once
 
+#include <QRandomGenerator>
+
 #include "BydaoObject.h"
 #include "BydaoMetaData.h"
 
@@ -69,6 +71,37 @@ private:
         qint64 b = args[1].toInt();
         result = BydaoValue::fromInt(a < b ? a : b);
         return true;
+    }
+
+    static bool parseImpl(BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result) {
+        Q_UNUSED( self );
+        bool ok;
+        qint64 val = args[0].toString().toLongLong(&ok,0);
+        if ( ok ) {
+            result = BydaoValue::fromInt(val);
+            return true;
+        }
+        return false;
+    }
+
+    static bool randomImpl(BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result) {
+        Q_UNUSED( self );
+        if (args.size() == 1) {
+            // random(max)
+            qint64 max = args[0].toInt();
+            if (max <= 0) return false;
+            result = BydaoValue::fromInt(QRandomGenerator::global()->bounded(max));
+            return true;
+        }
+        else if (args.size() == 2) {
+            // random(min, max)
+            qint64 min = args[0].toInt();
+            qint64 max = args[1].toInt();
+            if (min >= max) return false;
+            result = BydaoValue::fromInt(QRandomGenerator::global()->bounded(min, max));
+            return true;
+        }
+        return false;
     }
 
 };
