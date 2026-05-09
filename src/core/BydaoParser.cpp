@@ -61,7 +61,10 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     m_metaData["Int"] = new MetaData( BydaoIntClass::metaData() );
     UsedMetaDataList usedIntList = BydaoIntClass::usedMetaData();
     foreach ( const UsedMetaData& used, usedIntList ) {
-        if ( ! m_metaData.contains( used.type ) ) {
+        if ( used.append ) {
+            m_metaData["Int"]->append( used.metaData );
+        }
+        else if ( ! m_metaData.contains( used.type ) ) {
             m_metaData[ used.type ] = new MetaData( used.metaData );
         }
     }

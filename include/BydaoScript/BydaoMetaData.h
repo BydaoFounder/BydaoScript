@@ -164,6 +164,11 @@ struct MetaData {
 
     MetaData&   operator=( MetaData* data );
 
+    /**
+     * Добавить свойства из указанных метаданных.
+     */
+    void        append( const MetaData* md );
+
     MetaData&   append( const QString& varName, const VarMetaData& var );
     MetaData&   append( const QString& funcName, const FuncMetaData& func );
     MetaData&   append( const QString& operName, const OperMetaData& oper );
@@ -183,12 +188,14 @@ struct MetaData {
  */
 struct UsedMetaData {
 
-    QString     type;
-    MetaData*   metaData;
+    QString     type;       //!< название типа
+    MetaData*   metaData;   //!< объект мета-данных
+    bool        append;     //!< флаг добавления мета-данных к ведущему классу
 
-    UsedMetaData( const QString& type, MetaData* metaData ) {
+    UsedMetaData( const QString& type, MetaData* metaData, bool append = false ) {
         this->type = type;
         this->metaData = metaData;
+        this->append = append;
     };
 };
 

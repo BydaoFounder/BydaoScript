@@ -20,6 +20,65 @@ namespace BydaoScript {
 
 QVector<BydaoInt*> BydaoInt::s_cache;
 
+// Получить мета-данные
+MetaData*   BydaoInt::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+
+            // методы объекта
+            ->append( "toString", FuncMetaData("String", false, true)
+                                    << FuncArgMetaData("arg","Int",false) )
+            .append( "toReal",  FuncMetaData("Real", false, true) )
+            .append( "toBool",  FuncMetaData("Bool", false, true) )
+            .append( "abs",     FuncMetaData("Int", false, true) )
+            .append( "negate",  FuncMetaData("Int", false, true) )
+            .append( "isNull",  FuncMetaData("Bool", false, true) )
+            .append( "toHex",   FuncMetaData("String", false, true) )
+            .append( "toBin",   FuncMetaData("String", false, true) )
+            ;
+
+        metaData
+
+            // операции сравнения
+            ->append( "eq",     OperMetaData("Any", "Bool" ) )
+            .append( "neq",     OperMetaData("Any", "Bool" ) )
+            .append( "lt",      OperMetaData("Any", "Bool" ) )
+            .append( "le",      OperMetaData("Any", "Bool" ) )
+            .append( "gt",      OperMetaData("Any", "Bool" ) )
+            .append( "ge",      OperMetaData("Any", "Bool" ) )
+
+            // операции арифметические
+            .append( "add",     OperMetaData("Int", "Int" )
+                               .append( "Real", "Real" )
+                               .append( "String", "String" )
+                               .append( "Any", "Int" )
+                    )
+            .append( "addToValue",  OperMetaData("Int", "Void" )
+                                      .append( "Real", "Void" )
+                                      .append( "Any", "Void" )
+                    )
+            .append( "sub",     OperMetaData("Int", "Int" )
+                               .append( "Real", "Real" )
+                               .append( "String", "Int" )
+                               .append( "Any", "Int" )
+                    )
+            .append( "mul",     OperMetaData("Int", "Int" )
+                               .append( "Real", "Real" )
+                               .append( "Any", "Int" )
+                    )
+            .append( "div",     OperMetaData("Int", "Int" )
+                               .append( "Real", "Real" )
+                               .append( "Any", "Int" )
+                    )
+            .append( "mod",     OperMetaData("Any", "Int" ) )
+            .append( "neg",     OperMetaData("", "Int" ) )
+            ;
+    }
+    return metaData;
+}
+
 BydaoInt::BydaoInt(qint64 value)
     : BydaoObject()
     , m_value(value)

@@ -25,14 +25,12 @@ MetaData*   BydaoIntClass::metaData() {
     if ( ! metaData ) {
         metaData = new MetaData();
         metaData
+
             // Методы класса
             ->append( "range",  FuncMetaData(0,"IntRange", true, true)
                                   << FuncArgMetaData("from","Int")
                                   << FuncArgMetaData("to","Int")
                      )
-            .append( "parse",   FuncMetaData("Int", true, true)
-                                 << FuncArgMetaData("str","String")
-                    )
             .append( "max",     FuncMetaData(1,"Int", true, true)
                                << FuncArgMetaData("arg1","Int")
                                << FuncArgMetaData("arg2","Int")
@@ -41,53 +39,13 @@ MetaData*   BydaoIntClass::metaData() {
                                << FuncArgMetaData("arg1","Int")
                                << FuncArgMetaData("arg2","Int")
                     )
+            .append( "parse",   FuncMetaData("Int", true, true)
+                                 << FuncArgMetaData("str","String")
+                    )
             .append( "random",  FuncMetaData("Int", true, true)
                                   << FuncArgMetaData("from","Int")
                                   << FuncArgMetaData("to","Int")
                     )
-            // методы объекта
-            .append( "toString", FuncMetaData("String", false, true) << FuncArgMetaData("arg","Int",false) )
-            .append( "toReal",  FuncMetaData("Real", false, true) )
-            .append( "toBool",  FuncMetaData("Bool", false, true) )
-            .append( "abs",     FuncMetaData("Int", false, true) )
-            .append( "negate",  FuncMetaData("Int", false, true) )
-            .append( "isNull",  FuncMetaData("Bool", false, true) )
-            .append( "toHex",   FuncMetaData("String", false, true) )
-            .append( "toBin",   FuncMetaData("String", false, true) )
-            ;
-        metaData
-            // операции сравнения
-            ->append( "eq",     OperMetaData("Any", "Bool" ) )
-            .append( "neq",     OperMetaData("Any", "Bool" ) )
-            .append( "lt",      OperMetaData("Any", "Bool" ) )
-            .append( "le",      OperMetaData("Any", "Bool" ) )
-            .append( "gt",      OperMetaData("Any", "Bool" ) )
-            .append( "ge",      OperMetaData("Any", "Bool" ) )
-            // операции арифметические
-            .append( "add",     OperMetaData("Int", "Int" )
-                               .append( "Real", "Real" )
-                               .append( "String", "String" )
-                               .append( "Any", "Int" )
-                    )
-            .append( "addToValue",  OperMetaData("Int", "Void" )
-                               .append( "Real", "Void" )
-                               .append( "Any", "Void" )
-                    )
-            .append( "sub",     OperMetaData("Int", "Int" )
-                               .append( "Real", "Real" )
-                               .append( "String", "Int" )
-                               .append( "Any", "Int" )
-                    )
-            .append( "mul",     OperMetaData("Int", "Int" )
-                               .append( "Real", "Real" )
-                               .append( "Any", "Int" )
-                    )
-            .append( "div",     OperMetaData("Int", "Int" )
-                               .append( "Real", "Real" )
-                               .append( "Any", "Int" )
-                    )
-            .append( "mod",     OperMetaData("Any", "Int" ) )
-            .append( "neg",     OperMetaData("", "Int" ) )
             ;
     }
     return metaData;
@@ -100,7 +58,8 @@ UsedMetaDataList    BydaoIntClass::usedMetaData() {
     static UsedMetaDataList list;
 
     if ( list.isEmpty() ) {
-        list << UsedMetaData( "IntRange", BydaoIntRange::metaData() );
+        list << UsedMetaData( "Int",          BydaoInt::metaData(), true );
+        list << UsedMetaData( "IntRange",     BydaoIntRange::metaData() );
         list << UsedMetaData( "IntRangeIter", BydaoIntRangeIterator::metaData() );
     }
 
@@ -112,11 +71,15 @@ UsedMetaDataList    BydaoIntClass::usedMetaData() {
 BydaoIntClass::BydaoIntClass()
     : BydaoObject()
 {
+    // Регистрация функций модуля, вызываемых по имени
+
     registerMethod("range",     &BydaoIntClass::method_range);
-    registerMethod("parse",     &BydaoIntClass::method_parse);
     registerMethod("max",       &BydaoIntClass::method_max);
     registerMethod("min",       &BydaoIntClass::method_min);
+    registerMethod("parse",     &BydaoIntClass::method_parse);
     registerMethod("random",    &BydaoIntClass::method_random);
+
+    // Регистрация функций для вызова по индексу
 
     m_stdMethodTable.resize(3);
     m_stdMethodTable[0] = &BydaoIntClass::rangeImpl;
@@ -158,6 +121,28 @@ bool BydaoIntClass::method_range(const QVector<BydaoValue>& args, BydaoValue& re
     return true;
 }
 
+// Int.max(a, b) -> возвращает максимальное из двух чисел
+bool BydaoIntClass::method_max(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 2) return false;
+
+    qint64 a = args[0].toInt();
+    qint64 b = args[1].toInt();
+
+    result = BydaoValue::fromInt(a > b ? a : b);
+    return true;
+}
+
+// Int.min(a, b) -> возвращает минимальное из двух чисел
+bool BydaoIntClass::method_min(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 2) return false;
+
+    qint64 a = args[0].toInt();
+    qint64 b = args[1].toInt();
+
+    result = BydaoValue::fromInt(a < b ? a : b);
+    return true;
+}
+
 // Int.parse(str) -> преобразует строку в число
 bool BydaoIntClass::method_parse(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
@@ -167,28 +152,6 @@ bool BydaoIntClass::method_parse(const QVector<BydaoValue>& args, BydaoValue& re
     if (!ok) return false;
     
     result = BydaoValue::fromInt(val);
-    return true;
-}
-
-// Int.max(a, b) -> возвращает максимальное из двух чисел
-bool BydaoIntClass::method_max(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() != 2) return false;
-    
-    qint64 a = args[0].toInt();
-    qint64 b = args[1].toInt();
-    
-    result = BydaoValue::fromInt(a > b ? a : b);
-    return true;
-}
-
-// Int.min(a, b) -> возвращает минимальное из двух чисел
-bool BydaoIntClass::method_min(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() != 2) return false;
-    
-    qint64 a = args[0].toInt();
-    qint64 b = args[1].toInt();
-    
-    result = BydaoValue::fromInt(a < b ? a : b);
     return true;
 }
 

@@ -14,6 +14,7 @@
 #pragma once
 
 #include "BydaoObject.h"
+#include "BydaoMetaData.h"
 
 namespace BydaoScript {
 
@@ -46,6 +47,9 @@ public:
     }
 
     virtual ~BydaoInt() override = default;
+
+    // Получить мета-данные
+    static MetaData*   metaData();
 
     BydaoObject* copy() override {
         return BydaoInt::create( m_value );

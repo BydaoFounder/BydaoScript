@@ -199,6 +199,24 @@ MetaData&   MetaData::operator=( MetaData* data ) {
     return *this;
 }
 
+/**
+ * Добавить свойства из указанных метаданных.
+ */
+void        MetaData::append( const MetaData* md ) {
+
+    for (auto it = md->vars.begin(); it != md->vars.end(); ++it) {
+        vars.insert( it.key(), it.value() );
+    }
+
+    for (auto it = md->funcs.begin(); it != md->funcs.end(); ++it) {
+        funcs.insert( it.key(), it.value() );
+    }
+
+    for (auto it = md->opers.begin(); it != md->opers.end(); ++it) {
+        opers.insert( it.key(), it.value() );
+    }
+}
+
 MetaData&   MetaData::append( const QString& varName, const VarMetaData& var ){
     vars.insert( varName, var );
     return *this;
