@@ -88,19 +88,59 @@ public:
 private:
 
     // Методы
-    bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toReal(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_toBool(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_abs(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_negate(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_isNull(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toHex(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toBin(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toReal(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toBool(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_isNull(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoInt::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);
 
-    QHash<QString, MethodPtr> m_methods;  // своя таблица методов
+    static bool absImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoInt*>(self);
+        return obj->method_abs( args, result );
+    }
+
+    static bool negImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoInt*>(self);
+        return obj->method_negate( args, result );
+    }
+
+    static bool toStringImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoInt*>(self);
+        return obj->method_toString( args, result );
+    }
+
+    static bool toHexImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoInt*>(self);
+        return obj->method_toHex( args, result );
+    }
+
+    static bool toBinImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoInt*>(self);
+        return obj->method_toBin( args, result );
+    }
+
+    static bool toRealImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoInt*>(self);
+        return obj->method_toReal( args, result );
+    }
+
+    static bool toBoolImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoInt*>(self);
+        return obj->method_toBool( args, result );
+    }
+
+    static bool isNullImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoInt*>(self);
+        return obj->method_isNull( args, result );
+    }
+
+    QHash<QString, MethodPtr> m_methods;  // таблица методов, вызываемых по имени
 
     qint64 m_value;
 };

@@ -28,15 +28,15 @@ MetaData*   BydaoInt::metaData() {
         metaData
 
             // методы объекта
-            ->append( "toString", FuncMetaData("String", false, true)
-                                    << FuncArgMetaData("arg","Int",false) )
-            .append( "toReal",  FuncMetaData("Real", false, true) )
-            .append( "toBool",  FuncMetaData("Bool", false, true) )
-            .append( "abs",     FuncMetaData("Int", false, true) )
-            .append( "negate",  FuncMetaData("Int", false, true) )
-            .append( "isNull",  FuncMetaData("Bool", false, true) )
-            .append( "toHex",   FuncMetaData("String", false, true) )
-            .append( "toBin",   FuncMetaData("String", false, true) )
+            ->append( "abs",    FuncMetaData(0,"Int", false, true) )
+            .append( "negate",  FuncMetaData(1,"Int", false, true) )
+            .append( "toString",FuncMetaData(2,"String", false, true)
+                                    << FuncArgMetaData("arg","Int",false,"10") )
+            .append( "toHex",   FuncMetaData(3,"String", false, true) )
+            .append( "toBin",   FuncMetaData(4,"String", false, true) )
+            .append( "toReal",  FuncMetaData(5,"Real", false, true) )
+            .append( "toBool",  FuncMetaData(6,"Bool", false, true) )
+            .append( "isNull",  FuncMetaData(7,"Bool", false, true) )
             ;
 
         metaData
@@ -83,14 +83,26 @@ BydaoInt::BydaoInt(qint64 value)
     : BydaoObject()
     , m_value(value)
 {
-    registerMethod("toString", &BydaoInt::method_toString);
-    registerMethod("toReal",   &BydaoInt::method_toReal);
-    registerMethod("toBool",   &BydaoInt::method_toBool);
     registerMethod("abs",      &BydaoInt::method_abs);
     registerMethod("negate",   &BydaoInt::method_negate);
-    registerMethod("isNull",   &BydaoInt::method_isNull);
+    registerMethod("toString", &BydaoInt::method_toString);
     registerMethod("toHex",    &BydaoInt::method_toHex);
     registerMethod("toBin",    &BydaoInt::method_toBin);
+    registerMethod("toReal",   &BydaoInt::method_toReal);
+    registerMethod("toBool",   &BydaoInt::method_toBool);
+    registerMethod("isNull",   &BydaoInt::method_isNull);
+
+    // Регистрация функций для вызова по индексу
+
+    m_stdMethodTable.resize(8);
+    m_stdMethodTable[0] = &BydaoInt::absImpl;
+    m_stdMethodTable[1] = &BydaoInt::negImpl;
+    m_stdMethodTable[2] = &BydaoInt::toStringImpl;
+    m_stdMethodTable[3] = &BydaoInt::toHexImpl;
+    m_stdMethodTable[4] = &BydaoInt::toBinImpl;
+    m_stdMethodTable[5] = &BydaoInt::toRealImpl;
+    m_stdMethodTable[6] = &BydaoInt::toBoolImpl;
+    m_stdMethodTable[7] = &BydaoInt::isNullImpl;
 }
 
 void BydaoInt::registerMethod(const QString& name, MethodPtr method) {
@@ -107,9 +119,33 @@ bool BydaoInt::callMethod(const QString& name,
     return false;
 }
 
-bool BydaoInt::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoInt::method_abs(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create(QString::number(m_value)), BydaoTypeId::TYPE_STRING );
+    result = BydaoValue( BydaoInt::create(m_value >= 0 ? m_value : -m_value), BydaoTypeId::TYPE_INT );
+    return true;
+}
+
+bool BydaoInt::method_negate(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue(BydaoInt::create(-m_value), BydaoTypeId::TYPE_INT);
+    return true;
+}
+
+bool BydaoInt::method_toString(const QVector<BydaoValue>& args, BydaoValue& result) {
+    int base = ( args.size() == 1 ) ? args[0].toInt() : 10;
+    result = BydaoValue(BydaoString::create(QString::number(m_value,base)), BydaoTypeId::TYPE_STRING );
+    return true;
+}
+
+bool BydaoInt::method_toHex(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue(BydaoString::create( QString::number(m_value, 16)), BydaoTypeId::TYPE_STRING );
+    return true;
+}
+
+bool BydaoInt::method_toBin(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue(BydaoString::create( QString::number(m_value, 2)), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
@@ -125,33 +161,9 @@ bool BydaoInt::method_toBool(const QVector<BydaoValue>& args, BydaoValue& result
     return true;
 }
 
-bool BydaoInt::method_abs(const QVector<BydaoValue>& args, BydaoValue& result) {
-    Q_UNUSED(args);
-    result = BydaoValue( BydaoInt::create(m_value >= 0 ? m_value : -m_value), BydaoTypeId::TYPE_INT );
-    return true;
-}
-
-bool BydaoInt::method_negate(const QVector<BydaoValue>& args, BydaoValue& result) {
-    Q_UNUSED(args);
-    result = BydaoValue(BydaoInt::create(-m_value), BydaoTypeId::TYPE_INT);
-    return true;
-}
-
 bool BydaoInt::method_isNull(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
     result = BydaoValue( BydaoBool::create(false), BydaoTypeId::TYPE_BOOL );
-    return true;
-}
-
-bool BydaoInt::method_toHex(const QVector<BydaoValue>& args, BydaoValue& result) {
-    Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create( QString::number(m_value, 16)), BydaoTypeId::TYPE_STRING );
-    return true;
-}
-
-bool BydaoInt::method_toBin(const QVector<BydaoValue>& args, BydaoValue& result) {
-    Q_UNUSED(args);
-    result = BydaoValue(BydaoString::create( QString::number(m_value, 2)), BydaoTypeId::TYPE_STRING );
     return true;
 }
 

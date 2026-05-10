@@ -1,4 +1,7 @@
 use Sys
+/*
+ * Набор тестов для "статических" методов типа "Int"
+ */
 
 // Int.range
 var sum = 0
@@ -105,4 +108,86 @@ if success {
 }
 else {
     Sys.outln("enum Int.range(5, 8) failed")
+}
+
+/*
+ * Набор тестов для методов объекта типа "Int"
+ */
+
+//--------------------------------------------------
+//  Convert to string
+
+a = 123
+var s = a.toString()
+if s == '123' {
+    Sys.outln("toString() success")
+}
+else {
+    Sys.outln("toString() failed")
+}
+if s == a.toString(10) {
+    Sys.outln("toString(10) success")
+}
+else {
+    Sys.outln("toString(10) failed")
+}
+s = a.toHex()
+if s == '7b' {
+    Sys.outln("toHex() success")
+}
+else {
+    Sys.outln("toHex() failed")
+}
+if a.toString(16) == a.toHex() {
+    Sys.outln("a.toString(16) == a.toHex() success")
+}
+else {
+    Sys.outln("a.toString(16) == a.toHex() failed")
+}
+s = a.toBin()
+if s == '1111011' {
+    Sys.outln("toBin() success")
+}
+else {
+    Sys.outln("toBin() failed. Value = '" + s + "'" )
+}
+
+//  Abs
+b = -a
+if b.abs() == a.abs() {
+    Sys.outln("abs() success. Value b = " + b )
+}
+else {
+    Sys.outln("abs() failed")
+}
+
+//  Real
+var c = a.toReal()
+if c == 123.0 && a.toReal() == (123).toReal() {
+    Sys.outln("toReal() success")
+}
+else {
+    Sys.outln("toReal() failed")
+}
+
+//  Bool
+if a {
+    Sys.outln("if a success")
+}
+else {
+    Sys.outln("if a failed")
+}
+if a.toBool() {
+    Sys.outln("toBool() success")
+}
+else {
+    Sys.outln("toBool() failed")
+}
+
+//  isNull
+if ! a.isNull() {
+    Sys.outln("isNull() success")
+}
+else {
+    Sys.outln("isNull() failed")
 }
