@@ -8,21 +8,11 @@ var sum = 0
 enum Int.range(0, 10) as v {
     sum += v
 }
-if sum == 45 {
-    Sys.outln("Sum range 0..9 success")
-}
-else {
-    Sys.outln("Sum range 0..9 failed")
-}
+Sys.outln("Sum range 0..9 " + if sum == 45 { "success" } else {"failed"} )
 
 // Int.parse
 var n = Int.parse("123")
-if n == 123 {
-    Sys.outln("Parse string '123' success")
-}
-else {
-    Sys.outln("Parse string '123' failed")
-}
+Sys.outln("Parse string '123' " + if n == 123 { "success" } else {"failed"} )
 
 // Int.max/min
 var a = 5
@@ -65,12 +55,7 @@ while range.next() {
         break
     }
 }
-if success {
-    Sys.outln("Int.range(5, 8).iter() success")
-}
-else {
-    Sys.outln("Int.range(5, 8).iter() failed")
-}
+Sys.outln("Int.range(5, 8).iter() " + if success {"success"} else {'failed'} )
 
 // Iteration
 success = true

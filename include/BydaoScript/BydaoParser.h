@@ -208,7 +208,8 @@ private:
     QList<QString> m_builtinTypes;
 
     // Счётчики
-    int m_iteratorCounter;
+    int         m_iteratorCounter;
+    int         m_exprCount;
 
     // Мета-данные типов данных
     QHash<QString, MetaData*>   m_metaData;

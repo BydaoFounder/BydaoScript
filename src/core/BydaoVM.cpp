@@ -153,7 +153,7 @@ bool BydaoVM::run() {
         }
     }
     
-    return true;
+    return m_lastError.isEmpty();
 }
 
 void BydaoVM::stop() {

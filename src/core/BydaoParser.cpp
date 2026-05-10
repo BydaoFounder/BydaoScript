@@ -35,6 +35,7 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
     , m_pos(0)
     , m_inLoop(false)
     , m_iteratorCounter(0)
+    , m_exprCount(0)
 {
     if ( ! m_tokens.isEmpty() ) {
         m_current = m_tokens[0];
@@ -524,8 +525,11 @@ bool BydaoParser::parseBlock(bool requireBraces) {
             exitScope();
             return false;
         }
-        if ( ! checkTypeStack( typeStackSize, statementToken ) ) {
-            return false;
+        if ( m_exprCount == 0 ||
+             ( m_exprCount > 0 && m_current.type != BydaoTokenType::RBrace ) ) {
+            if ( ! checkTypeStack( typeStackSize, statementToken ) ) {
+                return false;
+            }
         }
     }
 
@@ -708,6 +712,8 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
 
         nextToken();
 
+        int prevSize = m_bytecode.size();
+
         BydaoToken exprToken = m_current;
         if (!parseExpression()) return false;
 
@@ -723,10 +729,9 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
         setVariableType( name, typeInfo.type );
 
         int size = m_bytecode.size();
-        if ( m_bytecode[ size-1 ].op == BydaoOpCode::PushConst ) {
+        if ( size - prevSize == 1 && m_bytecode[ size-1 ].op == BydaoOpCode::PushConst ) {
 
             // Инициализация переменной константным значением
-
             valueIndex = -m_bytecode.takeLast().arg1;
         }
         else {
@@ -1077,8 +1082,18 @@ bool BydaoParser::parseIf() {
     // Условный переход на else/elsif
     int elseJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, ifToken);
 
+    // Запомним состояние стека типов
+    int typeStackSize = m_typeStack.size();
+
     if (!parseBlock(true)) {
         return false;
+    }
+
+    TypeInfo ifTypeInfo = TypeInfo("");
+    if ( m_exprCount > 0 ) {    // оператор if используется в выражении
+        if ( m_typeStack.size() > typeStackSize ) { // после блока if осталось значение
+            ifTypeInfo = getLastType();
+        }
     }
 
     int endJump = emitCode(BydaoOpCode::Jump, 0, 0, ifToken);
@@ -1106,8 +1121,20 @@ bool BydaoParser::parseIf() {
 
         int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, elsifToken);
 
+        typeStackSize = m_typeStack.size();
+
         if (!parseBlock(true)) {
             return false;
+        }
+
+        if ( m_exprCount > 0 ) {    // оператор if используется в выражении
+            if ( m_typeStack.size() > typeStackSize ) { // после блока if осталось значение
+                TypeInfo elsifTypeInfo = getLastType();
+                if ( ifTypeInfo.type != elsifTypeInfo.type ) {
+                    error( "Expression type after 'elsif'-block not matched 'if'-block", ifToken );
+                    return false;
+                }
+            }
         }
 
         emitCode(BydaoOpCode::Jump, endJump, 0);
@@ -1119,9 +1146,28 @@ bool BydaoParser::parseIf() {
     if (match(BydaoTokenType::Else)) {
         nextToken(); // else
 
+        typeStackSize = m_typeStack.size();
+
         if (!parseBlock(true)) {
             return false;
         }
+
+        if ( m_exprCount > 0 ) {    // оператор if используется в выражении
+            if ( m_typeStack.size() > typeStackSize ) { // после блока if осталось значение
+                TypeInfo elseTypeInfo = getLastType();
+                if ( ifTypeInfo.type != elseTypeInfo.type ) {
+                    error( "Expression type after 'else'-block not matched 'if'-block", ifToken );
+                    return false;
+                }
+            }
+        }
+    }
+    else if ( m_exprCount > 0 ) {   // пропущен else-блок, когда if используется в выражении
+        error( "Messed 'else'-block in 'if'-expression", ifToken );
+    }
+
+    if ( m_exprCount > 0 ) {
+        setLastType( ifTypeInfo );
     }
 
     // Патчим переход из if
@@ -1513,7 +1559,10 @@ bool BydaoParser::parseUse() {
 // ============================================================
 
 bool BydaoParser::parseExpression() {
-    return parseLogicalOr();
+    ++m_exprCount;
+    bool ok = parseLogicalOr();
+    --m_exprCount;
+    return ok;
 }
 
 bool BydaoParser::parseLogicalOr() {
@@ -2084,6 +2133,10 @@ bool BydaoParser::parsePrimary() {
     // Запоминаем позицию для возможного восстановления
     int savedPos = m_pos;
     BydaoToken savedToken = m_current;
+
+    if ( match( BydaoTokenType::If ) ) {
+        return parseIf();
+    }
 
     // Обрабатываем идентификаторы (переменные, типы, модули)
     if (match(BydaoTokenType::Identifier)) {
