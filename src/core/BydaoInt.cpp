@@ -52,7 +52,6 @@ MetaData*   BydaoInt::metaData() {
             // операции арифметические
             .append( "add",     OperMetaData("Int", "Int" )
                                .append( "Real", "Real" )
-                               .append( "String", "String" )
                                .append( "Any", "Int" )
                     )
             .append( "addToValue",  OperMetaData("Int", "Void" )
@@ -61,7 +60,6 @@ MetaData*   BydaoInt::metaData() {
                     )
             .append( "sub",     OperMetaData("Int", "Int" )
                                .append( "Real", "Real" )
-                               .append( "String", "Int" )
                                .append( "Any", "Int" )
                     )
             .append( "mul",     OperMetaData("Int", "Int" )
@@ -208,11 +206,6 @@ BydaoValue BydaoInt::add(const BydaoValue& other) {
         const auto* otherReal = (BydaoReal*)(other.toObject());
         return BydaoValue::fromReal(m_value + otherReal->value());
     }
-    case TYPE_STRING: {
-        // Конкатенация: число + строка = строка
-        QString str = QString::number(m_value) + other.toString();
-        return BydaoValue::fromString(str);
-    }
     default:
         return BydaoValue::fromInt(m_value + other.toInt());
     }
@@ -244,12 +237,6 @@ BydaoValue BydaoInt::sub(const BydaoValue& other) {
         const auto* otherReal = (BydaoReal*)(other.toObject());
         return BydaoValue::fromReal(m_value - otherReal->value());
     }
-    case TYPE_STRING: {
-        bool ok;
-        qint64 val = other.toString().toLongLong(&ok);
-        if (ok) return BydaoValue::fromInt(m_value - val);
-        return BydaoValue();
-    }
     default:
         return BydaoValue::fromInt(m_value - other.toInt());
     }
@@ -278,17 +265,20 @@ BydaoValue BydaoInt::div(const BydaoValue& other) {
         if (otherVal != 0) {
             return BydaoValue::fromInt( m_value / otherVal );
         }
+        setError( "Integer division by 0" );
         return BydaoValue();  // null
     }
     case TYPE_REAL: {
         const auto* otherReal = (BydaoReal*)(other.toObject());
         if (otherReal->value() == 0.0) {
+            setError( "Integer division by 0" );
             return BydaoValue();
         }
         return BydaoValue::fromReal( double(m_value) / otherReal->value() );
     }
     default:
         if (other.toInt() == 0) {
+            setError( "Integer division by 0" );
             return BydaoValue();
         }
         return BydaoValue::fromInt(m_value / other.toInt());
