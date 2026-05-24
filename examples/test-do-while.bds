@@ -1,0 +1,19 @@
+use Sys
+
+const COUNT1 = 10
+const COUNT2 = 1000000
+
+var j
+var t1 = Sys.time()
+var sum = 0
+var i = 0
+do {
+    j = 0
+    sum = 0
+    while j < COUNT2 next j += 1 {
+        sum += j
+    }
+    i += 1
+} while i < COUNT1
+var d = ( Sys.time() - t1 ).toReal() / i
+Sys.outln( '1. time: ' + d + ' msec, sum = ' + sum )

@@ -124,6 +124,7 @@ private:
     // Управляющие конструкции
     bool parseIf();
     bool parseWhile();
+    bool parseDoWhile();
     bool parseIter();
     bool parseEnum();
     bool parseBreakNext();

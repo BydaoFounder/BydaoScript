@@ -377,6 +377,7 @@ bool BydaoParser::isNameToken(BydaoTokenType type) const {
            type == BydaoTokenType::Iter ||
            type == BydaoTokenType::Enum ||
            type == BydaoTokenType::While ||
+           type == BydaoTokenType::Do ||
            type == BydaoTokenType::If ||
            type == BydaoTokenType::Else ||
            type == BydaoTokenType::Break ||
@@ -496,6 +497,7 @@ bool BydaoParser::parseStatement() {
     if (match(BydaoTokenType::Var)) return parseVarDecl();
     if (match(BydaoTokenType::Const)) return parseConstDecl();
     if (match(BydaoTokenType::While)) return parseWhile();
+    if (match(BydaoTokenType::Do)) return parseDoWhile();
     if (match(BydaoTokenType::If)) return parseIf();
     if (match(BydaoTokenType::Iter)) return parseIter();
     if (match(BydaoTokenType::Enum)) return parseEnum();
@@ -1259,6 +1261,59 @@ bool BydaoParser::parseWhile() {
 
     patchJumps(loop.breaks, loop.exitAddr);
     patchJumps(loop.nexts, loop.nextAddr);
+
+    return true;
+}
+
+/**
+ * Разбор цикла do-while.
+ */
+bool BydaoParser::parseDoWhile() {
+    BydaoToken doToken = m_current;
+    nextToken();    // do
+
+    LoopInfo loop;
+
+    m_loopStack.push(loop);
+    m_inLoop = true;
+
+    int loopBegin = m_bytecode.size();
+
+    if (!parseBlock(true)) {
+        m_inLoop = false;
+        m_loopStack.pop();
+        return false;
+    }
+
+    if ( ! match( BydaoTokenType::While ) ) {
+        error( "missed keyword 'while' after block" );
+        return false;
+    }
+    nextToken();    // while
+
+    loop.conditionAddr = m_bytecode.size();
+
+    BydaoToken exprToken = m_current;
+    if ( ! parseExpression() ) {
+        return false;
+    }
+    TypeInfo exprTypeInfo = getLastType();
+    if ( exprTypeInfo.type != "Bool" ) {
+
+        if ( ! checkTypeConvert( exprTypeInfo.type, "Bool", exprToken ) ) {
+            return false;
+        }
+    }
+
+    emitCode(BydaoOpCode::JumpIfTrue, loopBegin, 0, doToken);
+
+    m_inLoop = false;
+    loop = m_loopStack.pop();
+
+    loop.exitAddr = m_bytecode.size();
+
+    patchJumps(loop.breaks, loop.exitAddr);
+    patchJumps(loop.nexts, loop.conditionAddr);
 
     return true;
 }

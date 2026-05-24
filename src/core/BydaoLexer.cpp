@@ -21,6 +21,7 @@ QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
     {"pub", BydaoTokenType::Pub},
     {"const", BydaoTokenType::Const},
     {"drop", BydaoTokenType::Drop},
+    {"do", BydaoTokenType::Do},
     {"while", BydaoTokenType::While},
     {"next", BydaoTokenType::Next},
     {"break", BydaoTokenType::Break},
