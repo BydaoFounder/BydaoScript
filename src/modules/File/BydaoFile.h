@@ -15,7 +15,7 @@ namespace BydaoScript {
 namespace Modules {
 
 // Объект файла
-class BYDAOFILE_EXPORT BydaoFileObject : public BydaoModule {
+class BYDAOFILE_EXPORT BydaoFileObject : public BydaoObject {
 
 public:
     explicit BydaoFileObject(const QString& path);
@@ -24,13 +24,13 @@ public:
     // Обязательные методы от BydaoObject
     QString typeName() const override { return "File"; }
 
-    // Обязательные методы от BydaoModule (для объекта они не нужны, но должны быть)
-    QString name() const override { return "FileObject"; }
-    QString version() const override { return "1.0.0"; }
-
     virtual bool    getVar( const QString& varName, BydaoValue& value ) override {
         if ( varName == "name" ) {
-            value = BydaoValue::fromString( m_file.fileName() );
+            value = BydaoValue::fromString( fileName() );
+            return true;
+        }
+        if ( varName == "path" ) {
+            value = BydaoValue::fromString( filePath() );
             return true;
         }
         qWarning() << QString("Member '%1' not exists in file object").arg( varName );
@@ -46,21 +46,21 @@ public:
         return false;
     };
 
+    bool callMethod(const QString& name,
+                    const QVector<BydaoValue>& args,
+                    BydaoValue& result) override;
+
+private:
 
     // Свойства (только чтение)
     QString fileName() const { return QFileInfo(m_file).fileName(); }
-    QString filePath() const { return m_file.fileName(); }
+    QString filePath() const { return QFileInfo(m_file).absolutePath(); }
     qint64 fileSize() const { return QFileInfo(m_file).size(); }
     bool fileExists() const { return QFileInfo::exists(m_file.fileName()); }
     bool isOpen() const { return m_file.isOpen(); }
     bool isReadable() const { return QFileInfo(m_file).isReadable(); }
     bool isWritable() const { return QFileInfo(m_file).isWritable(); }
 
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
-
-private:
     // Методы объекта
     bool method_open(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_close(const QVector<BydaoValue>& args, BydaoValue& result);
@@ -70,13 +70,12 @@ private:
     bool method_write(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_writeLine(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_append(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_copy(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_move(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_rename(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_remove(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_pos(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_seek(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_atEnd(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_isOpen(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_exists(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_remove(const QVector<BydaoValue>& args, BydaoValue& result);
 
     QIODevice::OpenMode parseMode(const QString& mode);
 
@@ -85,8 +84,8 @@ private:
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
 
-    QFile m_file;
-    QTextStream* m_stream;
+    QFile           m_file;
+    QTextStream*    m_stream;
 };
 
 // Модуль File
@@ -103,7 +102,7 @@ public:
     QString name() const override { return "File"; }
     QString version() const override { return "1.0.0"; }
 
-    MetaData*   metaData() override;
+    MetaData*           metaData() override;
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,

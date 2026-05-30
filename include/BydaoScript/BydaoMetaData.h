@@ -53,6 +53,12 @@ struct VarMetaData {
 };
 typedef QMap< QString, VarMetaData > VarMetaDataDict;
 
+#define VMD_VARIABLE    false
+#define VMD_CONST       true
+#define VMD_MODULE      true
+#define VMD_CLASS       true
+#define VMD_OBJECT      false
+
 /**
  * Свойства аргумента функции.
  */
@@ -72,6 +78,9 @@ struct FuncArgMetaData {
     void    operator=( const FuncArgMetaData& funcArg );
 };
 typedef QList< FuncArgMetaData >    FuncArgMetaDataList;
+
+#define ARG_IN      false
+#define ARG_OUT     true
 
 /**
  * Свойства функции модуля/класса.
@@ -119,6 +128,13 @@ struct FuncMetaData {
     int             argCount() const;
 };
 typedef QMap< QString, FuncMetaData > FuncMetaDataDict;
+
+#define FMD_STATIC         true
+#define FMD_MODULE         true
+#define FMD_CLASS          true
+#define FMD_OBJECT         false
+#define FMD_IMMUTABLE      true
+#define FMD_ALTERABLE      false
 
 /**
  * Свойства операции.

@@ -33,43 +33,87 @@ MetaData*   BydaoFileModule::metaData() {
     if ( ! metaData ) {
         metaData = new MetaData();
         metaData->external = true;
+
+        // Методы модуля File
+
         metaData
-            ->append( "new",     FuncMetaData("File", true, true)
-                                    << FuncArgMetaData("fileName","String",false)
+            ->append( "new",     FuncMetaData("File", FMD_MODULE, FMD_IMMUTABLE)
+                                    << FuncArgMetaData("fileName","String",ARG_IN)
                                     )
-            .append( "exists",   FuncMetaData("Bool", true, true)
-                                    << FuncArgMetaData("fileName","String",false,"\"\"")
+            .append( "exists",   FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+                                    << FuncArgMetaData("fileName","String",ARG_IN,"\"\"")
                                     )
-            .append( "copy",     FuncMetaData("Bool", true, true)
-                                    << FuncArgMetaData("fromName","String",false)
-                                    << FuncArgMetaData("toName","String",false)
+            .append( "copy",     FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+                                    << FuncArgMetaData("fromName","String",ARG_IN)
+                                    << FuncArgMetaData("toName","String",ARG_IN)
                                     )
-            .append( "move",     FuncMetaData("Bool", true, true)
-                                    << FuncArgMetaData("fromName","String",false)
-                                    << FuncArgMetaData("toName","String",false)
+            .append( "move",     FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+                                    << FuncArgMetaData("fromName","String",ARG_IN)
+                                    << FuncArgMetaData("toName","String",ARG_IN)
                                     )
-            .append( "rename",   FuncMetaData("Bool", true, true)
-                                    << FuncArgMetaData("fromName","String",false)
-                                    << FuncArgMetaData("toName","String",false)
+            .append( "rename",   FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+                                    << FuncArgMetaData("fromName","String",ARG_IN)
+                                    << FuncArgMetaData("toName","String",ARG_IN)
                                     )
-            .append( "remove",   FuncMetaData("Bool", true, true)
-                                    << FuncArgMetaData("fileName","String",false)
+            .append( "remove",   FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+                                    << FuncArgMetaData("fileName","String",ARG_IN)
                                     )
-            .append( "size",     FuncMetaData("Int", true, true)
-                                    << FuncArgMetaData("fileName","String",false)
+            .append( "size",     FuncMetaData("Int", FMD_MODULE, FMD_IMMUTABLE)
+                                    << FuncArgMetaData("fileName","String",ARG_IN)
                                     )
-            .append( "readAll",  FuncMetaData("String", true, true)
-                                    << FuncArgMetaData("fileName","String",false)
+            .append( "readAll",  FuncMetaData("String", FMD_MODULE, FMD_IMMUTABLE)
+                                    << FuncArgMetaData("fileName","String",ARG_IN)
                                     )
-            .append( "writeAll", FuncMetaData("Bool", true, true)
-                                    << FuncArgMetaData("fileName","String",false)
-                                    << FuncArgMetaData("data","String",false)
+            .append( "writeAll", FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+                                    << FuncArgMetaData("fileName","String",ARG_IN)
+                                    << FuncArgMetaData("data","String",ARG_IN)
                                     )
             ;
-        // TODO: Добавить мета-данные для объекта файла (методы и переменные)
+
+        // Методы объекта типа File
+
+        metaData
+            ->append( "open",       FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE )
+                                 << FuncArgMetaData("mode","String",ARG_IN)
+                     )
+            .append( "close",       FuncMetaData("Void", FMD_OBJECT, FMD_ALTERABLE)
+                    )
+            .append( "read",        FuncMetaData("String", FMD_OBJECT, FMD_ALTERABLE)
+                                << FuncArgMetaData("count","Int",ARG_IN,"-1")
+                    )
+            .append( "readln",      FuncMetaData("String", FMD_OBJECT, FMD_ALTERABLE)
+                    )
+            .append( "readlnAll",   FuncMetaData("Array", FMD_OBJECT, FMD_ALTERABLE)
+                    )
+            .append( "write",       FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE)
+                                 << FuncArgMetaData("data","String",ARG_IN)
+                    )
+            .append( "writeln",     FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE)
+                                   << FuncArgMetaData("data","String",ARG_IN)
+                    )
+            .append( "append",      FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE)
+                                  << FuncArgMetaData("data","String",ARG_IN)
+                    )
+            .append( "isOpen",      FuncMetaData("Bool", FMD_OBJECT, FMD_IMMUTABLE)
+                    )
+            .append( "atEnd",       FuncMetaData("Bool", FMD_OBJECT, FMD_IMMUTABLE)
+                    )
+            .append( "pos",         FuncMetaData("Int", FMD_OBJECT, FMD_IMMUTABLE)
+                    )
+            .append( "seek",        FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE)
+                                  << FuncArgMetaData("pos","Int",ARG_IN)
+                    )
+            .append( "exists",      FuncMetaData("Bool", FMD_OBJECT, FMD_IMMUTABLE)
+                    )
+            .append( "remove",      FuncMetaData("Bool", FMD_OBJECT, FMD_IMMUTABLE)
+                    )
+            ;
+
         metaData
             // переменные объекта
-            ->append( "name",     VarMetaData("String",false,false) );
+            ->append( "name",     VarMetaData("String", VMD_VARIABLE, VMD_OBJECT) )
+            .append(  "path",     VarMetaData("String", VMD_CONST,    VMD_OBJECT) )
+            ;
     }
     return metaData;
 }
@@ -186,62 +230,24 @@ bool BydaoFileModule::method_writeAll(const QVector<BydaoValue>& args, BydaoValu
 // ========== BydaoFileObject ==========
 
 BydaoFileObject::BydaoFileObject(const QString& path)
-    : BydaoModule()
+    : BydaoObject()
     , m_file(path)
     , m_stream(nullptr)
 {
     registerMethod("open",      &BydaoFileObject::method_open);
-    registerMethod("open",      &BydaoFileObject::method_open);
     registerMethod("close",     &BydaoFileObject::method_close);
     registerMethod("read",      &BydaoFileObject::method_read);
-    registerMethod("readLine",  &BydaoFileObject::method_readLine);
-    registerMethod("readLines", &BydaoFileObject::method_readLines);
+    registerMethod("readln",    &BydaoFileObject::method_readLine);
+    registerMethod("readlnAll", &BydaoFileObject::method_readLines);
     registerMethod("write",     &BydaoFileObject::method_write);
-    registerMethod("writeLine", &BydaoFileObject::method_writeLine);
+    registerMethod("writeln",   &BydaoFileObject::method_writeLine);
     registerMethod("append",    &BydaoFileObject::method_append);
-    registerMethod("copy",      &BydaoFileObject::method_copy);
-    registerMethod("move",      &BydaoFileObject::method_move);
-    registerMethod("rename",    &BydaoFileObject::method_rename);
-    registerMethod("remove",    &BydaoFileObject::method_remove);
     registerMethod("pos",       &BydaoFileObject::method_pos);
     registerMethod("seek",      &BydaoFileObject::method_seek);
     registerMethod("atEnd",     &BydaoFileObject::method_atEnd);
-
-    // Регистрация свойств (ReadOnly)
-    // registerProperty("name",
-    //                  [this]() { return BydaoValue::fromString(this->fileName()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
-
-    // registerProperty("path",
-    //                  [this]() { return BydaoValue::fromString(this->filePath()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
-
-    // registerProperty("size",
-    //                  [this]() { return BydaoValue::fromInt((int)this->fileSize()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
-
-    // registerProperty("exists",
-    //                  [this]() { return BydaoValue::fromBool(this->fileExists()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
-
-    // registerProperty("isOpen",
-    //                  [this]() { return BydaoValue::fromBool(this->isOpen()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
-
-    // registerProperty("isReadable",
-    //                  [this]() { return BydaoValue::fromBool(this->isReadable()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
-
-    // registerProperty("isWritable",
-    //                  [this]() { return BydaoValue::fromBool(this->isWritable()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    registerMethod("isOpen",    &BydaoFileObject::method_isOpen);
+    registerMethod("exists",    &BydaoFileObject::method_exists);
+    registerMethod("remove",    &BydaoFileObject::method_remove);
 }
 
 BydaoFileObject::~BydaoFileObject() {
@@ -325,21 +331,15 @@ bool BydaoFileObject::method_read(const QVector<BydaoValue>& args, BydaoValue& r
         result = BydaoValue::fromNull();
         return false;
     }
-
     qint64 maxlen = args.size() > 0 ? args[0].toInt() : -1;
-
-    if (maxlen < 0) {
-        result = BydaoValue( BydaoString::create(m_stream->readAll()), BydaoTypeId::TYPE_STRING );
-    } else {
-        result = BydaoValue( BydaoString::create(m_stream->read(maxlen)), BydaoTypeId::TYPE_STRING );
-    }
+    result = BydaoValue( BydaoString::create( maxlen < 0 ? m_stream->readAll() : m_stream->read(maxlen) ), BydaoTypeId::TYPE_STRING );
     return true;
 }
 
 bool BydaoFileObject::method_readLine(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
 
-    if (!m_stream) {
+    if ( ! m_stream || m_stream->atEnd() ) {
         result = BydaoValue::fromNull();
         return false;
     }
@@ -352,28 +352,32 @@ bool BydaoFileObject::method_readLines(const QVector<BydaoValue>& args, BydaoVal
     Q_UNUSED(args);
 
     if (!m_stream) {
-        result = BydaoValue(new BydaoArray(), BydaoTypeId::TYPE_ARRAY);
+        result = BydaoValue::fromNull();
         return false;
     }
 
     auto* array = new BydaoArray();
     while (!m_stream->atEnd()) {
-        QString line = m_stream->readLine();
-        array->append( BydaoValue( BydaoString::create(line), BydaoTypeId::TYPE_STRING ) );
+        array->append( BydaoValue( BydaoString::create( m_stream->readLine() ), BydaoTypeId::TYPE_STRING ) );
     }
-
     result = BydaoValue(array, BydaoTypeId::TYPE_ARRAY);
     return true;
 }
 
 bool BydaoFileObject::method_write(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (!m_stream || args.size() != 1) {
+
+    if (!m_stream) {
+        result = BydaoValue::fromNull();
+        return false;
+    }
+
+    if ( args.size() != 1 ) {
         result = BydaoValue::fromBool( false );
         return false;
     }
 
     *m_stream << args[0].toString();
-    result = BydaoValue::fromBool( true );
+    result = BydaoValue::fromBool( m_stream->status() == QTextStream::Ok );
     return true;
 }
 
@@ -384,7 +388,7 @@ bool BydaoFileObject::method_writeLine(const QVector<BydaoValue>& args, BydaoVal
     }
 
     *m_stream << args[0].toString() << Qt::endl;
-    result = BydaoValue::fromBool( true );
+    result = BydaoValue::fromBool( m_stream->status() == QTextStream::Ok );
     return true;
 }
 
@@ -394,10 +398,9 @@ bool BydaoFileObject::method_append(const QVector<BydaoValue>& args, BydaoValue&
         return false;
     }
 
-    bool wasOpen = m_file.isOpen();
     QIODevice::OpenMode oldMode;
-
-    if (wasOpen) {
+    bool wasOpen = m_file.isOpen();
+    if ( wasOpen ) {
         oldMode = m_file.openMode();
         m_file.close();
     }
@@ -417,73 +420,65 @@ bool BydaoFileObject::method_append(const QVector<BydaoValue>& args, BydaoValue&
     return true;
 }
 
-bool BydaoFileObject::method_copy(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() != 1) {
-        result = BydaoValue::fromBool( false );
+bool BydaoFileObject::method_pos(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+
+    if (!m_stream) {
+        result = BydaoValue::fromNull();
         return false;
     }
-
-    bool ok = QFile::copy(m_file.fileName(), args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    result = BydaoValue::fromInt( m_file.pos() );
     return true;
 }
 
-bool BydaoFileObject::method_move(const QVector<BydaoValue>& args, BydaoValue& result) {
+bool BydaoFileObject::method_seek(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (!m_stream) {
+        result = BydaoValue::fromNull();
+        return false;
+    }
+
     if (args.size() != 1) {
         result = BydaoValue::fromBool( false );
         return false;
     }
 
-    bool ok = QFile::rename(m_file.fileName(), args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    result = BydaoValue::fromBool( m_file.seek( args[0].toInt() ) );
     return true;
 }
 
-bool BydaoFileObject::method_rename(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() != 1) {
-        result = BydaoValue::fromBool( false );
+bool BydaoFileObject::method_atEnd(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    if (!m_stream) {
+        result = BydaoValue::fromNull();
         return false;
     }
+    result = BydaoValue::fromBool( m_file.atEnd() );
+    return true;
+}
 
-    QFileInfo info(m_file.fileName());
-    QString newPath = info.absolutePath() + "/" + args[0].toString();
-    bool ok = QFile::rename(m_file.fileName(), newPath);
-    result = BydaoValue::fromBool( ok );
+bool BydaoFileObject::method_isOpen(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    if (!m_stream) {
+        result = BydaoValue::fromNull();
+        return false;
+    }
+    result = BydaoValue::fromBool( m_file.isOpen() );
+    return true;
+}
+
+bool BydaoFileObject::method_exists(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+    result = BydaoValue::fromBool( QFileInfo::exists( m_file.fileName() ) );
     return true;
 }
 
 bool BydaoFileObject::method_remove(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
 
-    bool wasOpen = m_file.isOpen();
-    if (wasOpen) {
+    if ( m_file.isOpen() ) {
         m_file.close();
     }
-    bool ok = m_file.remove();
-    result = BydaoValue::fromBool( ok );
-    return true;
-}
-
-bool BydaoFileObject::method_pos(const QVector<BydaoValue>& args, BydaoValue& result) {
-    Q_UNUSED(args);
-    result = BydaoValue::fromInt( m_file.pos() );
-    return true;
-}
-
-bool BydaoFileObject::method_seek(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() != 1) {
-        result = BydaoValue::fromBool( false );
-        return false;
-    }
-
-    bool ok = m_file.seek(args[0].toInt());
-    result = BydaoValue::fromBool( ok );
-    return true;
-}
-
-bool BydaoFileObject::method_atEnd(const QVector<BydaoValue>& args, BydaoValue& result) {
-    Q_UNUSED(args);
-    result = BydaoValue::fromBool( m_file.atEnd() );
+    result = BydaoValue::fromBool( m_file.remove() );
     return true;
 }
 

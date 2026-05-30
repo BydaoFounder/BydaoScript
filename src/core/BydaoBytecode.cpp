@@ -25,6 +25,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
     if (names.isEmpty()) {
         names[BydaoOpCode::Nop] = "NOP";
         names[BydaoOpCode::Halt] = "HALT";
+        names[BydaoOpCode::Ignore] = "IGNORE";
         names[BydaoOpCode::ConstDecl] = "CONSTDECL";
         names[BydaoOpCode::VarDecl] = "VARDECL";
         names[BydaoOpCode::Drop] = "DROP";
@@ -67,6 +68,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Index] = "INDEX";
         names[BydaoOpCode::Call] = "CALL";
         names[BydaoOpCode::CallVoid] = "CALLVOID";
+        names[BydaoOpCode::NewObj] = "NEWOBJ";
         names[BydaoOpCode::Jump] = "JUMP";
         names[BydaoOpCode::JumpIfFalse] = "JMPF";
         names[BydaoOpCode::JumpIfTrue] = "JMPT";

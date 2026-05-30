@@ -22,7 +22,7 @@ namespace BydaoScript {
 enum class BydaoTokenType {
     // Ключевые слова
     Var, Const, Pub, Drop, Do, While, Next, If, Elsif, Else, Iter, Enum,
-    As, Break, Use, False, True, Null,
+    As, Break, Use, False, True, Null, Ignore,
 
     // Операторы
     Assign, PlusAssign, MinusAssign, MulAssign, DivAssign, ModAssign,

@@ -34,6 +34,7 @@ QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
     {"false", BydaoTokenType::False},
     {"true", BydaoTokenType::True},
     {"null", BydaoTokenType::Null},
+    {"ignore", BydaoTokenType::Ignore},
 };
 
 BydaoLexer::BydaoLexer(const QString& source)

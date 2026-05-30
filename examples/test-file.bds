@@ -1,0 +1,25 @@
+use Sys, File
+
+var content = 'This is a test content'
+
+var file = File( 'test-file.test' )
+if file.exists() {
+    ignore file.remove()
+}
+if ! file.open( 'wt' ) {
+    Sys.outln( 'Cannot open file ' + file.name )
+}
+elsif ! file.write( content ) {
+    Sys.outln( 'Cannot write to file ' + file.name )
+}
+elsif ! file.open( 'rt' ) {
+    Sys.outln( 'Cannot open file ' + file.name + ' after write' )
+}
+elsif file.read() != content {
+    Sys.outln( 'Content of file ' + file.name + ' not match the sample' )
+}
+else {
+    Sys.outln( "File name: " + file.name )
+    Sys.outln( "File path: " + file.path )
+    Sys.outln( 'TEST SUCCESS' )
+}

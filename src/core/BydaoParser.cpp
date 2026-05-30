@@ -385,6 +385,7 @@ bool BydaoParser::isNameToken(BydaoTokenType type) const {
            type == BydaoTokenType::Var ||
            type == BydaoTokenType::Drop ||
            type == BydaoTokenType::Use ||
+           type == BydaoTokenType::Ignore ||
            type == BydaoTokenType::As;
 }
 
@@ -504,6 +505,7 @@ bool BydaoParser::parseStatement() {
     if (match(BydaoTokenType::Break) || match(BydaoTokenType::Next)) return parseBreakNext();
     if (match(BydaoTokenType::Use)) return parseUse();
     if (match(BydaoTokenType::LBrace)) return parseBlock(true);
+    if (match(BydaoTokenType::Ignore)) return parseIgnore();
 
     if ( parseExpression() ) return true;
 
@@ -1175,6 +1177,26 @@ bool BydaoParser::parseIf() {
     // Патчим переход из if
     m_bytecode[endJump].arg1 = m_bytecode.size();
 
+    return true;
+}
+
+bool BydaoParser::parseIgnore() {
+
+    BydaoToken ignoreToken = m_current;
+    nextToken(); // ignore
+
+    BydaoToken exprToken = m_current;
+    if ( ! parseExpression() ) {
+        return false;
+    }
+    TypeInfo exprTypeInfo = getLastType();
+    if ( exprTypeInfo.type != "Void" ) {
+
+        emitCode(BydaoOpCode::Ignore, 0, 0);
+
+        // Сохраним тип возвращаемого значения
+        setLastType( TypeInfo("Void") );
+    }
     return true;
 }
 
@@ -2220,7 +2242,7 @@ bool BydaoParser::parsePrimary() {
                 setLastType( TypeInfo( name, Type ) );
             }
         }
-        else if (isVariableDeclared(name)) {    // обычная переменная?
+        else if (isVariableDeclared(name)) {    // обычная переменная
             nextToken(); // съедаем имя переменной
             VariableInfo info = resolveVariable(name);
             emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
@@ -2274,9 +2296,19 @@ bool BydaoParser::parseCallSuffix() {
     BydaoToken token = m_current;   // '('
     nextToken();                    // следущий токен за '('
 
+    bool createObj = false;
+
     const TypeInfo& typeInfo = m_typeStack.top();
     QString memberName = typeInfo.member;
     MetaData* metaData = m_metaData[ typeInfo.type ];
+    if ( memberName.isEmpty() ) {
+        if ( ! metaData->hasFunc( "new" ) ) {
+            error("Cannot create object of type '" + typeInfo.type + "'", token );
+            return false;
+        }
+        memberName = "new";
+        createObj = true;
+    }
     const FuncMetaData func = metaData->func( memberName );
 
     // Парсим аргументы, если они есть
@@ -2386,7 +2418,12 @@ bool BydaoParser::parseCallSuffix() {
     // Генерируем инструкцию CALL
     // Объект для вызова уже лежит на стеке (результат предыдущих операций)
     // Аргументы лежат на стеке в правильном порядке (благодаря parseExpression)
-    emitCode( func.retType == "Void" ? BydaoOpCode::CallVoid : BydaoOpCode::Call, argCount, func.index, token);
+    if ( createObj ) {
+        emitCode( BydaoOpCode::NewObj, argCount, func.index, token );
+    }
+    else {
+        emitCode( func.retType == "Void" ? BydaoOpCode::CallVoid : BydaoOpCode::Call, argCount, func.index, token );
+    }
 
     return true;
 }

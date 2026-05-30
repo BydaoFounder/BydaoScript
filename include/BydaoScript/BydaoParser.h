@@ -129,7 +129,8 @@ private:
     bool parseEnum();
     bool parseBreakNext();
     bool parseUse();
-    
+    bool parseIgnore();
+
     // Выражения (с приоритетами)
     bool parseExpression();
     bool parseLogicalOr();

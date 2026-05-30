@@ -349,6 +349,7 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
 
     case BydaoOpCode::CallVoid:
     case BydaoOpCode::Call:
+    case BydaoOpCode::NewObj:
         args << QString("%1").arg(instr.arg1);
         if ( instr.arg2 >= 0 ) {
             args << QString("m%1").arg(instr.arg2);

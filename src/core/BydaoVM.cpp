@@ -1022,6 +1022,82 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
+    case BydaoOpCode::Ignore: {
+
+        if ( m_stack.size() <= 0 ) {
+            error("Stack underflow: not enough arguments", instr);
+            return false;
+        }
+        m_stack.pop();
+        break;
+    }
+
+    case BydaoOpCode::NewObj: {
+        int argCount = instr.arg1;
+        if ( m_stack.size() < argCount ) {
+            error("Stack underflow: not enough arguments", instr);
+            return false;
+        }
+
+        // Забираем аргументы
+        QVector<BydaoValue> args;
+        args.resize( argCount );
+        while ( --argCount >= 0 ) {
+            m_stack.popTo( args[ argCount ] );
+        }
+
+        BydaoValue result;
+        BydaoObject* obj;
+        bool ok;
+        if ( instr.arg2 < 0 ) { // вызов метода объекта по имени
+
+            QString methodName = "new";
+
+            // Получить объект, метод которого вызывается
+            const BydaoValue& objValue = m_stack.pop();
+            obj = objValue.toObject();
+            if ( ! obj ) {
+                error( QString("create object of non-object").arg( methodName ), instr);
+                return false;
+            }
+
+            // Вызвать метод объекта
+            ok = obj->callMethod(methodName, args, result);
+        }
+        else {                  // вызов метода объекта по индексу
+
+            // Получить объект, метод которого вызывается
+            obj = m_stack.pop().toObject();
+            if ( ! obj ) {
+                error( QString("create object of non-object"), instr);
+                return false;
+            }
+
+            // Вызывать метод объекта по индексу
+            ok = obj->callStdMethod( instr.arg2, args, result );
+        }
+
+        // Обработать результат вызова метода
+
+        if ( ok ) {
+            m_stack.push(result);
+            if ( m_traceMode ) {
+                dumpStack("After NEWOBJ");
+            }
+        }
+        else {
+            QString err = obj->lastError();
+            if ( ! err.isEmpty() ) {
+                error( err, instr);
+            }
+            else {
+                error( QString("Unknown error on create object of type '%1'").arg(obj->typeName()), instr);
+            }
+            return false;
+        }
+        break;
+    }
+
     // ===== Модули и типы =====
     case BydaoOpCode::UseModule: {
 
