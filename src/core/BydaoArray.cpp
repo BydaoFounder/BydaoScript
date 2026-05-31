@@ -27,16 +27,17 @@ MetaData*   BydaoArray::metaData() {
         metaData = new MetaData();
         metaData
             // переменные объекта
-            ->append( "length",     VarMetaData("Int",true,false) );
+            ->appendObj( "length",     VarMetaData("Int", VMD_CONST) );
         metaData
             // методы объекта
-            ->append( "iter",        FuncMetaData("ArrayIter", false, true) )
-            .append( "toString",   FuncMetaData("String", false, true) )
-            .append( "length",      FuncMetaData("Int", false, true) )
-            .append( "get",         FuncMetaData("Int", false, true) << FuncArgMetaData("pos","Int",false) )
-            .append( "set",         FuncMetaData("Void", false, true)
-                                    << FuncArgMetaData("pos","Int",false)
-                                    << FuncArgMetaData("obj","Any",false) )
+            ->appendObj( "iter",      FuncMetaData("ArrayIter", FMD_IMMUTABLE) )
+            .appendObj( "toString",   FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendObj( "length",     FuncMetaData("Int", FMD_IMMUTABLE) )
+            .appendObj( "get",        FuncMetaData("Int", FMD_IMMUTABLE)
+                                        << FuncArgMetaData("pos","Int",false) )
+            .appendObj( "set",        FuncMetaData("Void", FMD_IMMUTABLE)
+                                        << FuncArgMetaData("pos","Int",false)
+                                        << FuncArgMetaData("obj","Any",false) )
             ;
     }
     return metaData;

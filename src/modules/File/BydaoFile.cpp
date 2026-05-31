@@ -33,90 +33,57 @@ MetaData*   BydaoFileModule::metaData() {
     if ( ! metaData ) {
         metaData = new MetaData();
         metaData->external = true;
+        metaData->name = "File";
 
         // Методы модуля File
 
         metaData
-            ->append( "new",     FuncMetaData("File", FMD_MODULE, FMD_IMMUTABLE)
+            ->appendType( "new",     FuncMetaData("File", FMD_IMMUTABLE)
                                     << FuncArgMetaData("fileName","String",ARG_IN)
                                     )
-            .append( "exists",   FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+            .appendType( "exists",   FuncMetaData("Bool", FMD_IMMUTABLE)
                                     << FuncArgMetaData("fileName","String",ARG_IN,"\"\"")
                                     )
-            .append( "copy",     FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+            .appendType( "copy",     FuncMetaData("Bool", FMD_IMMUTABLE)
                                     << FuncArgMetaData("fromName","String",ARG_IN)
                                     << FuncArgMetaData("toName","String",ARG_IN)
                                     )
-            .append( "move",     FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+            .appendType( "move",     FuncMetaData("Bool", FMD_IMMUTABLE)
                                     << FuncArgMetaData("fromName","String",ARG_IN)
                                     << FuncArgMetaData("toName","String",ARG_IN)
                                     )
-            .append( "rename",   FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+            .appendType( "rename",   FuncMetaData("Bool", FMD_IMMUTABLE)
                                     << FuncArgMetaData("fromName","String",ARG_IN)
                                     << FuncArgMetaData("toName","String",ARG_IN)
                                     )
-            .append( "remove",   FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+            .appendType( "remove",   FuncMetaData("Bool", FMD_IMMUTABLE)
                                     << FuncArgMetaData("fileName","String",ARG_IN)
                                     )
-            .append( "size",     FuncMetaData("Int", FMD_MODULE, FMD_IMMUTABLE)
+            .appendType( "size",     FuncMetaData("Int", FMD_IMMUTABLE)
                                     << FuncArgMetaData("fileName","String",ARG_IN)
                                     )
-            .append( "readAll",  FuncMetaData("String", FMD_MODULE, FMD_IMMUTABLE)
+            .appendType( "readAll",  FuncMetaData("String", FMD_IMMUTABLE)
                                     << FuncArgMetaData("fileName","String",ARG_IN)
                                     )
-            .append( "writeAll", FuncMetaData("Bool", FMD_MODULE, FMD_IMMUTABLE)
+            .appendType( "writeAll", FuncMetaData("Bool", FMD_IMMUTABLE)
                                     << FuncArgMetaData("fileName","String",ARG_IN)
                                     << FuncArgMetaData("data","String",ARG_IN)
                                     )
             ;
-
-        // Методы объекта типа File
-
-        metaData
-            ->append( "open",       FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE )
-                                 << FuncArgMetaData("mode","String",ARG_IN)
-                     )
-            .append( "close",       FuncMetaData("Void", FMD_OBJECT, FMD_ALTERABLE)
-                    )
-            .append( "read",        FuncMetaData("String", FMD_OBJECT, FMD_ALTERABLE)
-                                << FuncArgMetaData("count","Int",ARG_IN,"-1")
-                    )
-            .append( "readln",      FuncMetaData("String", FMD_OBJECT, FMD_ALTERABLE)
-                    )
-            .append( "readlnAll",   FuncMetaData("Array", FMD_OBJECT, FMD_ALTERABLE)
-                    )
-            .append( "write",       FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE)
-                                 << FuncArgMetaData("data","String",ARG_IN)
-                    )
-            .append( "writeln",     FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE)
-                                   << FuncArgMetaData("data","String",ARG_IN)
-                    )
-            .append( "append",      FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE)
-                                  << FuncArgMetaData("data","String",ARG_IN)
-                    )
-            .append( "isOpen",      FuncMetaData("Bool", FMD_OBJECT, FMD_IMMUTABLE)
-                    )
-            .append( "atEnd",       FuncMetaData("Bool", FMD_OBJECT, FMD_IMMUTABLE)
-                    )
-            .append( "pos",         FuncMetaData("Int", FMD_OBJECT, FMD_IMMUTABLE)
-                    )
-            .append( "seek",        FuncMetaData("Bool", FMD_OBJECT, FMD_ALTERABLE)
-                                  << FuncArgMetaData("pos","Int",ARG_IN)
-                    )
-            .append( "exists",      FuncMetaData("Bool", FMD_OBJECT, FMD_IMMUTABLE)
-                    )
-            .append( "remove",      FuncMetaData("Bool", FMD_OBJECT, FMD_IMMUTABLE)
-                    )
-            ;
-
-        metaData
-            // переменные объекта
-            ->append( "name",     VarMetaData("String", VMD_VARIABLE, VMD_OBJECT) )
-            .append(  "path",     VarMetaData("String", VMD_CONST,    VMD_OBJECT) )
-            ;
     }
     return metaData;
 }
+
+UsedMetaDataList    BydaoFileModule::usedMetaData() {
+    static UsedMetaDataList list;
+
+    if ( list.isEmpty() ) {
+        list << UsedMetaData( "File", BydaoFileObject::metaData(), true );
+    }
+
+    return list;
+}
+
 
 bool BydaoFileModule::initialize() {
     return true;
@@ -258,6 +225,62 @@ BydaoFileObject::~BydaoFileObject() {
     if (m_file.isOpen()) {
         m_file.close();
     }
+}
+
+
+MetaData*   BydaoFileObject::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData->external = true;
+        metaData->name = "File";
+
+        // Методы объекта типа File
+
+        metaData
+            ->appendObj( "open",       FuncMetaData("Bool", FMD_ALTERABLE )
+                                 << FuncArgMetaData("mode","String",ARG_IN)
+                     )
+            .appendObj( "close",       FuncMetaData("Void", FMD_ALTERABLE)
+                    )
+            .appendObj( "read",        FuncMetaData("String", FMD_ALTERABLE)
+                                << FuncArgMetaData("count","Int",ARG_IN,"-1")
+                    )
+            .appendObj( "readln",      FuncMetaData("String", FMD_ALTERABLE)
+                    )
+            .appendObj( "readlnAll",   FuncMetaData("Array", FMD_ALTERABLE)
+                    )
+            .appendObj( "write",       FuncMetaData("Bool", FMD_ALTERABLE)
+                                 << FuncArgMetaData("data","String",ARG_IN)
+                    )
+            .appendObj( "writeln",     FuncMetaData("Bool", FMD_ALTERABLE)
+                                   << FuncArgMetaData("data","String",ARG_IN)
+                    )
+            .appendObj( "append",      FuncMetaData("Bool", FMD_ALTERABLE)
+                                  << FuncArgMetaData("data","String",ARG_IN)
+                    )
+            .appendObj( "isOpen",      FuncMetaData("Bool", FMD_IMMUTABLE)
+                    )
+            .appendObj( "atEnd",       FuncMetaData("Bool", FMD_IMMUTABLE)
+                    )
+            .appendObj( "pos",         FuncMetaData("Int", FMD_IMMUTABLE)
+                    )
+            .appendObj( "seek",        FuncMetaData("Bool", FMD_ALTERABLE)
+                                << FuncArgMetaData("pos","Int",ARG_IN)
+                    )
+            .appendObj( "exists",      FuncMetaData("Bool", FMD_IMMUTABLE)
+                    )
+            .appendObj( "remove",      FuncMetaData("Bool", FMD_IMMUTABLE)
+                    )
+            ;
+
+        metaData
+            // переменные объекта
+            ->appendObj( "name",     VarMetaData("String", VMD_VARIABLE) )
+            .appendObj(  "path",     VarMetaData("String", VMD_CONST) )
+            ;
+    }
+    return metaData;
 }
 
 void BydaoFileObject::registerMethod(const QString& name, MethodPtr method) {

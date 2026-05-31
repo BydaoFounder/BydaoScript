@@ -24,15 +24,15 @@ MetaData*   BydaoBool::metaData() {
         metaData = new MetaData();
         metaData
             // методы объекта
-            ->append( "toString",   FuncMetaData("String", false, true) )
-            .append( "toInt",       FuncMetaData("Int", false, true) )
-            .append( "toReal",      FuncMetaData("Real", false, true) )
-            .append( "toBool",      FuncMetaData("Bool", false, true) )
-            .append( "isNull",      FuncMetaData("Bool", false, true) )
+            ->appendObj( "toString",   FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendObj( "toInt",       FuncMetaData("Int", FMD_IMMUTABLE) )
+            .appendObj( "toReal",      FuncMetaData("Real", FMD_IMMUTABLE) )
+            .appendObj( "toBool",      FuncMetaData("Bool", FMD_IMMUTABLE) )
+            .appendObj( "isNull",      FuncMetaData("Bool", FMD_IMMUTABLE) )
             ;
         metaData
-            ->append( "eq",     OperMetaData("Any", "Bool" ) )
-            .append( "neq",     OperMetaData("Any", "Bool" ) )
+            ->appendObj( "eq",     OperMetaData("Any", "Bool" ) )
+            .appendObj( "neq",     OperMetaData("Any", "Bool" ) )
             ;
     }
     return metaData;

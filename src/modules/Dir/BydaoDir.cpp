@@ -30,10 +30,10 @@ MetaData*   BydaoDirModule::metaData() {
         metaData = new MetaData();
         metaData->external = true;
         metaData
-            ->append( "open",   FuncMetaData("Dir", true, true)   << FuncArgMetaData("path","String",false) )
-            .append( "list",    FuncMetaData("StringArray", true, true) << FuncArgMetaData("path","String",false,"\".\"") )
-            .append( "cd",      FuncMetaData("Bool", true, true)  << FuncArgMetaData("path","String",false,"") )
-            .append( "current", FuncMetaData("String", true, true) )
+            ->appendType( "open",   FuncMetaData("Dir", FMD_IMMUTABLE)   << FuncArgMetaData("path","String",ARG_IN) )
+            .appendType( "list",    FuncMetaData("StringArray", FMD_IMMUTABLE) << FuncArgMetaData("path","String",ARG_IN,"\".\"") )
+            .appendType( "cd",      FuncMetaData("Bool", FMD_IMMUTABLE)  << FuncArgMetaData("path","String",ARG_IN,"") )
+            .appendType( "current", FuncMetaData("String", FMD_IMMUTABLE) )
             ;
     }
     return metaData;

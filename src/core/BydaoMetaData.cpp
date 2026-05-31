@@ -22,19 +22,16 @@ namespace BydaoScript {
 
 VarMetaData::VarMetaData(){
     isConst = false;
-    isStatic = false;
 }
 
 VarMetaData::VarMetaData( const VarMetaData& var ) {
     type = var.type;
     isConst = var.isConst;
-    isStatic = var.isStatic;
 }
 
-VarMetaData::VarMetaData( const QString& type, bool isConst, bool isStatic ) {
+VarMetaData::VarMetaData( const QString& type, bool isConst ) {
     this->type = type;
     this->isConst = isConst;
-    this->isStatic = isStatic;
 }
 
 /**
@@ -88,12 +85,10 @@ void    FuncArgMetaData::operator=( const FuncArgMetaData& funcArg ) {
  *
  * FuncArgMetaDataList argList;
  * QString             retType;
- * bool                isStatic;
  * bool                isImmutable;
  */
 FuncMetaData::FuncMetaData(){
     retType = "Void";
-    isStatic = false;
     isImmutable = false;
     index = -1;
 }
@@ -101,30 +96,25 @@ FuncMetaData::FuncMetaData(){
 FuncMetaData::FuncMetaData( const FuncMetaData& func ){
     argList = func.argList;
     retType = func.retType;
-    isStatic = func.isStatic;
     isImmutable = func.isImmutable;
     index = func.index;
 }
 
-FuncMetaData::FuncMetaData( const QString& retType, bool isStatic, bool isImmutable ) {
+FuncMetaData::FuncMetaData( const QString& retType, bool isImmutable ) {
     this->retType = retType;
-    this->isStatic = isStatic;
     this->isImmutable = isImmutable;
     this->index = -1;
 }
 
-FuncMetaData::FuncMetaData( int index, const QString& retType, bool isStatic, bool isImmutable ) {
+FuncMetaData::FuncMetaData( int index, const QString& retType, bool isImmutable ) {
     this->retType = retType;
-    this->isStatic = isStatic;
     this->isImmutable = isImmutable;
     this->index = index;
 }
 
-FuncMetaData::FuncMetaData( const FuncArgMetaDataList& argList, const QString& retType,
-                            bool isStatic, bool isImmutable ){
+FuncMetaData::FuncMetaData( const FuncArgMetaDataList& argList, const QString& retType, bool isImmutable ){
     this->argList = argList;
     this->retType = retType;
-    this->isStatic = isStatic;
     this->isImmutable = isImmutable;
     this->index = -1;
 }
@@ -173,18 +163,24 @@ MetaData::MetaData(){
 MetaData::MetaData( const MetaData& data ){
     external = false;
     extend = data.extend;
-    vars = data.vars;
-    funcs = data.funcs;
-    opers = data.opers;
+    type.vars = data.type.vars;
+    type.funcs = data.type.funcs;
+    type.opers = data.type.opers;
+    object.vars = data.object.vars;
+    object.funcs = data.object.funcs;
+    object.opers = data.object.opers;
 }
 
 MetaData::MetaData( MetaData* data ){
     if ( data != nullptr ) {
         external = data->external;
         extend = data->extend;
-        vars = data->vars;
-        funcs = data->funcs;
-        opers = data->opers;
+        type.vars = data->type.vars;
+        type.funcs = data->type.funcs;
+        type.opers = data->type.opers;
+        object.vars = data->object.vars;
+        object.funcs = data->object.funcs;
+        object.opers = data->object.opers;
     }
 }
 
@@ -192,9 +188,12 @@ MetaData&   MetaData::operator=( MetaData* data ) {
     if ( data != nullptr ) {
         external = data->external;
         extend = data->extend;
-        vars = data->vars;
-        funcs = data->funcs;
-        opers = data->opers;
+        type.vars = data->type.vars;
+        type.funcs = data->type.funcs;
+        type.opers = data->type.opers;
+        object.vars = data->object.vars;
+        object.funcs = data->object.funcs;
+        object.opers = data->object.opers;
     }
     return *this;
 }
@@ -203,57 +202,102 @@ MetaData&   MetaData::operator=( MetaData* data ) {
  * Добавить свойства из указанных метаданных.
  */
 void        MetaData::append( const MetaData* md ) {
-
-    for (auto it = md->vars.begin(); it != md->vars.end(); ++it) {
-        vars.insert( it.key(), it.value() );
+    for (auto it = md->type.vars.begin(); it != md->type.vars.end(); ++it) {
+        type.vars.insert( it.key(), it.value() );
     }
-
-    for (auto it = md->funcs.begin(); it != md->funcs.end(); ++it) {
-        funcs.insert( it.key(), it.value() );
+    for (auto it = md->type.funcs.begin(); it != md->type.funcs.end(); ++it) {
+        type.funcs.insert( it.key(), it.value() );
     }
-
-    for (auto it = md->opers.begin(); it != md->opers.end(); ++it) {
-        opers.insert( it.key(), it.value() );
+    for (auto it = md->type.opers.begin(); it != md->type.opers.end(); ++it) {
+        type.opers.insert( it.key(), it.value() );
+    }
+    for (auto it = md->object.vars.begin(); it != md->object.vars.end(); ++it) {
+        object.vars.insert( it.key(), it.value() );
+    }
+    for (auto it = md->object.funcs.begin(); it != md->object.funcs.end(); ++it) {
+        object.funcs.insert( it.key(), it.value() );
+    }
+    for (auto it = md->object.opers.begin(); it != md->object.opers.end(); ++it) {
+        object.opers.insert( it.key(), it.value() );
     }
 }
 
-MetaData&   MetaData::append( const QString& varName, const VarMetaData& var ){
-    vars.insert( varName, var );
+MetaData&   MetaData::appendType( const QString& varName, const VarMetaData& var ){
+    type.vars.insert( varName, var );
     return *this;
 }
 
-MetaData&   MetaData::append( const QString& funcName, const FuncMetaData& func ){
-    funcs.insert( funcName, func );
+MetaData&   MetaData::appendType( const QString& funcName, const FuncMetaData& func ){
+    type.funcs.insert( funcName, func );
     return *this;
 }
 
-MetaData&   MetaData::append( const QString& operName, const OperMetaData& oper ) {
-    opers.insert( operName, oper );
+MetaData&   MetaData::appendType( const QString& operName, const OperMetaData& oper ) {
+    type.opers.insert( operName, oper );
     return *this;
 }
 
-bool        MetaData::hasVar( const QString& name ) const {
-    return vars.contains( name );
+MetaData&   MetaData::appendObj( const QString& varName, const VarMetaData& var ){
+    object.vars.insert( varName, var );
+    return *this;
 }
 
-const VarMetaData  MetaData::var( const QString& name ) const {
-    return vars[ name ];
+MetaData&   MetaData::appendObj( const QString& funcName, const FuncMetaData& func ){
+    object.funcs.insert( funcName, func );
+    return *this;
 }
 
-bool        MetaData::hasFunc( const QString& name ) const {
-    return funcs.contains( name );
+MetaData&   MetaData::appendObj( const QString& operName, const OperMetaData& oper ) {
+    object.opers.insert( operName, oper );
+    return *this;
 }
 
-const FuncMetaData  MetaData::func( const QString& name ) const {
-    return funcs[ name ];
+bool        MetaData::hasTypeVar( const QString& name ) const {
+    return type.vars.contains( name );
 }
 
-bool        MetaData::hasOper( const QString& name ) const {
-    return opers.contains( name );
+const VarMetaData  MetaData::typeVar( const QString& name ) const {
+    return type.vars[ name ];
 }
 
-const OperMetaData  MetaData::oper( const QString& name ) const {
-    return opers[ name ];
+bool        MetaData::hasObjVar( const QString& name ) const {
+    return object.vars.contains( name );
+}
+
+const VarMetaData  MetaData::objVar( const QString& name ) const {
+    return object.vars[ name ];
+}
+
+bool        MetaData::hasTypeFunc( const QString& name ) const {
+    return type.funcs.contains( name );
+}
+
+const FuncMetaData  MetaData::typeFunc( const QString& name ) const {
+    return type.funcs[ name ];
+}
+
+bool        MetaData::hasObjFunc( const QString& name ) const {
+    return object.funcs.contains( name );
+}
+
+const FuncMetaData  MetaData::objFunc( const QString& name ) const {
+    return object.funcs[ name ];
+}
+
+bool        MetaData::hasTypeOper( const QString& name ) const {
+    return type.opers.contains( name );
+}
+
+const OperMetaData  MetaData::typeOper( const QString& name ) const {
+    return type.opers[ name ];
+}
+
+bool        MetaData::hasObjOper( const QString& name ) const {
+    return object.opers.contains( name );
+}
+
+const OperMetaData  MetaData::objOper( const QString& name ) const {
+    return object.opers[ name ];
 }
 
 }   // namespace

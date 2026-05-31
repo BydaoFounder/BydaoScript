@@ -80,10 +80,10 @@ MetaData*   BydaoSysModule::metaData() {
         metaData = new MetaData();
         metaData->external = true;
         metaData
-            ->append( "out",   FuncMetaData("Void", true, true) << FuncArgMetaData("str","String",false) )
-            .append( "outln",  FuncMetaData("Void", true, true) << FuncArgMetaData("str","String",false,"\"\"") )
-            .append( "in",     FuncMetaData("String", true, true) )
-            .append( "time",   FuncMetaData("Int", true, true) )
+            ->appendType( "out",   FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("str","String",ARG_IN) )
+            .appendType( "outln",  FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("str","String",ARG_IN,"\"\"") )
+            .appendType( "in",     FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendType( "time",   FuncMetaData("Int",    FMD_IMMUTABLE) )
             ;
     }
     return metaData;

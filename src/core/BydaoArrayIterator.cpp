@@ -24,13 +24,13 @@ MetaData*   BydaoArrayIterator::metaData() {
         metaData = new MetaData();
         metaData
             // методы объекта
-            ->append( "next",    FuncMetaData("Bool", false, false) )
-            .append( "isValid",  FuncMetaData("Bool", false, false) )
+            ->appendObj( "next",    FuncMetaData("Bool", FMD_ALTERABLE) )
+            .appendObj( "isValid",  FuncMetaData("Bool", FMD_IMMUTABLE) )
             ;
         metaData
             // переменные объекта
-            ->append( "key",     VarMetaData("Int",true,false) )
-            .append( "value",    VarMetaData("Any",true,false) )
+            ->appendObj( "key",     VarMetaData("Int", VMD_CONST) )
+            .appendObj( "value",    VarMetaData("Any", VMD_CONST) )
             ;
     }
     return metaData;

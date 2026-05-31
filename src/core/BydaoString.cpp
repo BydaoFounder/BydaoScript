@@ -29,46 +29,47 @@ MetaData*   BydaoString::metaData() {
         metaData = new MetaData();
         metaData
             // переменные объекта
-            ->append( "length",     VarMetaData("Int",true,false) );
+            ->appendObj( "length",     VarMetaData("Int",VMD_CONST) );
         metaData
             // методы объекта
-            ->append( "toString",   FuncMetaData("String", false, true) )
-            .append( "isNull",      FuncMetaData("Bool", false, true) )
-            .append( "length",      FuncMetaData("Int", false, true) )
-            .append( "upper",       FuncMetaData("String", false, true) )
-            .append( "lower",       FuncMetaData("String", false, true) )
-            .append( "trim",        FuncMetaData("String", false, true) )
-            .append( "substr",      FuncMetaData("String", false, true)
+            ->appendObj( "toString",   FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendObj( "isNull",      FuncMetaData("Bool", FMD_IMMUTABLE) )
+            .appendObj( "length",      FuncMetaData("Int", FMD_IMMUTABLE) )
+            .appendObj( "upper",       FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendObj( "lower",       FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendObj( "trim",        FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendObj( "substr",      FuncMetaData("String", FMD_IMMUTABLE)
                                   << FuncArgMetaData("from","Int",false)
                                   << FuncArgMetaData("len","Int",false,"null")
                     )
-            .append( "indexOf",     FuncMetaData("Int", false, true)
+            .appendObj( "indexOf",     FuncMetaData("Int", FMD_IMMUTABLE)
                                    << FuncArgMetaData("str","String",false)
                                    << FuncArgMetaData("pos","Int",false,"0")
                     )
-            .append( "contains",    FuncMetaData("Bool", false, true)
+            .appendObj( "contains",    FuncMetaData("Bool", FMD_IMMUTABLE)
                                     << FuncArgMetaData("str","String",false)
                     )
-            .append( "startsWith",  FuncMetaData("Bool", false, true)
+            .appendObj( "startsWith",  FuncMetaData("Bool", FMD_IMMUTABLE)
                                       << FuncArgMetaData("str","String",false)
                     )
-            .append( "endsWith",    FuncMetaData("Bool", false, true)
+            .appendObj( "endsWith",    FuncMetaData("Bool", FMD_IMMUTABLE)
                                     << FuncArgMetaData("str","String",false)
                     )
-            .append( "toReal",      FuncMetaData("Real", false, true) )
-            .append( "toInt",       FuncMetaData("Int", false, true) )
-            .append( "toBool",      FuncMetaData("Bool", false, true) )
-            .append( "isEmpty",     FuncMetaData("Bool", false, true) )
+            .appendObj( "toReal",      FuncMetaData("Real", FMD_IMMUTABLE) )
+            .appendObj( "toInt",       FuncMetaData("Int", FMD_IMMUTABLE) )
+            .appendObj( "toBool",      FuncMetaData("Bool", FMD_IMMUTABLE) )
+            .appendObj( "isEmpty",     FuncMetaData("Bool", FMD_IMMUTABLE) )
             ;
+            // операции объекта
         metaData
-            ->append( "eq",         OperMetaData("Any", "Bool" ) )
-            .append( "neq",         OperMetaData("Any", "Bool" ) )
-            .append( "lt",          OperMetaData("Any", "Bool" ) )
-            .append( "le",          OperMetaData("Any", "Bool" ) )
-            .append( "gt",          OperMetaData("Any", "Bool" ) )
-            .append( "ge",          OperMetaData("Any", "Bool" ) )
-            .append( "add",         OperMetaData("Any", "String" ) )
-            .append( "addToValue",  OperMetaData("Any", "Void" ) )
+            ->appendObj( "eq",         OperMetaData("Any", "Bool" ) )
+            .appendObj( "neq",         OperMetaData("Any", "Bool" ) )
+            .appendObj( "lt",          OperMetaData("Any", "Bool" ) )
+            .appendObj( "le",          OperMetaData("Any", "Bool" ) )
+            .appendObj( "gt",          OperMetaData("Any", "Bool" ) )
+            .appendObj( "ge",          OperMetaData("Any", "Bool" ) )
+            .appendObj( "add",         OperMetaData("Any", "String" ) )
+            .appendObj( "addToValue",  OperMetaData("Any", "Void" ) )
             ;
     }
     return metaData;
@@ -385,15 +386,15 @@ MetaData*   BydaoStringArray::metaData() {
         metaData = new MetaData();
         metaData
             // переменные объекта
-            ->append( "length",     VarMetaData("Int",true,false) );
+            ->appendObj( "length",     VarMetaData("Int",VMD_CONST) );
         metaData
             // методы объекта
-            ->append( "iter",      FuncMetaData("StringArrayIter", false, true) )
-            .append( "toString",   FuncMetaData("String", false, true) )
-            .append( "length",     FuncMetaData("Int", false, true) )
-            .append( "get",        FuncMetaData("String", false, true)
+            ->appendObj( "iter",      FuncMetaData("StringArrayIter", FMD_IMMUTABLE) )
+            .appendObj( "toString",   FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendObj( "length",     FuncMetaData("Int", FMD_IMMUTABLE) )
+            .appendObj( "get",        FuncMetaData("String", FMD_IMMUTABLE)
                                     << FuncArgMetaData("pos","Int",false) )
-            .append( "set",        FuncMetaData("Void", false, true)
+            .appendObj( "set",        FuncMetaData("Void", FMD_IMMUTABLE)
                                     << FuncArgMetaData("pos","Int",false)
                                     << FuncArgMetaData("val","String",false) )
             ;
@@ -418,13 +419,13 @@ MetaData*   BydaoStringArrayIterator::metaData() {
         metaData = new MetaData();
         metaData
             // методы объекта
-            ->append( "next",    FuncMetaData("Bool", false, false) )
-            .append( "isValid",  FuncMetaData("Bool", false, false) )
+            ->appendObj( "next",    FuncMetaData("Bool", FMD_ALTERABLE) )
+            .appendObj( "isValid",  FuncMetaData("Bool", FMD_ALTERABLE) )
             ;
         metaData
             // переменные объекта
-            ->append( "key",     VarMetaData("Int",true,false) )
-            .append( "value",    VarMetaData("String",true,false) )
+            ->appendObj( "key",     VarMetaData("Int",    VMD_CONST) )
+            .appendObj( "value",    VarMetaData("String", VMD_CONST) )
             ;
     }
     return metaData;

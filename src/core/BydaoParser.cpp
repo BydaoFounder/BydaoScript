@@ -401,9 +401,6 @@ void BydaoParser::addModulePath(const QString& path) {
 }
 
 bool BydaoParser::loadMetaData(const QString& name) {
-    if (m_metaData.contains(name)) {
-        return true;
-    }
 
     QString errorMsg;
     BydaoModule* module = BydaoModuleManager::instance().loadModule( name, &errorMsg );
@@ -419,13 +416,21 @@ bool BydaoParser::loadMetaData(const QString& name) {
         error( "Metadata is NULL for module '" + name + "'" );
         return false;
     }
-    m_metaData[name] = new MetaData( metaData );
+    QString typeName = metaData->name.isEmpty() ? name : metaData->name;
+    if ( ! m_metaData.contains( typeName ) ) {
 
-    // Сохраняем мета-данные используемых типов
-    UsedMetaDataList usedList = module->usedMetaData();
-    foreach ( const UsedMetaData& used, usedList ) {
-        if ( ! m_metaData.contains( used.type ) ) {
-            m_metaData[ used.type ] = new MetaData( used.metaData );
+        m_metaData[typeName] = new MetaData( metaData );
+
+        // Сохраняем мета-данные используемых типов
+        UsedMetaDataList usedList = module->usedMetaData();
+        foreach ( const UsedMetaData& used, usedList ) {
+
+            if ( ! m_metaData.contains( used.type ) ) {
+                m_metaData[ used.type ] = new MetaData( used.metaData );
+            }
+            else if ( used.append ) {
+                m_metaData[ used.type ]->append( used.metaData );
+            }
         }
     }
 
@@ -576,7 +581,7 @@ bool    BydaoParser::checkTypeConvert( const QString& fromType, const QString& t
         error( "Unknown type '" + fromType + "'" , token );
         return false;
     }
-    if ( ! metaData->hasFunc("to" + toType) ) {
+    if ( ! metaData->hasObjFunc("to" + toType) ) {
         error( "Operand cannot be converted to '" + toType + "'", token );
         return false;
     }
@@ -589,7 +594,7 @@ bool    BydaoParser::checkTypeOper( const QString& typeName, const QString& oper
         error( "Unknown type '" + typeName + "'" , token );
         return false;
     }
-    if ( ! metaData->hasOper( operName ) ) {
+    if ( ! metaData->hasObjOper( operName ) ) {
         error( "Cannot compare operand of type '" + typeName + "'", token );
         return false;
     }
@@ -630,7 +635,7 @@ QString     BydaoParser::getResultType( const QString& leftType, const QString& 
         error( "Unknown type '" + leftType + "'" , token );
         return QString();
     }
-    OperMetaData operMetaData = metaData->oper( operName );
+    OperMetaData operMetaData = metaData->objOper( operName );
     if ( operMetaData.hasOperandType( rightType ) ) {
         return operMetaData.resultType( rightType );
     }
@@ -658,7 +663,7 @@ QString     BydaoParser::getResultType( const QString& type, const QString& oper
         error( "Unknown type '" + type + "'" , token );
         return QString();
     }
-    OperMetaData operMetaData = metaData->oper( operName );
+    OperMetaData operMetaData = metaData->objOper( operName );
     if ( operMetaData.hasOperandType( "" ) ) {
         return operMetaData.resultType( "" );
     }
@@ -1357,11 +1362,11 @@ bool BydaoParser::parseIter() {
         error("Unknown type '" + exprTypeInfo.type + "'", exprToken );
         return false;
     }
-    if ( ! exprMetaData->hasFunc("iter") ) {
+    if ( ! exprMetaData->hasObjFunc("iter") ) {
         error("Type '" + exprTypeInfo.type + "' does not have function 'iter'", exprToken );
         return false;
     }
-    const FuncMetaData funcIter = exprMetaData->func("iter");
+    const FuncMetaData funcIter = exprMetaData->objFunc("iter");
     QString iterType = funcIter.retType;
     MetaData* iterMetaData = m_metaData[ iterType ];
     if ( ! iterMetaData ) {
@@ -1453,7 +1458,7 @@ bool BydaoParser::parseEnum() {
         error("Unknown type '" + exprTypeInfo.type + "'", exprToken );
         return false;
     }
-    if ( ! exprMetaData->hasFunc("iter") ) {
+    if ( ! exprMetaData->hasObjFunc("iter") ) {
         error("Type '" + exprTypeInfo.type + "' does not have function 'iter'", exprToken );
         return false;
     }
@@ -1474,22 +1479,22 @@ bool BydaoParser::parseEnum() {
     VariableInfo varInfo = resolveVariable(varName);
 
     // Подготовить тип переменной
-    const FuncMetaData funcIter = exprMetaData->func("iter");
+    const FuncMetaData funcIter = exprMetaData->objFunc("iter");
     QString iterType = funcIter.retType;
     MetaData* iterMetaData = m_metaData[ iterType ];
     if ( ! iterMetaData ) {
         error("Unknown type '" + iterType + "'", exprToken );
         return false;
     }
-    if ( ! iterMetaData->hasVar("value") ) {
+    if ( ! iterMetaData->hasObjVar("value") ) {
         error("Iterator of type '" + iterType + "' does not have variable 'value'", exprToken );
         return false;
     }
-    VarMetaData varMetaData = iterMetaData->var("value");
+    VarMetaData varMetaData = iterMetaData->objVar("value");
     setVariableType( varName, varMetaData.type, varMetaData.isConst );
 
     // Создаём временный итератор
-    if ( ! iterMetaData->hasFunc("next") ) {
+    if ( ! iterMetaData->hasObjFunc("next") ) {
         error("Iterator of type '" + iterType + "' does not have func 'next'", exprToken );
         return false;
     }
@@ -1504,7 +1509,7 @@ bool BydaoParser::parseEnum() {
     int loopStart = m_bytecode.size();
 
     // iter.next()
-    FuncMetaData nextMetaData = iterMetaData->func( "next" );
+    FuncMetaData nextMetaData = iterMetaData->objFunc( "next" );
     emitCode(BydaoOpCode::ItNext, iterInfo.varIndex, nextMetaData.index, token);
 
     int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
@@ -2300,16 +2305,19 @@ bool BydaoParser::parseCallSuffix() {
 
     const TypeInfo& typeInfo = m_typeStack.top();
     QString memberName = typeInfo.member;
+
     MetaData* metaData = m_metaData[ typeInfo.type ];
     if ( memberName.isEmpty() ) {
-        if ( ! metaData->hasFunc( "new" ) ) {
+        if ( ! metaData->hasTypeFunc( "new" ) ) {
             error("Cannot create object of type '" + typeInfo.type + "'", token );
             return false;
         }
         memberName = "new";
         createObj = true;
     }
-    const FuncMetaData func = metaData->func( memberName );
+    const FuncMetaData func = ( typeInfo.operand == Module || typeInfo.operand == Type )
+        ? metaData->typeFunc( memberName )
+        : metaData->objFunc( memberName );
 
     // Парсим аргументы, если они есть
 
@@ -2318,6 +2326,10 @@ bool BydaoParser::parseCallSuffix() {
         do {
 
             BydaoToken argToken = m_current;
+            if ( argCount >= func.argList.size() ) {
+                error( QString( "Invalid argument count"), argToken );
+                return false;
+            }
 
             if (!parseExpression()) {
                 error( QString( "Invalid expression in argument %1 function '%2'").arg( argCount + 1 ).arg( memberName ) );
@@ -2340,7 +2352,7 @@ bool BydaoParser::parseCallSuffix() {
                 MetaData* exprMetaData = m_metaData[ exprType ];
                 for ( int i = 0; i < argTypeList.size(); ++i ) {
                     const QString& argType = argTypeList[ i ];
-                    if ( exprMetaData->hasFunc( QString("to%1").arg(argType) ) ) {
+                    if ( exprMetaData->hasObjFunc( QString("to%1").arg(argType) ) ) {
                         canConvert = true;
                         break;
                     }
@@ -2453,6 +2465,7 @@ bool BydaoParser::parseMemberSuffix() {
 
     // Проверим наличие текущего типа данных
     TypeInfo& objTypeInfo = m_typeStack.top();
+    bool thisIsType = ( objTypeInfo.operand == Module || objTypeInfo.operand == Type );
     QString objType = objTypeInfo.type;
     if ( /* typeInfo.type != "Any" && */ ! m_metaData.contains( objType ) ) {
 //        qDebug() << "Check member for type" + typeInfo.type;
@@ -2472,16 +2485,24 @@ bool BydaoParser::parseMemberSuffix() {
 
         // Проверим, что у текущего типа есть такая функция
 
-        if ( ! objMetaData->hasFunc( memberName ) ) {
-            error("Type '" + objType + "' does not have function '" + memberName + "'", memberToken);
-            return false;
+        if ( thisIsType ) {
+            if ( ! objMetaData->hasTypeFunc( memberName ) ) {
+                error("Type '" + objType + "' does not have function '" + memberName + "'", memberToken);
+                return false;
+            }
+        }
+        else {
+            if ( ! objMetaData->hasObjFunc( memberName ) ) {
+                error("Object of type '" + objType + "' does not have function '" + memberName + "'", memberToken);
+                return false;
+            }
         }
 
         // Запомним название метода
 
         objTypeInfo.member = memberName;
 
-        FuncMetaData func = objMetaData->func( memberName );
+        FuncMetaData func = thisIsType ? objMetaData->typeFunc( memberName ) : objMetaData->objFunc( memberName );
         if ( func.index < 0 ) {
 
             // Это вызов метода по имени - используем METHOD
@@ -2493,8 +2514,22 @@ bool BydaoParser::parseMemberSuffix() {
 
         // Проверим, что у текущего типа есть такая переменная и ей можно присвоить значение
 
-        if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasVar( memberName ) ) {
-            error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+        if ( thisIsType ) {
+            if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasTypeVar( memberName ) ) {
+                error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+                return false;
+            }
+        }
+        else {
+            if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasObjVar( memberName ) ) {
+                error("Object of type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+                return false;
+            }
+        }
+
+        const VarMetaData varMetaData = thisIsType ? objMetaData->typeVar( memberName ) : objMetaData->objVar( memberName );
+        if ( varMetaData.isConst ) {
+            error( QString( "Member '%1' of '%2' is read only" ).arg( memberName, objType ), memberToken );
             return false;
         }
 
@@ -2506,16 +2541,6 @@ bool BydaoParser::parseMemberSuffix() {
         }
         TypeInfo exprTypeInfo = getLastType();
         QString exprType = exprTypeInfo.type;
-
-        const VarMetaData varMetaData = objMetaData->var( memberName );
-        if ( varMetaData.isConst ) {
-            error( QString( "Member '%1' of '%2' is read only" ).arg( memberName, objType ), memberToken );
-            return false;
-        }
-        // TODO: Проверить использование переменной для объекта или типа/модуля
-        // if ( varMetaData.isStatic && objTypeInfo.operand ==  ) {
-
-        // }
 
         QString memberType = varMetaData.type;
         if ( memberType != exprType ) {
@@ -2531,15 +2556,23 @@ bool BydaoParser::parseMemberSuffix() {
 
         // Проверим, что у текущего типа есть такая переменная
 
-        if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasVar( memberName ) ) {
-            error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
-            return false;
+        if ( thisIsType ) {
+            if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasTypeVar( memberName ) ) {
+                error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+                return false;
+            }
+        }
+        else {
+            if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasObjVar( memberName ) ) {
+                error("Object of type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+                return false;
+            }
         }
 
         // Сохраним тип переменной
 
         getLastType();
-        setLastType( objType != "Any" ? objMetaData->var( memberName ).type : "Any" );
+        setLastType( objType != "Any" ? objMetaData->objVar( memberName ).type : "Any" );
 
         // Это доступ к свойству - используем MEMBER
 

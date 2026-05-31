@@ -70,7 +70,7 @@ if 5 > 3 && 2 < 4 {
     test3_passed = false
 }
 
-if ((5 > 3) && (5 < 3)) {
+if ((a > c) && (b < c)) {
     Sys.outln("[FAIL] " + test_name + ": false AND should be false")
     test3_passed = false
 } else {
@@ -212,8 +212,8 @@ Sys.outln("Test 8 (type comparison): " + test8_passed)
 if (test1_passed && test2_passed && test3_passed && test4_passed &&
     test5_passed && test6_passed && test7_passed && test8_passed ) {
     Sys.outln("")
-    Sys.outln("✓ ALL TESTS PASSED")
+    Sys.outln("ALL TESTS PASSED !")
 } else {
     Sys.outln("")
-    Sys.outln("✗ SOME TESTS FAILED")
+    Sys.outln("SOME TESTS FAILED [X]")
 }

@@ -33,14 +33,14 @@ MetaData*   BydaoNull::metaData() {
         metaData = new MetaData();
         metaData
             // методы объекта
-            ->append( "toString",   FuncMetaData("String", false, true) )
-            .append( "toBool",      FuncMetaData("Bool", false, true) )
-            .append( "isNull",      FuncMetaData("Bool", false, true) )
-            .append( "isEmpty",     FuncMetaData("Bool", false, true) )
+            ->appendObj( "toString",   FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendObj( "toBool",      FuncMetaData("Bool",   FMD_IMMUTABLE) )
+            .appendObj( "isNull",      FuncMetaData("Bool",   FMD_IMMUTABLE) )
+            .appendObj( "isEmpty",     FuncMetaData("Bool",   FMD_IMMUTABLE) )
             ;
         metaData
-            ->append( "eq",     OperMetaData("Any", "Bool" ) )
-            .append( "neq",     OperMetaData("Any", "Bool" ) )
+            ->appendObj( "eq",     OperMetaData("Any", "Bool" ) )
+            .appendObj( "neq",     OperMetaData("Any", "Bool" ) )
             ;
     }
     return metaData;

@@ -28,50 +28,50 @@ MetaData*   BydaoInt::metaData() {
         metaData
 
             // методы объекта
-            ->append( "abs",    FuncMetaData(0,"Int", false, true) )
-            .append( "negate",  FuncMetaData(1,"Int", false, true) )
-            .append( "toString",FuncMetaData(2,"String", false, true)
+            ->appendObj( "abs",    FuncMetaData(0,"Int", FMD_IMMUTABLE) )
+            .appendObj( "negate",  FuncMetaData(1,"Int", FMD_IMMUTABLE) )
+            .appendObj( "toString",FuncMetaData(2,"String", FMD_IMMUTABLE)
                                     << FuncArgMetaData("arg","Int",false,"10") )
-            .append( "toHex",   FuncMetaData(3,"String", false, true) )
-            .append( "toBin",   FuncMetaData(4,"String", false, true) )
-            .append( "toReal",  FuncMetaData(5,"Real", false, true) )
-            .append( "toBool",  FuncMetaData(6,"Bool", false, true) )
-            .append( "isNull",  FuncMetaData(7,"Bool", false, true) )
+            .appendObj( "toHex",   FuncMetaData(3,"String", FMD_IMMUTABLE) )
+            .appendObj( "toBin",   FuncMetaData(4,"String", FMD_IMMUTABLE) )
+            .appendObj( "toReal",  FuncMetaData(5,"Real", FMD_IMMUTABLE) )
+            .appendObj( "toBool",  FuncMetaData(6,"Bool", FMD_IMMUTABLE) )
+            .appendObj( "isNull",  FuncMetaData(7,"Bool", FMD_IMMUTABLE) )
             ;
 
         metaData
 
             // операции сравнения
-            ->append( "eq",     OperMetaData("Any", "Bool" ) )
-            .append( "neq",     OperMetaData("Any", "Bool" ) )
-            .append( "lt",      OperMetaData("Any", "Bool" ) )
-            .append( "le",      OperMetaData("Any", "Bool" ) )
-            .append( "gt",      OperMetaData("Any", "Bool" ) )
-            .append( "ge",      OperMetaData("Any", "Bool" ) )
+            ->appendObj( "eq",     OperMetaData("Any", "Bool" ) )
+            .appendObj( "neq",     OperMetaData("Any", "Bool" ) )
+            .appendObj( "lt",      OperMetaData("Any", "Bool" ) )
+            .appendObj( "le",      OperMetaData("Any", "Bool" ) )
+            .appendObj( "gt",      OperMetaData("Any", "Bool" ) )
+            .appendObj( "ge",      OperMetaData("Any", "Bool" ) )
 
             // операции арифметические
-            .append( "add",     OperMetaData("Int", "Int" )
+            .appendObj( "add",     OperMetaData("Int", "Int" )
                                .append( "Real", "Real" )
                                .append( "Any", "Int" )
                     )
-            .append( "addToValue",  OperMetaData("Int", "Void" )
+            .appendObj( "addToValue",  OperMetaData("Int", "Void" )
                                       .append( "Real", "Void" )
                                       .append( "Any", "Void" )
                     )
-            .append( "sub",     OperMetaData("Int", "Int" )
+            .appendObj( "sub",     OperMetaData("Int", "Int" )
                                .append( "Real", "Real" )
                                .append( "Any", "Int" )
                     )
-            .append( "mul",     OperMetaData("Int", "Int" )
+            .appendObj( "mul",     OperMetaData("Int", "Int" )
                                .append( "Real", "Real" )
                                .append( "Any", "Int" )
                     )
-            .append( "div",     OperMetaData("Int", "Int" )
+            .appendObj( "div",     OperMetaData("Int", "Int" )
                                .append( "Real", "Real" )
                                .append( "Any", "Int" )
                     )
-            .append( "mod",     OperMetaData("Any", "Int" ) )
-            .append( "neg",     OperMetaData("", "Int" ) )
+            .appendObj( "mod",     OperMetaData("Any", "Int" ) )
+            .appendObj( "neg",     OperMetaData("", "Int" ) )
             ;
     }
     return metaData;

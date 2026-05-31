@@ -22,7 +22,7 @@ MetaData*   BydaoIntRange::metaData() {
         metaData = new MetaData();
         metaData
             // методы объекта
-            ->append( "iter",   FuncMetaData("IntRangeIter", false, true) )
+            ->appendObj( "iter",   FuncMetaData("IntRangeIter", FMD_IMMUTABLE) )
             ;
     }
     return metaData;
@@ -71,15 +71,15 @@ MetaData*   BydaoIntRangeIterator::metaData() {
         metaData->extend = "Iter";
         metaData
             // стандартные методы объекта
-            ->append( "next",    FuncMetaData( 0, "Bool", false, false) )
-            .append( "value",    FuncMetaData( 1, "Int", false, false) )
-            .append( "key",      FuncMetaData( 2, "Int", false, false) )
-            .append( "isValid",  FuncMetaData( 3, "Bool", false, false) )
+            ->appendObj( "next",    FuncMetaData( 0, "Bool", FMD_ALTERABLE) )
+            .appendObj( "value",    FuncMetaData( 1, "Int",  FMD_ALTERABLE) )
+            .appendObj( "key",      FuncMetaData( 2, "Int",  FMD_ALTERABLE) )
+            .appendObj( "isValid",  FuncMetaData( 3, "Bool", FMD_ALTERABLE) )
             ;
         metaData
             // переменные объекта
-            ->append( "key",     VarMetaData("Int",true,false) )
-            .append( "value",    VarMetaData("Int",true,false) )
+            ->appendObj( "key",     VarMetaData("Int", VMD_CONST) )
+            .appendObj( "value",    VarMetaData("Int", VMD_CONST) )
             ;
     }
     return metaData;

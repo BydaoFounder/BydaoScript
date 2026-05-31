@@ -21,6 +21,8 @@ public:
     explicit BydaoFileObject(const QString& path);
     ~BydaoFileObject();
 
+    static MetaData*        metaData();
+
     // Обязательные методы от BydaoObject
     QString typeName() const override { return "File"; }
 
@@ -103,6 +105,7 @@ public:
     QString version() const override { return "1.0.0"; }
 
     MetaData*           metaData() override;
+    UsedMetaDataList    usedMetaData() override;
 
     bool callMethod(const QString& name,
                     const QVector<BydaoValue>& args,

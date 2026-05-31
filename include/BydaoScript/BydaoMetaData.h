@@ -38,26 +38,15 @@ struct VarMetaData {
      */
     bool        isConst;
 
-    /**
-     * Флаг статической переменной.
-     * В модуле все переменные статические.
-     * Статическая переменная в классе принадлежит только объекту класса.
-     * Не статическая переменная в классе - это переменная экземпляра класса.
-     */
-    bool        isStatic;
-
     VarMetaData();
     VarMetaData( const VarMetaData& var );
-    VarMetaData( const QString& type, bool isConst, bool isStatic );
+    VarMetaData( const QString& type, bool isConst );
 
 };
 typedef QMap< QString, VarMetaData > VarMetaDataDict;
 
 #define VMD_VARIABLE    false
 #define VMD_CONST       true
-#define VMD_MODULE      true
-#define VMD_CLASS       true
-#define VMD_OBJECT      false
 
 /**
  * Свойства аргумента функции.
@@ -98,14 +87,6 @@ struct FuncMetaData {
     QString             retType;
 
     /**
-     * Флаг статической функции.
-     * В модуле все функции статические.
-     * Статическая функция в классе (с признакком "static") применима к объекту класса.
-     * Не статическая функция в классе применима к экземпляру класса.
-     */
-    bool                isStatic;
-
-    /**
      * Флаг функции, которая не изменяет значение объекта, для которого она вызвана.
      */
     bool                isImmutable;
@@ -117,9 +98,9 @@ struct FuncMetaData {
 
     FuncMetaData();
     FuncMetaData( const FuncMetaData& func );
-    FuncMetaData( const QString& retType, bool isStatic, bool isImmutable );
-    FuncMetaData( int index, const QString& retType, bool isStatic, bool isImmutable );
-    FuncMetaData( const FuncArgMetaDataList& argList, const QString& retType, bool isStatic, bool isImmutable );
+    FuncMetaData( const QString& retType, bool isImmutable );
+    FuncMetaData( int index, const QString& retType, bool isImmutable );
+    FuncMetaData( const FuncArgMetaDataList& argList, const QString& retType, bool isImmutable );
 
     FuncMetaData&   append( const FuncArgMetaData& arg );
 
@@ -129,10 +110,6 @@ struct FuncMetaData {
 };
 typedef QMap< QString, FuncMetaData > FuncMetaDataDict;
 
-#define FMD_STATIC         true
-#define FMD_MODULE         true
-#define FMD_CLASS          true
-#define FMD_OBJECT         false
 #define FMD_IMMUTABLE      true
 #define FMD_ALTERABLE      false
 
@@ -163,16 +140,22 @@ struct OperMetaData {
 };
 typedef QMap< QString, OperMetaData > OperMetaDataDict;
 
+struct MetaInfo {
+    VarMetaDataDict     vars;       // общедоступные (публичные) переменные типа
+    FuncMetaDataDict    funcs;      // общедоступные (публичные) функции типа
+    OperMetaDataDict    opers;      // операции, поддерживаемые типом
+};
+
 /**
  * Мета-данные.
  */
 struct MetaData {
 
     bool                external;   // флаг внешнего модуля, загружаемого оператором use
-    QString             extend;     // название расширяемого типа (класса)
-    VarMetaDataDict     vars;       // общедоступные (публичные) переменные типа
-    FuncMetaDataDict    funcs;      // общедоступные (публичные) функции типа
-    OperMetaDataDict    opers;      // операции, поддерживаемые типом
+    QString             name;       // название типа/класса метаданных
+    QString             extend;     // название расширяемого типа/класса
+    MetaInfo            type;       // мета-информация типа (класса, модуля)
+    MetaInfo            object;     // мета-информация объекта
 
     MetaData();
     MetaData( const MetaData& data );
@@ -185,18 +168,31 @@ struct MetaData {
      */
     void        append( const MetaData* md );
 
-    MetaData&   append( const QString& varName, const VarMetaData& var );
-    MetaData&   append( const QString& funcName, const FuncMetaData& func );
-    MetaData&   append( const QString& operName, const OperMetaData& oper );
+    MetaData&   appendType( const QString& varName, const VarMetaData& var );
+    MetaData&   appendType( const QString& funcName, const FuncMetaData& func );
+    MetaData&   appendType( const QString& operName, const OperMetaData& oper );
 
-    bool        hasVar( const QString& name ) const;
-    const VarMetaData   var( const QString& name ) const;
+    MetaData&   appendObj( const QString& varName, const VarMetaData& var );
+    MetaData&   appendObj( const QString& funcName, const FuncMetaData& func );
+    MetaData&   appendObj( const QString& operName, const OperMetaData& oper );
 
-    bool        hasFunc( const QString& name ) const;
-    const FuncMetaData  func( const QString& name ) const;
+    bool        hasTypeVar( const QString& name ) const;
+    const VarMetaData   typeVar( const QString& name ) const;
 
-    bool        hasOper( const QString& name ) const;
-    const OperMetaData  oper( const QString& name ) const;
+    bool        hasTypeFunc( const QString& name ) const;
+    const FuncMetaData  typeFunc( const QString& name ) const;
+
+    bool        hasTypeOper( const QString& name ) const;
+    const OperMetaData  typeOper( const QString& name ) const;
+
+    bool        hasObjVar( const QString& name ) const;
+    const VarMetaData   objVar( const QString& name ) const;
+
+    bool        hasObjFunc( const QString& name ) const;
+    const FuncMetaData  objFunc( const QString& name ) const;
+
+    bool        hasObjOper( const QString& name ) const;
+    const OperMetaData  objOper( const QString& name ) const;
 };
 
 /**
