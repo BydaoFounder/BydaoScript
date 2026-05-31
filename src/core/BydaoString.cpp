@@ -117,14 +117,25 @@ BydaoString::BydaoString(const QString& value)
     registerMethod("iter", &BydaoString::method_iter);
 
     // Свойства
-    // registerProperty("length",
-    //                  [this]() { return BydaoValue::fromInt(m_value.length()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    registerVar("length",   &BydaoString::getvar_length );
 }
 
 void BydaoString::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
+}
+
+void BydaoString::registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter ) {
+    m_vars[ name ] = { getter, setter };
+}
+
+bool    BydaoString::getVar( const QString& varName, BydaoValue& value ) {
+    auto it = m_vars.find( varName );
+    if ( it == m_vars.end() ) {
+        qWarning() << QString("Variable '%1' not exists in IntRangeIterator object").arg( varName );
+        return false;
+    }
+    GetVarPtr getter = it.value().getter;
+    return ( this->*( getter) )( value );
 }
 
 bool BydaoString::callMethod(const QString& name,

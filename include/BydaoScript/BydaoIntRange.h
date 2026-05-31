@@ -32,9 +32,7 @@ public:
 
     QString typeName() const override { return "IntRange"; }
 
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+    bool callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
 
     // Метод, возвращающий итератор
     BydaoValue iter() override;
@@ -69,17 +67,7 @@ public:
     BydaoValue key() const override;
     BydaoValue value() const override;
 
-    bool    getVar( const QString& varName, BydaoValue& value ) override {
-        if ( varName == "value" ) {
-            value = this->value();
-            return true;
-        }
-        if ( varName == "key" ) {
-            value = this->key();
-            return true;
-        }
-        return BydaoIterator::getVar( varName, value );
-    };
+    bool    getVar( const QString& varName, BydaoValue& value ) override;
 
 private:
 
@@ -154,6 +142,26 @@ private:
         }
         return true;
     }
+
+    using GetVarPtr = bool (BydaoIntRangeIterator::*)(BydaoValue&);
+    using SetVarPtr = bool (BydaoIntRangeIterator::*)(const BydaoValue&);
+    struct VarMethod {
+        GetVarPtr   getter;
+        SetVarPtr   setter;
+    };
+    QHash<QString,VarMethod> m_vars;
+
+    void registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter = nullptr );
+
+    bool getvar_key( BydaoValue& value ) {
+        value = key();
+        return true;
+    };
+
+    bool getvar_value( BydaoValue& value ) {
+        value = this->value();
+        return true;
+    };
 
     qint64 m_start;
     qint64 m_end;

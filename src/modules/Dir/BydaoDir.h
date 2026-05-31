@@ -16,8 +16,6 @@ namespace Modules {
 
 // Объект директории
 class BYDAODIR_EXPORT BydaoDirObject : public BydaoModule {
-    // Q_PROPERTY(QString path READ path)
-    // Q_PROPERTY(QString name READ name)
 
 public:
     explicit BydaoDirObject(const QString& path = QString());
@@ -34,9 +32,7 @@ public:
     QString dirName() const { return m_dir.dirName(); }
     bool exists() const { return m_dir.exists(); }
 
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+    bool callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
 
 private:
     // Методы объекта
@@ -74,9 +70,7 @@ public:
     // Получить список используемых мета-данных
     UsedMetaDataList usedMetaData() override;
 
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+    bool callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
 
 protected:
     bool initialize() override;

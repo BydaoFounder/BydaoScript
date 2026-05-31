@@ -215,6 +215,9 @@ BydaoFileObject::BydaoFileObject(const QString& path)
     registerMethod("isOpen",    &BydaoFileObject::method_isOpen);
     registerMethod("exists",    &BydaoFileObject::method_exists);
     registerMethod("remove",    &BydaoFileObject::method_remove);
+
+    registerVar("name", &BydaoFileObject::getvar_name );
+    registerVar("path", &BydaoFileObject::getvar_path );
 }
 
 BydaoFileObject::~BydaoFileObject() {
@@ -276,7 +279,7 @@ MetaData*   BydaoFileObject::metaData() {
 
         metaData
             // переменные объекта
-            ->appendObj( "name",     VarMetaData("String", VMD_VARIABLE) )
+            ->appendObj( "name",     VarMetaData("String", VMD_CONST) )
             .appendObj(  "path",     VarMetaData("String", VMD_CONST) )
             ;
     }
@@ -287,14 +290,37 @@ void BydaoFileObject::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
 }
 
-bool BydaoFileObject::callMethod(const QString& name,
-                                const QVector<BydaoValue>& args,
-                                BydaoValue& result) {
+void BydaoFileObject::registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter ) {
+    m_vars[ name ] = { getter, setter };
+}
+
+bool BydaoFileObject::callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) {
     auto it = m_methods.find(name);
-    if (it != m_methods.end()) {
-        return (this->*(it.value()))(args, result);
+    return ( it != m_methods.end() ) ? (this->*(it.value()))(args, result) : false;
+}
+
+bool BydaoFileObject::getVar( const QString& varName, BydaoValue& value ) {
+    auto it = m_vars.find( varName );
+    if ( it == m_vars.end() ) {
+        qWarning() << QString("Variable '%1' not exists in file object").arg( varName );
+        return false;
     }
-    return false;
+    GetVarPtr getter = it.value().getter;
+    return ( this->*( getter) )( value );
+}
+
+bool BydaoFileObject::setVar( const QString& varName, const BydaoValue& value ) {
+    auto it = m_vars.find( varName );
+    if ( it == m_vars.end() ) {
+        qWarning() << QString("Variable '%1' not exists in file object").arg( varName );
+        return false;
+    }
+    SetVarPtr setter = it.value().setter;
+    if ( ! setter ) {
+        qWarning() << QString("Variable '%1' in file object cannot be changed").arg( varName );
+        return false;
+    }
+    return ( this->*(setter) )( value );
 }
 
 QIODevice::OpenMode BydaoFileObject::parseMode(const QString& mode) {

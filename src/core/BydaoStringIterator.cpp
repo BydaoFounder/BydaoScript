@@ -38,11 +38,11 @@ bool BydaoStringIterator::next() {
     if (!m_string) return false;
     
     m_index++;
-    return m_index < m_string->length();
+    return m_index < m_string->value().length();
 }
 
 bool BydaoStringIterator::isValid() const {
-    return m_string && m_index >= 0 && m_index < m_string->length();
+    return m_string && m_index >= 0 && m_index < m_string->value().length();
 }
 
 BydaoValue BydaoStringIterator::key() const {

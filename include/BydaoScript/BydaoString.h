@@ -57,12 +57,12 @@ public:
     static UsedMetaDataList usedMetaData();
 
     QString typeName() const override { return "String"; }
-    const QString& value() const { return m_value; }
-    int length() const { return m_value.length(); }
 
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+    bool    getVar( const QString& varName, BydaoValue& value ) override;
+
+    bool    callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
+
+    const QString& value() const { return m_value; }
 
     BydaoValue iter() override;  // создаёт итератор для строки
 
@@ -71,17 +71,20 @@ public:
     }
 
     // Операции
+
     void    assign( BydaoObject* obj ) override {
         m_value = ((BydaoString*)obj)->m_value;
     }
+
     BydaoValue add(const BydaoValue& other) override;   // сложение (конкатенация) строк
     void       addToValue(const BydaoValue& other) override;
-    BydaoValue eq(const BydaoValue& other) override;   // сравнение на равенство
+
+    BydaoValue eq(const BydaoValue& other) override;    // сравнение на равенство
     BydaoValue neq(const BydaoValue& other) override;   // сравнение на неравенство
-    BydaoValue lt(const BydaoValue& other) override;   // лексикографическое сравнение
-    BydaoValue le(const BydaoValue& other) override;   // лексикографическое сравнение
-    BydaoValue gt(const BydaoValue& other) override;   // лексикографическое сравнение
-    BydaoValue ge(const BydaoValue& other) override;   // лексикографическое сравнение
+    BydaoValue lt(const BydaoValue& other) override;    // лексикографическое сравнение
+    BydaoValue le(const BydaoValue& other) override;    // лексикографическое сравнение
+    BydaoValue gt(const BydaoValue& other) override;    // лексикографическое сравнение
+    BydaoValue ge(const BydaoValue& other) override;    // лексикографическое сравнение
 
 private:
 
@@ -110,6 +113,21 @@ private:
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
+
+    using GetVarPtr = bool (BydaoString::*)(BydaoValue&);
+    using SetVarPtr = bool (BydaoString::*)(const BydaoValue&);
+    struct VarMethod {
+        GetVarPtr   getter;
+        SetVarPtr   setter;
+    };
+    QHash<QString,VarMethod> m_vars;
+
+    void registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter = nullptr );
+
+    bool getvar_length( BydaoValue& value ) {
+        value = BydaoValue::fromInt( m_value.length() );
+        return true;
+    };
 
     QString m_value;
 };

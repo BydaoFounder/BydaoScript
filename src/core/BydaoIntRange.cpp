@@ -103,6 +103,23 @@ BydaoIntRangeIterator::BydaoIntRangeIterator( BydaoIntRange* range ) {
     m_valueMethodTable.resize( 2 );
     m_valueMethodTable[0] = &BydaoIntRangeIterator::itValue;
     m_valueMethodTable[1] = &BydaoIntRangeIterator::itKey;
+
+    registerVar("key",   &BydaoIntRangeIterator::getvar_key );
+    registerVar("value", &BydaoIntRangeIterator::getvar_value );
+}
+
+void BydaoIntRangeIterator::registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter ) {
+    m_vars[ name ] = { getter, setter };
+}
+
+bool    BydaoIntRangeIterator::getVar( const QString& varName, BydaoValue& value ) {
+    auto it = m_vars.find( varName );
+    if ( it == m_vars.end() ) {
+        qWarning() << QString("Variable '%1' not exists in IntRangeIterator object").arg( varName );
+        return false;
+    }
+    GetVarPtr getter = it.value().getter;
+    return ( this->*( getter) )( value );
 }
 
 bool BydaoIntRangeIterator::next() {

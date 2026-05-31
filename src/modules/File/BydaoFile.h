@@ -26,31 +26,9 @@ public:
     // Обязательные методы от BydaoObject
     QString typeName() const override { return "File"; }
 
-    virtual bool    getVar( const QString& varName, BydaoValue& value ) override {
-        if ( varName == "name" ) {
-            value = BydaoValue::fromString( fileName() );
-            return true;
-        }
-        if ( varName == "path" ) {
-            value = BydaoValue::fromString( filePath() );
-            return true;
-        }
-        qWarning() << QString("Member '%1' not exists in file object").arg( varName );
-        return false;
-    };
-
-    virtual bool    setVar( const QString& varName, const BydaoValue& value ) override {
-        if ( varName == "name" ) {
-            m_file.setFileName( value.toString() );
-            return true;
-        }
-        qWarning() << QString("Member '%1' not exists in file object").arg( varName );
-        return false;
-    };
-
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+    bool    getVar( const QString& varName, BydaoValue& value ) override;
+    bool    setVar( const QString& varName, const BydaoValue& value ) override;
+    bool    callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
 
 private:
 
@@ -85,6 +63,26 @@ private:
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;  // своя таблица методов
+
+    using GetVarPtr = bool (BydaoFileObject::*)(BydaoValue&);
+    using SetVarPtr = bool (BydaoFileObject::*)(const BydaoValue&);
+    struct VarMethod {
+        GetVarPtr   getter;
+        SetVarPtr   setter;
+    };
+    QHash<QString,VarMethod> m_vars;
+
+    void registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter = nullptr );
+
+    bool getvar_name( BydaoValue& value ) {
+        value = BydaoValue::fromString( fileName() );
+        return true;
+    };
+
+    bool getvar_path( BydaoValue& value ) {
+        value = BydaoValue::fromString( filePath() );
+        return true;
+    };
 
     QFile           m_file;
     QTextStream*    m_stream;
