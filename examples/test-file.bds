@@ -2,7 +2,13 @@ use Sys, File
 
 var content = 'This is a test content'
 
-var file = File( 'test-file.test' )
+var fileName = 'test-file.test'
+if File.exists( fileName ) {
+    Sys.outln( 'File ' + fileName + ' exists' )
+    var ok = File.remove( fileName )
+    Sys.outln( 'File ' + fileName + ' remove ' + if ok { 'success' } else { 'failed' } )
+}
+var file = File( fileName )
 if file.exists() {
     ignore file.remove()
 }
@@ -21,5 +27,6 @@ elsif file.read() != content {
 else {
     Sys.outln( "File name: " + file.name )
     Sys.outln( "File path: " + file.path )
+    Sys.outln( "File size: " + File.size( fileName ) )
     Sys.outln( 'TEST SUCCESS' )
 }
