@@ -77,8 +77,12 @@ protected:
     bool shutdown() override;
 
 private:
+
     // Методы модуля
-    bool method_open(const QVector<BydaoValue>& args, BydaoValue& result);
+
+    bool method_new(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_isdir(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_isfile(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_list(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_cd(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_current(const QVector<BydaoValue>& args, BydaoValue& result);

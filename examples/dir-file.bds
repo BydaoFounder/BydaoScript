@@ -1,11 +1,20 @@
 use Sys, File, Dir
-if Dir.cd( '../../src/core' ) {
-    enum Dir.list() as name {
-        if name.endsWith('.cpp') {
-            var content = File.readAll(name)
-            if content.contains('Licensed under the Apache License') {
-                Sys.outln( 'File ' + name + ' contains license' )
+var path = '../../../src'
+if Dir.cd( path ) {
+    enum Dir.list('*.*') as name {
+        if Dir.isDir( name ) {
+            Sys.outln( 'Dir: ' + name )
+            ignore Dir.cd( name )
+            enum Dir.list('*.*') as name2 {
+                Sys.outln( "\t" + if Dir.isFile( name2 ) { 'File: ' } else { 'Dir: ' } + name2 )
             }
+            ignore Dir.cd('..')
+        }
+        else {
+            Sys.outln( 'File: ' + name )
         }
     }
+}
+else {
+    Sys.outln( 'Cannot change dir to "' + path + '"' )
 }

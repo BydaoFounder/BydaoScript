@@ -12,7 +12,9 @@ namespace Modules {
 BydaoDirModule::BydaoDirModule()
     : BydaoModule()
 {
-    registerMethod("open",    &BydaoDirModule::method_open);
+    registerMethod("new",     &BydaoDirModule::method_new);
+    registerMethod("isDir",   &BydaoDirModule::method_isdir);
+    registerMethod("isFile",  &BydaoDirModule::method_isfile);
     registerMethod("list",    &BydaoDirModule::method_list);
     registerMethod("cd",      &BydaoDirModule::method_cd);
     registerMethod("current", &BydaoDirModule::method_current);
@@ -30,10 +32,14 @@ MetaData*   BydaoDirModule::metaData() {
         metaData = new MetaData();
         metaData->external = true;
         metaData
-            ->appendType( "open",   FuncMetaData("Dir",         FMD_IMMUTABLE) << FuncArgMetaData("path","String",ARG_IN) )
+            ->appendType( "new",    FuncMetaData("Dir",         FMD_IMMUTABLE) << FuncArgMetaData("path","String",ARG_IN) )
+            .appendType( "isDir",   FuncMetaData("Bool",        FMD_IMMUTABLE) << FuncArgMetaData("path","String",ARG_IN,"\".\"") )
+            .appendType( "isFile",  FuncMetaData("Bool",        FMD_IMMUTABLE) << FuncArgMetaData("path","String",ARG_IN,"\".\"") )
             .appendType( "list",    FuncMetaData("StringArray", FMD_IMMUTABLE) << FuncArgMetaData("path","String",ARG_IN,"\".\"") )
             .appendType( "cd",      FuncMetaData("Bool",        FMD_IMMUTABLE) << FuncArgMetaData("path","String",ARG_IN,"") )
             .appendType( "current", FuncMetaData("String",      FMD_IMMUTABLE) )
+            .appendType( "mkdir",   FuncMetaData("Bool",        FMD_IMMUTABLE) << FuncArgMetaData("path","String",ARG_IN,"") )
+            .appendType( "rmdir",   FuncMetaData("Bool",        FMD_IMMUTABLE) << FuncArgMetaData("path","String",ARG_IN,"") )
             ;
     }
     return metaData;
@@ -66,19 +72,74 @@ bool BydaoDirModule::callMethod(const QString& name,
 
 // ========== Методы модуля ==========
 
-bool BydaoDirModule::method_open(const QVector<BydaoValue>& args, BydaoValue& result) {
-    if (args.size() != 1) return false;
-    result = BydaoValue(new BydaoDirObject(args[0].toString()), BydaoTypeId::TYPE_OBJECT);
+bool BydaoDirModule::method_new(const QVector<BydaoValue>& args, BydaoValue& result) {
+    QString name = (args.size() == 1) ? args[0].toString() : "./";
+    result = BydaoValue(new BydaoDirObject( name ), BydaoTypeId::TYPE_OBJECT);
     return true;
 }
 
+bool BydaoDirModule::method_isdir(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if ( args.size() != 1 ) {
+        result = BydaoValue::fromBool( false );
+    }
+    QFileInfo info( args[0].toString() );
+    result = BydaoValue::fromBool( info.isDir() );
+    return true;
+}
+
+bool BydaoDirModule::method_isfile(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if ( args.size() != 1 ) {
+        result = BydaoValue::fromBool( false );
+    }
+    QFileInfo info( args[0].toString() );
+    result = BydaoValue::fromBool( info.isFile() );
+    return true;
+}
+
+/**
+ * Сформировать список файлов.
+ *
+ *
+ *
+ * @param args
+ * @param result
+ *
+ * @return
+ */
 bool BydaoDirModule::method_list(const QVector<BydaoValue>& args, BydaoValue& result) {
-    QString path = args.size() > 0 ? args[0].toString() : ".";
+
+    QString path, mask;
+    if ( args.size() > 0 ) {
+        QString str = QDir::cleanPath( args[0].toString() );
+        if ( str.contains(QChar('*')) || str.contains(QChar('?')) ) {
+            str.replace( QChar('\\'), QChar('/') );
+            int pos = str.lastIndexOf( QChar('/') );
+            if ( pos >= 0 ) {
+                path = str.left( pos );
+                mask = str.mid( pos + 1 );
+            }
+            else {
+                path = "";
+                mask = str;
+            }
+        }
+        else {
+            path = str;
+            mask = "*";
+        }
+    }
+    if ( path.isEmpty() ) path = "./";
+    if ( ! path.endsWith( QDir::separator() ) ) path += QDir::separator();
+    if ( mask.isEmpty() ) mask = "*";
+
+    QDir::Filters filters = QDir::Dirs | QDir::NoDotAndDotDot | QDir::AllDirs | QDir::Files;
+    QDir::SortFlags sort = QDir::Name | QDir::IgnoreCase;
+
     QDir dir(path);
-    auto entries = dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
+    QFileInfoList list = dir.entryInfoList( QStringList() << mask, filters, sort );
     auto* array = new BydaoArray();
-    foreach (const QString& entry, entries) {
-        array->append(BydaoValue( BydaoString::create(entry), BydaoTypeId::TYPE_STRING ));
+    foreach ( const QFileInfo& info, list ) {
+        array->append(BydaoValue( BydaoString::create(info.fileName()), BydaoTypeId::TYPE_STRING ));
     }
     result = BydaoValue(array, BydaoTypeId::TYPE_ARRAY);
     return true;
@@ -99,15 +160,13 @@ bool BydaoDirModule::method_current(const QVector<BydaoValue>& args, BydaoValue&
 
 bool BydaoDirModule::method_mkdir(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
-    bool ok = QDir().mkpath(args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    result = BydaoValue::fromBool( QDir().mkpath(args[0].toString()) );
     return true;
 }
 
 bool BydaoDirModule::method_rmdir(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
-    bool ok = QDir().rmdir(args[0].toString());
-    result = BydaoValue::fromBool( ok );
+    result = BydaoValue::fromBool( QDir().rmdir(args[0].toString()) );
     return true;
 }
 
