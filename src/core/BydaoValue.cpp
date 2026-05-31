@@ -129,7 +129,7 @@ BydaoValue BydaoValue::fromNull() {
 
 QString BydaoValue::toString() const {
     if (!m_obj) return "null";
-
+/*
     // Быстрый путь для известных типов
     switch (m_typeId) {
         case TYPE_INT: {
@@ -160,15 +160,15 @@ QString BydaoValue::toString() const {
         case TYPE_NULL:
             return "null";
     }
-
+*/
     // Для неизвестных типов пробуем вызвать метод toString
     BydaoValue result;
     if (m_obj->callMethod("toString", {}, result)) {
-        if (result.isObject()) {
-            // Рекурсивно вызываем toString у результата
-            return result.toString();
+        BydaoObject* obj = result.toObject();
+        if ( obj && obj->typeName() == "String" ) {
+            return ((BydaoString*)obj)->value();
         }
-        qWarning() << "toString() returned non-object";
+        qWarning() << "toString() returned non-object or not string";
     }
     else {
         qWarning() << "Object of type" << m_obj->typeName() << "has no toString() method";

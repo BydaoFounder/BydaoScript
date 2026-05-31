@@ -157,7 +157,14 @@ bool BydaoArray::method_toString(const QVector<BydaoValue>& args, BydaoValue& re
     Q_UNUSED(args);
     QStringList parts;
     foreach (const auto& elem, m_elements) {
-        parts << elem.toString();
+        QString str = elem.toString();
+        BydaoObject* obj = elem.toObject();
+        if ( obj ) {
+            if ( obj->typeName() == "String" ) {
+                str = "\"" + str + "\"";
+            }
+        }
+        parts << str;
     }
     result = BydaoValue::fromString("[" + parts.join(", ") + "]");
     return true;

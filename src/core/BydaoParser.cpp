@@ -2674,21 +2674,24 @@ bool BydaoParser::parseArrayLiteral() {
 
     int elementCount = 0;
 
-    if (!match(BydaoTokenType::RBracket)) {
-        do {
-            if (!parseExpression()) return false;
-            elementCount++;
-        } while (match(BydaoTokenType::Comma) && (nextToken(), true));
+    while ( ! match(BydaoTokenType::RBracket) ) {
 
-        // Разрешаем висящую запятую
-        if (match(BydaoTokenType::Comma)) {
+        if ( ! parseExpression() ) return false;
+        ++elementCount;
+
+        getLastType();
+
+        if ( match(BydaoTokenType::Comma) ) {
             nextToken();
         }
+        else if ( ! match(BydaoTokenType::RBracket) ) {
+            error( "Missed comma in array");
+            return false;
+        }
     }
+    if ( ! expect(BydaoTokenType::RBracket) ) return false;
 
-    if (!expect(BydaoTokenType::RBracket)) return false;
-
-    setLastType( TypeInfo( "Array", Const ) );
+    setLastType( TypeInfo( "Array", Expr ) );
 
     // Генерируем PushArray с количеством элементов
     // Элементы уже на стеке в правильном порядке (благодаря parseExpression)
