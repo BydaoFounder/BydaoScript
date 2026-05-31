@@ -41,11 +41,31 @@ BydaoVM::BydaoVM()
     m_scopeStack.clear();
 
     // Встроенные типы
+    // Порядок добавления встроенных типов должен совпадать с порядком в парсере
+
     auto* intClass = new BydaoIntClass();
     intClass->ref();
     s_builtinTypes.append( {"Int", BydaoValue(intClass, BydaoTypeId::TYPE_OBJECT)} );
 
-    // TODO: Добавить "Real" << "String" << "Bool" << "Null" << "Array";
+    auto* stringClass = new BydaoStringClass();
+    stringClass->ref();
+    s_builtinTypes.append( {"String", BydaoValue(stringClass, BydaoTypeId::TYPE_OBJECT)} );
+
+    // auto* realClass = new BydaoReal();
+    // realClass->ref();
+    // s_builtinTypes.append( {"Real", BydaoValue(realClass, BydaoTypeId::TYPE_OBJECT)} );
+
+    // auto* boolClass = new BydaoBool();
+    // boolClass->ref();
+    // s_builtinTypes.append( {"Bool", BydaoValue(boolClass, BydaoTypeId::TYPE_OBJECT)} );
+
+    // auto* nullClass = new BydaoNull();
+    // nullClass->ref();
+    // s_builtinTypes.append( {"Null", BydaoValue(nullClass, BydaoTypeId::TYPE_OBJECT)} );
+
+    auto* arrayClass = new BydaoArray();
+    arrayClass->ref();
+    s_builtinTypes.append( {"Array", BydaoValue(arrayClass, BydaoTypeId::TYPE_OBJECT)} );
 }
 
 BydaoVM::~BydaoVM() {

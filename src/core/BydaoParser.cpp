@@ -70,10 +70,13 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
         }
     }
 
-    m_metaData["String"] = new MetaData( BydaoString::metaData() );
-    UsedMetaDataList usedStringList = BydaoString::usedMetaData();
+    m_metaData["String"] = new MetaData( BydaoStringClass::metaData() );
+    UsedMetaDataList usedStringList = BydaoStringClass::usedMetaData();
     foreach ( const UsedMetaData& used, usedStringList ) {
-        if ( ! m_metaData.contains( used.type ) ) {
+        if ( used.append ) {
+            m_metaData["String"]->append( used.metaData );
+        }
+        else if ( ! m_metaData.contains( used.type ) ) {
             m_metaData[ used.type ] = new MetaData( used.metaData );
         }
     }
@@ -92,8 +95,7 @@ BydaoParser::BydaoParser(const QVector<BydaoToken>& tokens)
 
     // Список встроенных типов.
     // В виртуальной машине должен быть такой же список в том же порядке.
-    m_builtinTypes << "Int" << "Real" << "String"
-                   << "Bool" << "Null" << "Array";
+    m_builtinTypes << "Int" << "String" << "Real" << "Bool" << "Null" << "Array";
 }
 
 BydaoParser::~BydaoParser() {
@@ -2556,23 +2558,26 @@ bool BydaoParser::parseMemberSuffix() {
 
         // Проверим, что у текущего типа есть такая переменная
 
+        QString memberType;
         if ( thisIsType ) {
             if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasTypeVar( memberName ) ) {
                 error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
                 return false;
             }
+            memberType = objMetaData->typeVar( memberName ).type;
         }
         else {
             if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasObjVar( memberName ) ) {
                 error("Object of type '" + objType + "' does not have member '" + memberName + "'", memberToken );
                 return false;
             }
+            memberType = objMetaData->objVar( memberName ).type;
         }
 
         // Сохраним тип переменной
 
         getLastType();
-        setLastType( objType != "Any" ? objMetaData->objVar( memberName ).type : "Any" );
+        setLastType( objType != "Any" ? memberType : "Any" );
 
         // Это доступ к свойству - используем MEMBER
 

@@ -11,6 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include <QRandomGenerator>
+#include <QCryptographicHash>
+
 #include "BydaoScript/BydaoString.h"
 #include "BydaoScript/BydaoInt.h"
 #include "BydaoScript/BydaoReal.h"
@@ -18,11 +22,133 @@
 #include "BydaoScript/BydaoArray.h"
 #include "BydaoScript/BydaoNull.h"
 #include "BydaoScript/BydaoStringIterator.h"
-#include <QCryptographicHash>
 
 namespace BydaoScript {
 
 // Получить мета-данные
+
+MetaData*   BydaoStringClass::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData
+            // методы типа
+            ->appendType( "random",     FuncMetaData( "String", FMD_IMMUTABLE )
+                                       << FuncArgMetaData("length","Int",ARG_IN)
+                                       << FuncArgMetaData("flags","Int",ARG_IN,"0")
+                         )
+            ;
+        metaData
+            // переменные типа
+            ->appendType( "LETTERS",    VarMetaData("Int",VMD_CONST) )
+            .appendType(  "DIGITS",     VarMetaData("Int",VMD_CONST) )
+            .appendType(  "SYMBOLS",    VarMetaData("Int",VMD_CONST) )
+            .appendType(  "HEX",        VarMetaData("Int",VMD_CONST) )
+            ;
+    }
+    return metaData;
+}
+
+/**
+ * Вернуть список используемых типов.
+ */
+UsedMetaDataList    BydaoStringClass::usedMetaData() {
+    static UsedMetaDataList list;
+
+    if ( list.isEmpty() ) {
+        list << UsedMetaData( "String",          BydaoString::metaData(), true );
+        list << UsedMetaData( "StringArray",     BydaoStringArray::metaData() );
+        list << UsedMetaData( "StringArrayIter", BydaoStringArrayIterator::metaData() );
+    }
+
+    return list;
+}
+
+BydaoStringClass::BydaoStringClass()
+    : BydaoObject() {
+
+    // Регистрация функций типа, вызываемых по имени
+
+    registerMethod("random",    &BydaoStringClass::method_random);
+
+    // Регистрация переменных и констант типа
+
+    registerVar( "LETTERS",     &BydaoStringClass::getvar_letters );
+    registerVar( "DIGITS",      &BydaoStringClass::getvar_digits );
+    registerVar( "SYMBOLS",     &BydaoStringClass::getvar_symbols );
+    registerVar( "HEX",         &BydaoStringClass::getvar_hex );
+}
+
+void BydaoStringClass::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+void BydaoStringClass::registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter ) {
+    m_vars[ name ] = { getter, setter };
+}
+
+bool    BydaoStringClass::getVar( const QString& varName, BydaoValue& value ) {
+    auto it = m_vars.find( varName );
+    if ( it == m_vars.end() ) {
+        qWarning() << QString("Variable '%1' not exists in String type").arg( varName );
+        return false;
+    }
+    GetVarPtr getter = it.value().getter;
+    return ( this->*( getter) )( value );
+}
+
+bool BydaoStringClass::callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
+    }
+    return false;
+}
+
+bool BydaoStringClass::method_random(const QVector<BydaoValue>& args, BydaoValue& result) {
+    int argCnt = args.size();
+    if ( argCnt < 1 || 2 < argCnt ) {
+        qWarning() << QString("Invalid argument count in String.random()");
+        return false;
+    }
+    int len = args[0].toInt();
+    int mode = ( argCnt == 2 ) ? args[1].toInt() : 0;
+    if ( mode <= 0 ) {
+        mode = RANDOM_LETTERS | RANDOM_DIGITS | RANDOM_SYMBOLS;
+    }
+
+    QString symbols;
+    if ( mode & RANDOM_HEX ) {
+        symbols.append( "01234567890abcdef" );
+    }
+    else {
+        if ( mode & RANDOM_DIGITS ) {
+            symbols.append( "01234567890" );
+        }
+        if ( mode & RANDOM_LETTERS ) {
+            symbols.append( "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" );
+        }
+        if ( mode & RANDOM_SYMBOLS ) {
+            symbols.append( "~!@#$%^&*_+=-" );
+        }
+    }
+    int max = symbols.length();
+    QString str;
+    QRandomGenerator gen = QRandomGenerator::securelySeeded();
+    while( --len >= 0 ) {
+        int pos = gen.bounded( 0, max );
+        str += symbols.at( pos );
+    }
+    result = BydaoValue::fromString( str );
+    return true;
+}
+
+//==============================================================================
+
+QVector<BydaoString*> BydaoString::s_cache;
+
+// Получить мета-данные
+
 MetaData*   BydaoString::metaData() {
     static MetaData* metaData = nullptr;
     if ( ! metaData ) {
@@ -39,28 +165,28 @@ MetaData*   BydaoString::metaData() {
             .appendObj( "lower",       FuncMetaData("String", FMD_IMMUTABLE) )
             .appendObj( "trim",        FuncMetaData("String", FMD_IMMUTABLE) )
             .appendObj( "substr",      FuncMetaData("String", FMD_IMMUTABLE)
-                                  << FuncArgMetaData("from","Int",false)
-                                  << FuncArgMetaData("len","Int",false,"null")
-                    )
+                                     << FuncArgMetaData("from","Int",false)
+                                     << FuncArgMetaData("len","Int",false,"null")
+                       )
             .appendObj( "indexOf",     FuncMetaData("Int", FMD_IMMUTABLE)
-                                   << FuncArgMetaData("str","String",false)
-                                   << FuncArgMetaData("pos","Int",false,"0")
-                    )
-            .appendObj( "contains",    FuncMetaData("Bool", FMD_IMMUTABLE)
-                                    << FuncArgMetaData("str","String",false)
-                    )
-            .appendObj( "startsWith",  FuncMetaData("Bool", FMD_IMMUTABLE)
                                       << FuncArgMetaData("str","String",false)
-                    )
+                                      << FuncArgMetaData("pos","Int",false,"0")
+                       )
+            .appendObj( "contains",    FuncMetaData("Bool", FMD_IMMUTABLE)
+                                       << FuncArgMetaData("str","String",false)
+                       )
+            .appendObj( "startsWith",  FuncMetaData("Bool", FMD_IMMUTABLE)
+                                         << FuncArgMetaData("str","String",false)
+                       )
             .appendObj( "endsWith",    FuncMetaData("Bool", FMD_IMMUTABLE)
-                                    << FuncArgMetaData("str","String",false)
-                    )
+                                       << FuncArgMetaData("str","String",false)
+                       )
             .appendObj( "toReal",      FuncMetaData("Real", FMD_IMMUTABLE) )
             .appendObj( "toInt",       FuncMetaData("Int", FMD_IMMUTABLE) )
             .appendObj( "toBool",      FuncMetaData("Bool", FMD_IMMUTABLE) )
             .appendObj( "isEmpty",     FuncMetaData("Bool", FMD_IMMUTABLE) )
             ;
-            // операции объекта
+        // операции объекта
         metaData
             ->appendObj( "eq",         OperMetaData("Any", "Bool" ) )
             .appendObj( "neq",         OperMetaData("Any", "Bool" ) )
@@ -74,22 +200,6 @@ MetaData*   BydaoString::metaData() {
     }
     return metaData;
 }
-
-/**
- * Вернуть список используемых типов.
- */
-UsedMetaDataList    BydaoString::usedMetaData() {
-    static UsedMetaDataList list;
-
-    if ( list.isEmpty() ) {
-        list << UsedMetaData( "StringArray",     BydaoStringArray::metaData() );
-        list << UsedMetaData( "StringArrayIter", BydaoStringArrayIterator::metaData() );
-    }
-
-    return list;
-}
-
-QVector<BydaoString*> BydaoString::s_cache;
 
 BydaoString::BydaoString(const QString& value)
     : BydaoObject()

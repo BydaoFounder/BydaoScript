@@ -22,6 +22,75 @@
 
 namespace BydaoScript {
 
+class BydaoStringClass : public BydaoObject {
+
+public:
+
+    explicit BydaoStringClass();
+    virtual ~BydaoStringClass() = default;
+
+    // Получить мета-данные
+    static MetaData*   metaData();
+
+    // Получить список используемых мета-данных
+    static UsedMetaDataList usedMetaData();
+
+    QString typeName() const override { return "String"; }
+
+    bool    getVar( const QString& varName, BydaoValue& value ) override;
+
+    bool    callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
+
+private:
+
+    // Статические методы класса String
+
+    using MethodPtr = bool (BydaoStringClass::*)(const QVector<BydaoValue>&, BydaoValue&);
+    void registerMethod(const QString& name, MethodPtr method);
+
+    QHash<QString, MethodPtr> m_methods;
+
+    bool method_random(const QVector<BydaoValue>& args, BydaoValue& result);
+
+    using GetVarPtr = bool (BydaoStringClass::*)(BydaoValue&);
+    using SetVarPtr = bool (BydaoStringClass::*)(const BydaoValue&);
+    struct VarMethod {
+        GetVarPtr   getter;
+        SetVarPtr   setter;
+    };
+    QHash<QString,VarMethod> m_vars;
+
+    void registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter = nullptr );
+
+    const int RANDOM_LETTERS = 0x0001;
+    const int RANDOM_DIGITS  = 0x0002;
+    const int RANDOM_SYMBOLS = 0x0004;
+    const int RANDOM_HEX     = 0x0008;
+
+    bool getvar_letters( BydaoValue& value ) {
+        value = BydaoValue::fromInt( RANDOM_LETTERS );
+        return true;
+    };
+
+    bool getvar_digits( BydaoValue& value ) {
+        value = BydaoValue::fromInt( RANDOM_DIGITS );
+        return true;
+    };
+
+    bool getvar_symbols( BydaoValue& value ) {
+        value = BydaoValue::fromInt( RANDOM_SYMBOLS );
+        return true;
+    };
+
+    bool getvar_hex( BydaoValue& value ) {
+        value = BydaoValue::fromInt( RANDOM_HEX );
+        return true;
+    };
+
+};
+
+//==============================================================================
+
 class BydaoString : public BydaoObject {
 
     static QVector<BydaoString*> s_cache;
@@ -52,9 +121,6 @@ public:
 
     // Получить мета-данные
     static MetaData*   metaData();
-
-    // Получить список используемых мета-данных
-    static UsedMetaDataList usedMetaData();
 
     QString typeName() const override { return "String"; }
 
