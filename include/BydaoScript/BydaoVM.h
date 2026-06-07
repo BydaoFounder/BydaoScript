@@ -100,13 +100,89 @@ private:
 struct CallFrame {
     BydaoFuncObject*    func;           // Вызываемая функция
     int                 returnPc;       // Адрес возврата
-    VarScope*           callerScope;    // Скоуп вызывающего (для восстановления)
-    VarScope            localVars;      // Локальные переменные (включая аргументы)
-    int                 selfIndex;      // Индекс области видимости для self
+    // VarScope*           callerScope;    // Скоуп вызывающего (для восстановления)
+    // VarScope            localVars;      // Локальные переменные (включая аргументы)
+    // int                 selfIndex;      // Индекс области видимости для self
 
-    // Для out-аргументов: индексы переменных вызывающего, куда писать результат
-    QVector<int>        outVarIndices;
+    // // Для out-аргументов: индексы переменных вызывающего, куда писать результат
+    // QVector<int>        outVarIndices;
 };
+
+
+class BydaoCallStack {
+
+    static constexpr int MAX_STACK = 1024;
+
+public:
+    BydaoCallStack() : m_stackTop(0) {}
+
+    ~BydaoCallStack() {
+        // Вызываем деструкторы для всех активных элементов
+        for (int i = 0; i < m_stackTop; ++i) {
+            reinterpret_cast<CallFrame*>(&m_storage[i * sizeof(CallFrame)])->~CallFrame();
+        }
+    }
+
+    void push(CallFrame&& v) {
+        Q_ASSERT(m_stackTop < MAX_STACK);
+        // Placement new: конструируем CallFrame в сырой памяти
+        new (&m_storage[m_stackTop * sizeof(CallFrame)]) CallFrame(std::move(v));
+        ++m_stackTop;
+    }
+
+    // Для lvalue — копирование (безопасно, оригинал остаётся жив)
+    void push(const CallFrame& v) {
+        new (&m_storage[m_stackTop * sizeof(CallFrame)]) CallFrame(v);
+        ++m_stackTop;
+    }
+
+    CallFrame pop() {
+        Q_ASSERT(m_stackTop > 0);
+        --m_stackTop;
+        CallFrame result = std::move(*reinterpret_cast<CallFrame*>(&m_storage[m_stackTop * sizeof(CallFrame)]));
+        // Ручной вызов деструктора для опустошённого элемента
+        reinterpret_cast<CallFrame*>(&m_storage[m_stackTop * sizeof(CallFrame)])->~CallFrame();
+        return result;
+    }
+
+    void    popTo( CallFrame& result ) {
+        Q_ASSERT(m_stackTop > 0);
+        --m_stackTop;
+        result = std::move(*reinterpret_cast<CallFrame*>(&m_storage[m_stackTop * sizeof(CallFrame)]));
+        // Ручной вызов деструктора для опустошённого элемента
+        reinterpret_cast<CallFrame*>(&m_storage[m_stackTop * sizeof(CallFrame)])->~CallFrame();
+    }
+
+    CallFrame& top() {
+        return *reinterpret_cast<CallFrame*>(&m_storage[(m_stackTop - 1) * sizeof(CallFrame)]);
+    }
+
+    void    resize( int pos ) { m_stackTop = pos;    }
+    int     size() const { return m_stackTop; }
+    bool    isEmpty() const { return m_stackTop == 0; }
+
+    void    clear() {
+        // Вызываем деструкторы для всех активных элементов
+        while ( m_stackTop > 0 ) {
+            reinterpret_cast<CallFrame*>(&m_storage[ (--m_stackTop)  * sizeof(CallFrame) ])->~CallFrame();
+        }
+    }
+
+    // Неконстантная версия (для изменяемого доступа)
+    CallFrame& operator[](int index) {
+        return *reinterpret_cast<CallFrame*>(&m_storage[index * sizeof(CallFrame)]);
+    }
+
+    // Константная версия (для доступа только на чтение)
+    const CallFrame& operator[](int index) const {
+        return *reinterpret_cast<const CallFrame*>(&m_storage[index * sizeof(CallFrame)]);
+    }
+
+private:
+    alignas(CallFrame) unsigned char m_storage[sizeof(CallFrame) * MAX_STACK];
+    int m_stackTop;
+};
+
 
 class BydaoVM {
 public:
@@ -142,8 +218,8 @@ public:
 
 private:
 
-    QStack<CallFrame> m_callStack;  // Стек вызовов
-    QList<RuntimeVar>* m_currentSelfFrame;  // Текущий self-фрейм
+    BydaoCallStack      m_callStack;            // Стек вызовов
+    QList<RuntimeVar>*  m_currentSelfFrame;     // Текущий self-фрейм
 
     void loadConstants( const QVector<BydaoConstant>& constants );
 
@@ -190,6 +266,7 @@ private:
                                         // 1 - уровень функции модуля и т.д.
 
     void        appendScope();
+    void        appendScope(int size);
     void        dropScope();
 
     // Ошибки

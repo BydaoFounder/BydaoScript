@@ -1043,8 +1043,10 @@ bool BydaoParser::parseAssign() {
 
     QString varType = varInfo.type;
     if ( varType != "Null" && varType != exprType.type ) {
-        error( "Cannot assign value of type '" + exprType.type + "' to variable of type '" + varType + "'", nameToken );
-        return false;
+        if ( exprType.type != "Any" ) {
+            error( "Cannot assign value of type '" + exprType.type + "' to variable of type '" + varType + "'", nameToken );
+            return false;
+        }
     }
     setVariableType( name, exprType.type );
 
@@ -2609,8 +2611,10 @@ bool BydaoParser::parseAddition() {
 
         QString leftType = leftTypeInfo.type;
         QString operName = isPlus ? "add" : "sub";
-        if ( ! checkTypeOper( leftType, operName, leftToken ) ) {
-            return false;
+        if ( leftType != "Any" ) {
+            if ( ! checkTypeOper( leftType, operName, leftToken ) ) {
+                return false;
+            }
         }
 
         // Определить тип результат операции

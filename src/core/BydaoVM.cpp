@@ -319,6 +319,14 @@ void        BydaoVM::appendScope() {
     }
 }
 
+void        BydaoVM::appendScope( int size ) {
+    ++m_scopeLevel;
+    if ( m_scopeStack.size() < m_scopeLevel + 1 ) {
+        m_scopeStack.append( VarScope() );
+    }
+    m_scopeStack[ m_scopeLevel ].resize( size );
+}
+
 void        BydaoVM::dropScope() {
 //    m_scopeStack.takeLast();
     --m_scopeLevel;
@@ -1415,12 +1423,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::CallFunc:
     case BydaoOpCode::CallFuncVoid: {
-        int argCount = instr.arg1;
-//        bool hasReturn = (instr.op == BydaoOpCode::CallFunc);
 
         auto* func = m_funcs[ instr.arg2 ];
 
         // Проверяем количество аргументов
+        int argCount = instr.arg1;
         if (argCount != func->arity) {
             error(QString("Argument count mismatch: expected %1, got %2")
                       .arg(func->arity).arg(argCount), instr);
@@ -1431,51 +1438,16 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         CallFrame frame;
         frame.func = func;
         frame.returnPc = m_pc;
-        frame.selfIndex = m_scopeLevel;
+//        frame.selfIndex = m_scopeLevel;
 
         // Копируем аргументы в локальные переменные
-        // frame.localVars.resize(func->arity);
-        // frame.outVarIndices.clear();
 
-        appendScope();
-        m_scopeStack[ m_scopeLevel ].resize( argCount );
+        appendScope( argCount );
 
         while ( --argCount >= 0 ) {
-
-            BydaoValue arg;
-            m_stack.popTo( arg );
-/*
-            // Проверяем тип аргумента
-            const FuncArgMetaData& expected = func->funcMetaData.argList[ argCount ];
-            QString actualType = arg.isObject() ? arg.toObject()->typeName() : "Null";
-
-            bool typeOk = false;
-            for (const QString& allowed : expected.types) {
-                if (actualType == allowed || allowed == "Any") {
-                    typeOk = true;
-                    break;
-                }
-                // Пытаемся привести тип
-                BydaoValue converted = convertValue(arg, allowed);
-                if (!converted.isNull()) {
-                    arg = converted;
-                    typeOk = true;
-                    break;
-                }
-            }
-
-            if (!typeOk) {
-                error(QString("Argument %1 type mismatch: expected %2, got %3")
-                          .arg( argCount + 1 ).arg(expected.types.join(" or ")).arg(actualType), instr);
-                return false;
-            }
-*/
-            // frame.localVars[ argCount ].name = func->funcMetaData.argList[ argCount ].name;
-            // frame.localVars[ argCount ].value = arg;
-
             RuntimeVar var;
             var.name = func->funcMetaData.argList[ argCount ].name;
-            var.value = arg;
+            m_stack.popTo( var.value );
             m_scopeStack[ m_scopeLevel ][ argCount ] = var;
         }
 
@@ -1489,6 +1461,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::Return: {
+/*
         bool hasValue = instr.arg1;
         BydaoValue retVal;
 
@@ -1499,7 +1472,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             }
             retVal = m_stack.pop();
         }
-
+*/
         if (m_callStack.isEmpty()) {
             // Возврат из главного модуля — завершаем программу
             m_running = false;
@@ -1524,12 +1497,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         dropScope();
 //        m_scopeLevel = frame.selfIndex;
         m_pc = frame.returnPc;
-
+/*
         // Кладём результат на стек, если функция не void
         if (frame.func->funcMetaData.retType != "Void") {
             m_stack.push(retVal);
         }
-
+*/
         break;
     }
 
@@ -1572,6 +1545,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
+/*
     case BydaoOpCode::PushAddr: {
         int varIndex = instr.arg1;
 
@@ -1592,6 +1566,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_stack.push(m_scopeStack[m_scopeLevel][varIndex].value);
         break;
     }
+*/
 
     // ===== Управление =====
     case BydaoOpCode::Nop:
