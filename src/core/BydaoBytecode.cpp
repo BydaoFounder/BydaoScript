@@ -76,6 +76,13 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::UseModule] = "USE";
         names[BydaoOpCode::UseBuiltin] = "BUILTIN";
         names[BydaoOpCode::PushArray] = "PUSHARRAY";
+        names[BydaoOpCode::FuncDecl] = "FUNCDECL";
+        names[BydaoOpCode::CallFunc] = "CALLFUNC";
+        names[BydaoOpCode::CallFuncVoid] = "CALLFUNCVOID";
+        names[BydaoOpCode::Return] = "RETURN";
+        names[BydaoOpCode::LoadSelf] = "LOADSELF";
+        names[BydaoOpCode::StoreSelf] = "STORESELF";
+        names[BydaoOpCode::PushAddr] = "PUSHADDR";
     }
     return names.value(op, "???");
 }

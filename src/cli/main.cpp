@@ -38,8 +38,8 @@ int main(int argc, char *argv[]) {
 
     cmdLineParser.addPositionalArgument("file", "Script file to execute");
 
-    QCommandLineOption bytecodeOption("c", "Compile to bytecode only");
-    cmdLineParser.addOption(bytecodeOption);
+    QCommandLineOption compileOnly("c", "Compile to bytecode only");
+    cmdLineParser.addOption(compileOnly);
 
     QCommandLineOption outputOption(QStringList() << "o" << "out", "Output bytecode file", "file");
     cmdLineParser.addOption(outputOption);
@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) {
         out << "Cannot open file: " << fileName << eol;
         return 1;
     }
+    QString moduleName = QFileInfo( fileName ).baseName();
 
     QString source = QString::fromUtf8(file.readAll());
     file.close();
@@ -98,7 +99,7 @@ int main(int argc, char *argv[]) {
     }
 
     // 2. Парсинг + генерация байт-кода
-    BydaoParser parser(tokens);
+    BydaoParser parser(  moduleName, tokens );
     if (!parser.parse()) {
         for (const auto& err : parser.errors()) {
             out << err << eol;
@@ -106,16 +107,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    auto bytecode = parser.takeBytecode();
-    auto constants = parser.takeConstants();
-    auto stringTable = parser.takeStringTable();
-    auto debugInfo = parser.takeDebugInfo();
+    const ModuleInfo& moduleInfo = parser.moduleInfo();
 
     // Дизассемблирование
     if (cmdLineParser.isSet(listingOption)) {
         out << "\n=== BYTECODE DISASSEMBLY ===\n";
         BydaoDisassembler da;
-        out << da.disassemble(constants,stringTable,bytecode);
+        out << da.disassemble( moduleInfo );
         out << "============================\n\n";
         
         return 0;
@@ -124,16 +122,18 @@ int main(int argc, char *argv[]) {
     // Сохранение байт-кода
     if (cmdLineParser.isSet(outputOption)) {
         QString outFile = cmdLineParser.value(outputOption);
-        if (BydaoBytecode::save(constants, stringTable, bytecode, outFile, &debugInfo)) {
+        auto debugInfo = parser.takeDebugInfo();
+        if (BydaoBytecode::save( moduleInfo.globalConstants, moduleInfo.globalStringTable, moduleInfo.globalCode, outFile, &debugInfo)) {
             out << "Bytecode saved to: " << outFile << eol;
-        } else {
+        }
+        else {
             out << "Cannot save bytecode" << eol;
             return 1;
         }
     }
 
     // Только компиляция
-    if (cmdLineParser.isSet(bytecodeOption)) {
+    if (cmdLineParser.isSet(compileOnly)) {
         out << "Compilation successful" << eol;
         return 0;
     }
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
     vm.setTraceMode(cmdLineParser.isSet(traceOption));
     vm.setProfileMode(cmdLineParser.isSet(profileOption));
 
-    if (!vm.load(constants, stringTable, bytecode)) {
+    if ( ! vm.loadModule( moduleInfo ) ) {
         out << "Cannot load bytecode" << eol;
         return 1;
     }

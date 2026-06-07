@@ -39,6 +39,8 @@ BydaoVM::BydaoVM()
 {
     // Инициализируем область видимости
     m_scopeStack.clear();
+    m_scopeStack.append( VarScope() );
+    m_scopeLevel = 0;
 
     // Встроенные типы
     // Порядок добавления встроенных типов должен совпадать с порядком в парсере
@@ -75,18 +77,90 @@ BydaoVM::~BydaoVM() {
 
 // ========== Загрузка байткода ==========
 
-bool BydaoVM::load(const QVector<BydaoConstant>& constants,
-                   const QVector<QString>& stringTable,
-                   const QVector<BydaoInstruction>& code) {
-    
-    m_constants = constants;
-    m_stringTable = stringTable;
-    m_code = code;
-    
-    // Преобразуем константы в готовые значения
+bool BydaoVM::loadModule(const ModuleInfo& module) {
+    // Загружаем глобальные строки и константы
+    m_stringTable = module.globalStringTable;
+    m_constants = module.globalConstants;
+
+    // Преобразуем константы в значения
     m_constantValues.clear();
+    loadConstants( m_constants );
+
+    // Создаём глобальный фрейм для модуля
+    m_scopeStack.clear();
+    m_scopeStack.append( VarScope() );
+    m_scopeLevel = 0;
+
+    // В стек значений добавим специальную переменную
+
+    RuntimeVar var;
+    var.name = SPECIAL_VAR;
+    var.value = BydaoValue();
+    m_scopeStack[0].append( var );
+
+
+    // Добавляем публичные переменные
+/*
+    for (const auto& pubVar : module.pubVars) {
+        RuntimeVar var;
+        var.name = pubVar.name;
+        var.value = pubVar.initValue.isNull() ? BydaoValue() : pubVar.initValue;
+        m_scopeStack.append(var);
+    }
+*/
+    // Загружаем глобальный код
+    m_code = module.globalCode;
+    m_pc = 0;
+
+    // Создаём функции
+    for (const FunctionInfo& funcInfo : module.functions) {
+        auto* funcObj = new BydaoFuncObject();
+        funcObj->ref();
+        funcObj->name = funcInfo.name;
+        // funcObj->bytecode = funcInfo.code;
+        // funcObj->entryPc = funcInfo.entryPc;
+        funcObj->entryPc = m_code.size();
+        m_code.append( funcInfo.code );
+        funcObj->arity = funcInfo.arity;
+        funcObj->selfIndex = m_scopeLevel;
+        funcObj->selfVarIndices = funcInfo.selfRefs;
+
+        funcObj->funcMetaData.retType = funcInfo.retType;
+        funcObj->funcMetaData.isPublic = funcInfo.isPublic;
+        funcObj->funcMetaData.isImmutable = funcInfo.isImmutable;
+        funcObj->funcMetaData.isStatic = funcInfo.isStatic;
+
+        for (const auto& argInfo : funcInfo.args) {
+            FuncArgMetaData argMeta;
+            argMeta.name = argInfo.name;
+            argMeta.types = argInfo.types;
+            argMeta.isOut = argInfo.isOut;
+            argMeta.defVal = ""; // TODO
+            funcObj->funcMetaData.argList.append(argMeta);
+        }
+
+        // Сохраняем функцию в реестре модуля
+
+        m_funcs.append( funcObj );
+
+        // Если функция публичная, добавляем в глобальный скоуп
+/*
+        NOTE: Не уверен, что нужно так
+
+        if (funcInfo.isPublic) {
+            RuntimeVar var;
+            var.name = funcInfo.name;
+            var.value = BydaoValue(funcObj,TYPE_FUNC);
+            m_scopeStack.append(var);
+        }
+*/
+    }
+
+    return true;
+}
+
+void BydaoVM::loadConstants( const QVector<BydaoConstant>& constants ) {
     m_constantValues.reserve(constants.size());
-    
     foreach (const auto& c, constants) {
         switch (c.type) {
         case CONST_INT:
@@ -113,18 +187,33 @@ bool BydaoVM::load(const QVector<BydaoConstant>& constants,
             break;
         }
     }
+}
+
+bool BydaoVM::load(const QVector<BydaoConstant>& constants,
+                   const QVector<QString>& stringTable,
+                   const QVector<BydaoInstruction>& code) {
+    
+    m_constants = constants;
+    m_stringTable = stringTable;
+    m_code = code;
+    
+    // Преобразуем константы в готовые значения
+    m_constantValues.clear();
+    loadConstants( constants );
     
     // Сброс состояния
     m_pc = 0;
     m_stack.clear();
     m_scopeStack.clear();
+    m_scopeStack.append( VarScope() );
+    m_scopeLevel = 0;
 
     // В стек значений добавим специальную переменную
 
     RuntimeVar var;
     var.name = SPECIAL_VAR;
     var.value = BydaoValue();
-    m_scopeStack.append( var );
+    m_scopeStack[0].append( var );
 
     return true;
 }
@@ -223,15 +312,29 @@ void BydaoVM::dumpStack(const QString& label) {
 
 // ========== Доступ к переменным ==========
 
+void        BydaoVM::appendScope() {
+    ++m_scopeLevel;
+    if ( m_scopeStack.size() < m_scopeLevel + 1 ) {
+        m_scopeStack.append( VarScope() );
+    }
+}
+
+void        BydaoVM::dropScope() {
+//    m_scopeStack.takeLast();
+    --m_scopeLevel;
+}
+
+
 BydaoValue& BydaoVM::getVariable(int varIndex, const BydaoInstruction& instr) {
     static BydaoValue nullValue = BydaoValue::fromNull();
-    
-    if (varIndex < 0 || varIndex >= m_scopeStack.size()) {
+
+    VarScope& scopeStack = m_scopeStack[ m_scopeLevel ];
+    if (varIndex < 0 || varIndex >= scopeStack.size()) {
         error("Invalid variable index", instr);
         return nullValue;
     }
     
-    return m_scopeStack[varIndex].value;
+    return scopeStack[varIndex].value;
 }
 
 const BydaoValue& BydaoVM::getVariable(int varIndex, const BydaoInstruction& instr) const {
@@ -239,20 +342,112 @@ const BydaoValue& BydaoVM::getVariable(int varIndex, const BydaoInstruction& ins
 
     Q_UNUSED(instr);
 
-    if (varIndex < 0 || varIndex >= m_scopeStack.size()) {
+    const VarScope& scopeStack = m_scopeStack[ m_scopeLevel ];
+    if (varIndex < 0 || varIndex >= scopeStack.size()) {
         return nullValue;
     }
     
-    return m_scopeStack[varIndex].value;
+    return scopeStack[varIndex].value;
 }
 
 void BydaoVM::setVariable(int varIndex, const BydaoValue& value, const BydaoInstruction& instr) {
-    if (varIndex < 0 || varIndex >= m_scopeStack.size()) {
+    VarScope& scopeStack = m_scopeStack[ m_scopeLevel ];
+    if (varIndex < 0 || varIndex >= scopeStack.size()) {
         error("Invalid variable index", instr);
         return;
     }
     
-    m_scopeStack[varIndex].value = value;
+    scopeStack[varIndex].value = value;
+}
+
+BydaoValue BydaoVM::convertValue(const BydaoValue& val, const QString& toType) {
+    if (!val.isObject()) {
+        if (toType == "String") {
+            return BydaoValue::fromString(val.toString());
+        }
+        return BydaoValue();
+    }
+
+    BydaoObject* obj = val.toObject();
+    QString fromType = obj->typeName();
+
+    if (fromType == toType) {
+        return val;
+    }
+
+    // Встроенные приведения
+    if (fromType == "Int") {
+        qint64 i = static_cast<BydaoInt*>(obj)->value();
+        if (toType == "Real") {
+            return BydaoValue::fromReal(static_cast<double>(i));
+        }
+        if (toType == "Bool") {
+            return BydaoValue::fromBool(i != 0);
+        }
+        if (toType == "String") {
+            return BydaoValue::fromString(QString::number(i));
+        }
+    }
+    else if (fromType == "Real") {
+        double r = static_cast<BydaoReal*>(obj)->value();
+        if (toType == "Int") {
+            return BydaoValue::fromInt(static_cast<qint64>(r));
+        }
+        if (toType == "Bool") {
+            return BydaoValue::fromBool(r != 0.0);
+        }
+        if (toType == "String") {
+            return BydaoValue::fromString(QString::number(r));
+        }
+    }
+    else if (fromType == "Bool") {
+        bool b = static_cast<BydaoBool*>(obj)->value();
+        if (toType == "Int") {
+            return BydaoValue::fromInt(b ? 1 : 0);
+        }
+        if (toType == "String") {
+            return BydaoValue::fromString(b ? "true" : "false");
+        }
+    }
+    else if (fromType == "String") {
+        QString s = static_cast<BydaoString*>(obj)->value();
+        if (toType == "Int") {
+            bool ok;
+            qint64 i = s.toLongLong(&ok);
+            if (ok) return BydaoValue::fromInt(i);
+        }
+        if (toType == "Real") {
+            bool ok;
+            double r = s.toDouble(&ok);
+            if (ok) return BydaoValue::fromReal(r);
+        }
+        if (toType == "Bool") {
+            return BydaoValue::fromBool(!s.isEmpty());
+        }
+    }
+    else if (fromType == "Null") {
+        if (toType == "String") {
+            return BydaoValue::fromString("null");
+        }
+        if (toType == "Bool") {
+            return BydaoValue::fromBool(false);
+        }
+        if (toType == "Int") {
+            return BydaoValue::fromInt(0);
+        }
+        if (toType == "Real") {
+            return BydaoValue::fromReal(0.0);
+        }
+    }
+
+    // Пытаемся вызвать метод toType
+    QString methodName = "to" + toType;
+    BydaoValue result;
+    if (obj->callMethod(methodName, QVector<BydaoValue>(), result)) {
+        return result;
+    }
+
+    return BydaoValue();  // null — не удалось привести
 }
 
 // ========== Обработка ошибок ==========
@@ -296,7 +491,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     // ===== Области видимости =====
 
     case BydaoOpCode::ScopeDrop:
-        m_scopeStack.resize(instr.arg1);
+        m_scopeStack[ m_scopeLevel ].resize(instr.arg1);
         break;
 
     // ===== Переходы =====
@@ -328,7 +523,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         RuntimeVar var;
         var.name = name;
         var.value = m_constantValues[ instr.arg2 ];
-        m_scopeStack.append(var);
+        m_scopeStack[ m_scopeLevel ].append(var);
         break;
     }
 
@@ -346,23 +541,23 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
                 // инициализация значением со стека
                 var.value = m_stack.pop();
             }
-            m_scopeStack.append(var);
+            m_scopeStack[ m_scopeLevel ].append(var);
         }
         else {
             // Анонимная переменная (например, временная)
 
-            int varIndex = m_scopeStack.size();
+            int varIndex = m_scopeStack[ m_scopeLevel ].size();
             RuntimeVar var;
             var.name = QString("__tmp_%1").arg(varIndex);
-            m_scopeStack.append(var);
+            m_scopeStack[ m_scopeLevel ].append(var);
         }
         break;
     }
     
     case BydaoOpCode::Drop: {
         int varIndex = instr.arg1;
-        if (varIndex >= 0 && varIndex < m_scopeStack.size()) {
-            m_scopeStack.removeAt( varIndex );
+        if (varIndex >= 0 && varIndex < m_scopeStack[ m_scopeLevel ].size()) {
+            m_scopeStack[ m_scopeLevel ].removeAt( varIndex );
         }
         break;
     }
@@ -1151,12 +1346,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         
         // Добавляем модуль как переменную в глобальной области
 
-        int varIndex = m_scopeStack.size();
+        int varIndex = m_scopeStack[ m_scopeLevel ].size();
 
         RuntimeVar var;
         var.name = alias;
         var.value = BydaoValue(module, BydaoTypeId::TYPE_MODULE);
-        m_scopeStack.append(var);
+        m_scopeStack[ m_scopeLevel ].append(var);
 
         m_moduleName[alias] = varIndex;
         
@@ -1205,6 +1400,196 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Кладём массив на стек
         m_stack.push( BydaoValue(array, BydaoTypeId::TYPE_ARRAY) );
+        break;
+    }
+
+    // ===== Функции =====
+
+    case BydaoOpCode::FuncDecl: {
+        RuntimeVar var;
+        var.name = m_stringTable[instr.arg1];
+        var.value = BydaoValue( m_funcs[instr.arg2], TYPE_FUNC );
+        m_scopeStack[ m_scopeLevel ].append(var);
+        break;
+    }
+
+    case BydaoOpCode::CallFunc:
+    case BydaoOpCode::CallFuncVoid: {
+        int argCount = instr.arg1;
+//        bool hasReturn = (instr.op == BydaoOpCode::CallFunc);
+
+        auto* func = m_funcs[ instr.arg2 ];
+
+        // Проверяем количество аргументов
+        if (argCount != func->arity) {
+            error(QString("Argument count mismatch: expected %1, got %2")
+                      .arg(func->arity).arg(argCount), instr);
+            return false;
+        }
+
+        // Создаём новый фрейм
+        CallFrame frame;
+        frame.func = func;
+        frame.returnPc = m_pc;
+        frame.selfIndex = m_scopeLevel;
+
+        // Копируем аргументы в локальные переменные
+        // frame.localVars.resize(func->arity);
+        // frame.outVarIndices.clear();
+
+        appendScope();
+        m_scopeStack[ m_scopeLevel ].resize( argCount );
+
+        while ( --argCount >= 0 ) {
+
+            BydaoValue arg;
+            m_stack.popTo( arg );
+/*
+            // Проверяем тип аргумента
+            const FuncArgMetaData& expected = func->funcMetaData.argList[ argCount ];
+            QString actualType = arg.isObject() ? arg.toObject()->typeName() : "Null";
+
+            bool typeOk = false;
+            for (const QString& allowed : expected.types) {
+                if (actualType == allowed || allowed == "Any") {
+                    typeOk = true;
+                    break;
+                }
+                // Пытаемся привести тип
+                BydaoValue converted = convertValue(arg, allowed);
+                if (!converted.isNull()) {
+                    arg = converted;
+                    typeOk = true;
+                    break;
+                }
+            }
+
+            if (!typeOk) {
+                error(QString("Argument %1 type mismatch: expected %2, got %3")
+                          .arg( argCount + 1 ).arg(expected.types.join(" or ")).arg(actualType), instr);
+                return false;
+            }
+*/
+            // frame.localVars[ argCount ].name = func->funcMetaData.argList[ argCount ].name;
+            // frame.localVars[ argCount ].value = arg;
+
+            RuntimeVar var;
+            var.name = func->funcMetaData.argList[ argCount ].name;
+            var.value = arg;
+            m_scopeStack[ m_scopeLevel ][ argCount ] = var;
+        }
+
+        // Сохраняем фрейм
+        m_callStack.push(frame);
+
+        // Переключаемся на функцию
+        m_pc = func->entryPc;
+
+        break;
+    }
+
+    case BydaoOpCode::Return: {
+        bool hasValue = instr.arg1;
+        BydaoValue retVal;
+
+        if (hasValue) {
+            if (m_stack.isEmpty()) {
+                error("Stack underflow in RETURN", instr);
+                return false;
+            }
+            retVal = m_stack.pop();
+        }
+
+        if (m_callStack.isEmpty()) {
+            // Возврат из главного модуля — завершаем программу
+            m_running = false;
+            break;
+        }
+
+        // Восстанавливаем фрейм вызывающего
+        CallFrame frame = m_callStack.pop();
+
+        // Обрабатываем out-аргументы
+        // for (int i = 0; i < frame.outVarIndices.size(); i++) {
+        //     int outIdx = frame.outVarIndices[i];
+        //     if (outIdx >= 0 && outIdx < frame.localVars.size()) {
+        //         // Записываем значение out-аргумента в переменную вызывающего
+        //         // (адрес был передан через PushAddr)
+        //         // TODO: реализовать механизм адресов
+        //     }
+        // }
+
+        // Восстанавливаем скоуп вызывающего
+
+        dropScope();
+//        m_scopeLevel = frame.selfIndex;
+        m_pc = frame.returnPc;
+
+        // Кладём результат на стек, если функция не void
+        if (frame.func->funcMetaData.retType != "Void") {
+            m_stack.push(retVal);
+        }
+
+        break;
+    }
+
+    case BydaoOpCode::LoadSelf: {
+        int varIndex = instr.arg1;
+
+        if (!m_currentSelfFrame) {
+            error("LoadSelf outside module function", instr);
+            return false;
+        }
+
+        if (varIndex < 0 || varIndex >= m_currentSelfFrame->size()) {
+            error("Invalid self variable index", instr);
+            return false;
+        }
+
+        m_stack.push((*m_currentSelfFrame)[varIndex].value);
+        break;
+    }
+
+    case BydaoOpCode::StoreSelf: {
+        int varIndex = instr.arg1;
+
+        if (!m_currentSelfFrame) {
+            error("StoreSelf outside module function", instr);
+            return false;
+        }
+
+        if (varIndex < 0 || varIndex >= m_currentSelfFrame->size()) {
+            error("Invalid self variable index", instr);
+            return false;
+        }
+
+        if (m_stack.isEmpty()) {
+            error("Stack underflow in StoreSelf", instr);
+            return false;
+        }
+
+        (*m_currentSelfFrame)[varIndex].value = m_stack.pop();
+        break;
+    }
+
+    case BydaoOpCode::PushAddr: {
+        int varIndex = instr.arg1;
+
+        // Создаём специальное значение-ссылку на переменную
+        // Для простоты пока кладём индекс переменной вызывающего
+        // В будущем можно сделать отдельный тип Reference
+
+        // Сохраняем индекс в текущем фрейме для out-аргументов
+        if (!m_callStack.isEmpty()) {
+            m_callStack.top().outVarIndices.append(varIndex);
+        }
+
+        // Кладём на стек значение переменной (для совместимости)
+        if (varIndex < 0 || m_scopeStack[ m_scopeLevel ].size() <= varIndex ) {
+            error("Invalid variable index in PushAddr", instr);
+            return false;
+        }
+        m_stack.push(m_scopeStack[m_scopeLevel][varIndex].value);
         break;
     }
 

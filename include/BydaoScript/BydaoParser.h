@@ -13,15 +13,17 @@
 // limitations under the License.
 #pragma once
 
+#include <QStack>
+#include <QSet>
+#include <QMap>
+#include <QHash>
+
 #include "BydaoLexer.h"
 #include "BydaoBytecode.h"
 #include "BydaoModule.h"
 #include "BydaoConstantFolder.h"
 #include "BydaoMetaData.h"
-#include <QStack>
-#include <QSet>
-#include <QMap>
-#include <QHash>
+#include "BydaoFuncObject.h"
 
 namespace BydaoScript {
 
@@ -46,7 +48,7 @@ struct LoopInfo {
 
 class BydaoParser {
 public:
-    explicit BydaoParser(const QVector<BydaoToken>& tokens);
+    explicit BydaoParser( const QString& moduleName, const QVector<BydaoToken>& tokens);
     ~BydaoParser();
 
     bool parse();
@@ -63,9 +65,13 @@ public:
     void addModulePath(const QString& path);
     bool loadMetaData(const QString& name);
 
+    const ModuleInfo&   moduleInfo();
+
 private:
 
     friend class BydaoConstantFolder;
+
+    ModuleInfo  buildModuleInfo(const QString& moduleName);
 
     // ===== Лексический анализ =====
     void nextToken();
@@ -88,7 +94,6 @@ private:
     // ===== Генерация кода =====
     qint16 emitCode(BydaoOpCode op, qint16 arg1 = 0, qint16 arg2 = 0);
     qint16 emitCode(BydaoOpCode op, qint16 arg1, qint16 arg2, const BydaoToken& token);
-    void patchJump(int instrIndex);
     void patchJumps(const QVector<int>& jumps, int targetAddr);
 
     // ===== Области видимости =====
@@ -154,6 +159,36 @@ private:
     // Составные конструкции
     bool parseArrayLiteral();
 
+    QString         m_moduleName;
+
+    ModuleInfo      m_moduleInfo;
+
+    // Информация о текущей парсируемой функции
+    struct FuncParseContext {
+        QString name;
+        bool isPublic;
+        bool isImmutable;
+        bool isStatic;
+        QString retType;
+        FuncArgMetaDataList argList;
+        QHash<QString, int> selfAccesses;  // переменные self, к которым обращаются
+        QVector<BydaoInstruction> m_funcCode;   // байт-код функции во время разбора
+    };
+    FuncParseContext* m_currentFunc = nullptr;
+    QList<BydaoFuncObject*> m_funcs;        // список функция модуля
+
+    // Новые методы парсинга
+    bool parseFuncDecl();
+    bool parseFuncBody(FuncParseContext& ctx);
+    bool parseReturn();
+    bool parseLambda();
+    bool parseFuncCall(const BydaoFuncObject* funcObj);
+    bool parseArguments(FuncArgMetaDataList& argList, QVector<QString>& argNames, QVector<bool>& argIsOut);
+
+    // Проверка типов
+    bool canConvertType(const QString& from, const QString& to);
+    BydaoValue convertValue(const BydaoValue& val, const QString& toType);
+
     bool    checkTypeStack( int typeStackSize, const BydaoToken& statementToken );
     bool    checkTypeConvert( const QString& typeName, const BydaoToken& token );
     bool    checkTypeConvert( const QString& fromType, const QString& toType, const BydaoToken& token );
@@ -181,9 +216,6 @@ private:
     // Ошибки
     QStringList m_errors;
 
-    // Метки для переходов
-    QMap<int, int> m_labels;
-
     struct ScopeItem {
         QString         name;
         VariableInfo    varInfo;        // таблица с информацией о переменных
@@ -195,9 +227,21 @@ private:
             this->varInfo = info;
         }
     };
-    QList<ScopeItem>    m_varScopes;    // список переменных (плоская область видимости)
-    QStack< int >       m_scopeStart;   // стек начальных индексов областей видимости
-                                        // в списке m_varScopes
+    typedef QList<ScopeItem>    VarScope;   // список переменных (плоская область видимости)
+    QList<VarScope>     m_varScopes;        // стек областей видимости:
+                                            // индекс 0 - область видимости текущего модуля
+                                            // индекс 1 - область видимости функций модуля
+                                            // индекс 2 и далее - область функций, вложенных в другие функции
+
+    int                 m_scopeLevel;       // уровень области видимости:
+                                            // 0 - уровень модуля
+                                            // 1 - уровень функции модуля и т.д.
+
+    void        appendScope();
+    void        dropScope();
+
+    QStack< int >       m_scopeStart;       // стек начальных индексов областей видимости
+                                            // в списке m_varScopes
 
     // Циклы
     QStack<LoopInfo> m_loopStack;

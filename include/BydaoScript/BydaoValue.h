@@ -33,7 +33,8 @@ enum BydaoTypeId {
     TYPE_ARRAY = 5,
     TYPE_NULL = 6,
     TYPE_MODULE = 7,
-    TYPE_OBJECT = 8
+    TYPE_OBJECT = 8,
+    TYPE_FUNC = 9
 };
 
 class BydaoValue {

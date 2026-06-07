@@ -91,6 +91,10 @@ struct FuncMetaData {
      */
     bool                isImmutable;
 
+    bool                isStatic;
+
+    bool                isPublic;
+
     /**
      * Индекс функции для прямого вызова через таблицу функций.
      */
@@ -105,6 +109,8 @@ struct FuncMetaData {
     FuncMetaData&   append( const FuncArgMetaData& arg );
 
     FuncMetaData&   operator<<( const FuncArgMetaData& arg );
+
+    void            operator=( const FuncMetaData& func );
 
     int             argCount() const;
 };

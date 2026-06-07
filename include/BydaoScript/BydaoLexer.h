@@ -44,7 +44,11 @@ enum class BydaoTokenType {
     Identifier, Number, String,
 
     // Спецсимволы
-    Error, EndOfFile
+    Error, EndOfFile,
+
+    // Функции модуля/класса
+    Func, Immut, Out, Return,
+
 };
 
 struct BydaoToken {

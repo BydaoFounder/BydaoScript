@@ -35,6 +35,10 @@ QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
     {"true", BydaoTokenType::True},
     {"null", BydaoTokenType::Null},
     {"ignore", BydaoTokenType::Ignore},
+    {"func", BydaoTokenType::Func},
+    {"immut", BydaoTokenType::Immut},
+    {"out", BydaoTokenType::Out},
+    {"return", BydaoTokenType::Return},
 };
 
 BydaoLexer::BydaoLexer(const QString& source)

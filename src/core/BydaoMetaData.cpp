@@ -119,6 +119,13 @@ FuncMetaData::FuncMetaData( const FuncArgMetaDataList& argList, const QString& r
     this->index = -1;
 }
 
+void    FuncMetaData::operator=( const FuncMetaData& func ){
+    this->argList = func.argList;
+    this->retType = func.retType;
+    this->isImmutable = func.isImmutable;
+    this->index = func.index;
+}
+
 FuncMetaData&   FuncMetaData::append( const FuncArgMetaData& arg ) {
     argList.append( arg );
     return *this;

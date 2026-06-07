@@ -31,6 +31,18 @@ BydaoDisassembler::BydaoDisassembler() {}
 
 // ========== Основные методы ==========
 
+QString BydaoDisassembler::disassemble( const ModuleInfo& moduleInfo ) {
+    QString result;
+    QTextStream out(&result);
+    disassemble(out, moduleInfo.globalConstants,
+                moduleInfo.globalStringTable,
+                moduleInfo.globalCode);
+    out << disassembleFunction( moduleInfo.functions,
+                               moduleInfo.globalConstants,
+                               moduleInfo.globalStringTable );
+    return result;
+}
+
 QString BydaoDisassembler::disassemble(const QVector<BydaoConstant>& constants,
                                        const QVector<QString>& stringTable,
                                        const QVector<BydaoInstruction>& code,
@@ -155,6 +167,35 @@ QString BydaoDisassembler::disassembleCode(const QVector<BydaoInstruction>& code
         out << formatInstruction(i, code, constants, stringTable, debugInfo) << "\n";
     }
 
+    return result;
+}
+
+QString BydaoDisassembler::disassembleFunction(const QVector<FunctionInfo>& functionTable,
+                                               const QVector<BydaoConstant>& constants,
+                                               const QVector<QString>& stringTable) {
+    QString result;
+    if ( functionTable.size() == 0 ) {
+        return result;
+    }
+    result = "\n=== FUNCTIONS ===";
+    for (const FunctionInfo& funcInfo : functionTable) {
+
+        result += "\nFunc " + funcInfo.name + "(";
+
+        bool first = true;
+        for (const auto& argInfo : funcInfo.args) {
+            if ( ! first ) {
+                result += ", ";
+            }
+            if ( argInfo.isOut ) {
+                result += "out ";
+            }
+            result += argInfo.name + ": " + argInfo.types[0];
+            first = false;
+        }
+        result += "): " + funcInfo.retType + "\n";
+        result += disassembleCode( funcInfo.code, constants, stringTable );
+    }
     return result;
 }
 
@@ -347,6 +388,12 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
             args << "as '" + formatString(stringTable[instr.arg2]) + "'";
         break;
 
+    case BydaoOpCode::FuncDecl:
+        if (instr.arg1 >= 0 && instr.arg1 < stringTable.size())
+            args << "'" + formatString(stringTable[instr.arg1]) + "'";
+        args << QString("f%2").arg(instr.arg2);
+        break;
+
     case BydaoOpCode::CallVoid:
     case BydaoOpCode::Call:
     case BydaoOpCode::NewObj:
@@ -379,6 +426,24 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
             args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
         else
             args << QString("v%1 stk").arg(instr.arg1);
+        break;
+
+    case BydaoOpCode::CallFunc:
+    case BydaoOpCode::CallFuncVoid:
+        args << QString("%1 f%2").arg(instr.arg1).arg(instr.arg2);
+        break;
+
+    case BydaoOpCode::Return:
+        args << (instr.arg1 ? "stk" : "void");
+        break;
+
+    case BydaoOpCode::LoadSelf:
+    case BydaoOpCode::StoreSelf:
+        args << QString("self[%1]").arg(instr.arg1);
+        break;
+
+    case BydaoOpCode::PushAddr:
+        args << QString("&v%1").arg(instr.arg1);
         break;
 
     default:

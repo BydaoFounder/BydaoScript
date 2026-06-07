@@ -11,6 +11,7 @@ HEADERS += \
     ../../include/BydaoScript/BydaoConfig.h \
     ../../include/BydaoScript/BydaoConstantFolder.h \
     ../../include/BydaoScript/BydaoDisassembler.h \
+    ../../include/BydaoScript/BydaoFuncObject.h \
     ../../include/BydaoScript/BydaoInt.h \
     ../../include/BydaoScript/BydaoIntClass.h \
     ../../include/BydaoScript/BydaoIntRange.h \
@@ -19,6 +20,7 @@ HEADERS += \
     ../../include/BydaoScript/BydaoNull.h \
     ../../include/BydaoScript/BydaoObject.h \
     ../../include/BydaoScript/BydaoReal.h \
+    ../../include/BydaoScript/BydaoRuntime.h \
     ../../include/BydaoScript/BydaoString.h \
     ../../include/BydaoScript/BydaoStringIterator.h \
     ../../include/BydaoScript/BydaoValue.h \
@@ -34,6 +36,7 @@ SOURCES += \
     BydaoBool.cpp \
     BydaoConstantFolder.cpp \
     BydaoDisassembler.cpp \
+    BydaoFuncObject.cpp \
     BydaoInt.cpp \
     BydaoIntClass.cpp \
     BydaoIntRange.cpp \

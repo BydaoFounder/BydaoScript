@@ -13,19 +13,15 @@
 // limitations under the License.
 #pragma once
 
-#include "BydaoBytecode.h"
-#include "BydaoValue.h"
 #include <QStack>
 #include <QHash>
 #include <QVector>
 
-namespace BydaoScript {
+#include "BydaoBytecode.h"
+#include "BydaoRuntime.h"
+#include "BydaoFuncObject.h"
 
-// Информация о переменной в runtime
-struct RuntimeVar {
-    QString name;        // имя переменной (для отладки)
-    BydaoValue value;    // значение
-};
+namespace BydaoScript {
 
 class BydaoValueStack {
 
@@ -75,10 +71,11 @@ public:
         return *reinterpret_cast<BydaoValue*>(&m_storage[(m_stackTop - 1) * sizeof(BydaoValue)]);
     }
 
-    int size() const { return m_stackTop; }
-    bool isEmpty() const { return m_stackTop == 0; }
+    void    resize( int pos ) { m_stackTop = pos;    }
+    int     size() const { return m_stackTop; }
+    bool    isEmpty() const { return m_stackTop == 0; }
 
-    void clear() {
+    void    clear() {
         // Вызываем деструкторы для всех активных элементов
         while ( m_stackTop > 0 ) {
             reinterpret_cast<BydaoValue*>(&m_storage[ (--m_stackTop)  * sizeof(BydaoValue) ])->~BydaoValue();
@@ -100,10 +97,23 @@ private:
     int m_stackTop;
 };
 
+struct CallFrame {
+    BydaoFuncObject*    func;           // Вызываемая функция
+    int                 returnPc;       // Адрес возврата
+    VarScope*           callerScope;    // Скоуп вызывающего (для восстановления)
+    VarScope            localVars;      // Локальные переменные (включая аргументы)
+    int                 selfIndex;      // Индекс области видимости для self
+
+    // Для out-аргументов: индексы переменных вызывающего, куда писать результат
+    QVector<int>        outVarIndices;
+};
+
 class BydaoVM {
 public:
     BydaoVM();
     ~BydaoVM();
+
+    bool loadModule(const ModuleInfo& module);
 
     // Загрузка байткода
     bool load(const QVector<BydaoConstant>& constants,
@@ -131,6 +141,15 @@ public:
     QVector<ProfileItem> takeProfile();
 
 private:
+
+    QStack<CallFrame> m_callStack;  // Стек вызовов
+    QList<RuntimeVar>* m_currentSelfFrame;  // Текущий self-фрейм
+
+    void loadConstants( const QVector<BydaoConstant>& constants );
+
+    // Преобразование значения к нужному типу
+    BydaoValue convertValue(const BydaoValue& val, const QString& toType);
+
     // Выполнение одной инструкции
     inline bool execute(const BydaoInstruction& instr);
 
@@ -150,16 +169,28 @@ private:
     BydaoValue&     getBuiltinType(int index);
 
     // Таблицы из байткода
-    QVector<BydaoConstant> m_constants;      // исходные константы
-    QVector<BydaoValue> m_constantValues;    // готовые значения констант
-    QVector<QString> m_stringTable;          // таблица строк
-    QVector<BydaoInstruction> m_code;         // код
+    QVector<BydaoConstant>      m_constants;        // исходные константы
+    QVector<BydaoValue>         m_constantValues;   // готовые значения констант
+    QVector<QString>            m_stringTable;      // таблица строк
+    QVector<BydaoInstruction>   m_code;             // код
+
+    // Функции
+    QVector< BydaoFuncObject*>  m_funcs;            // функции
 
     // Состояние выполнения
-    int m_pc;                           // program counter
+    int m_pc;                           // счетчик байткода
     bool m_running;                     // флаг выполнения
     BydaoValueStack     m_stack;        // стек значений
-    QList<RuntimeVar>   m_scopeStack;   // стек областей видимости
+    QList<VarScope>     m_scopeStack;   // стек областей видимости:
+                                        // индекс 0 - область видимости текущего модуля
+                                        // индекс 1 - область видимости функций модуля
+                                        // индекс 2 и далее - область функций, вложенных в другие функции
+    int                 m_scopeLevel;   // уровень вложенности области видимости:
+                                        // 0 - уровень модуля
+                                        // 1 - уровень функции модуля и т.д.
+
+    void        appendScope();
+    void        dropScope();
 
     // Ошибки
     QString m_lastError;

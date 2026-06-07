@@ -24,6 +24,8 @@ public:
     BydaoDisassembler();
 
     // Основные методы дизассемблирования
+    QString disassemble( const ModuleInfo& moduleInfo );
+
     QString disassemble(const QVector<BydaoConstant>& constants,
                         const QVector<QString>& stringTable,
                         const QVector<BydaoInstruction>& code,
@@ -45,6 +47,10 @@ public:
                             const QVector<BydaoConstant>& constants,
                             const QVector<QString>& stringTable,
                             const QVector<BydaoDebugInfo>* debugInfo = nullptr);
+
+    QString disassembleFunction(const QVector<FunctionInfo>& functionTable,
+                                const QVector<BydaoConstant>& constants,
+                                const QVector<QString>& stringTable);
 
     // Настройки вывода
     void setShowLineNumbers(bool show) { m_showLineNumbers = show; }

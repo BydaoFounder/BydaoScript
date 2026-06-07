@@ -15,7 +15,10 @@
 
 #include <QString>
 #include <QVector>
-#include <QMetaType>
+#include <QHash>
+// #include <QMetaType>
+
+#include "BydaoValue.h"
 
 namespace BydaoScript {
 
@@ -103,7 +106,16 @@ enum BydaoOpCode : quint8 {
     UseBuiltin,     // arg1 = индекс имени типа в таблице строк
 
     // Массивы
-    PushArray       // arg1 = количество элементов
+    PushArray,      // arg1 = количество элементов
+
+    // Функции (не методы объекта)
+    FuncDecl,       // определение: arg1 - индекс названия, arg2 - индекс объекта функции
+    CallFunc,       // вызов функции: arg1 = кол-во аргументов, arg2 - индекс переменной типа фнукция
+    CallFuncVoid,   // вызов void-функции: arg1 = кол-во аргументов, arg2 - индекс переменной типа фнукция
+    Return,         // возврат: arg1 = 1 если есть значение, 0 если void
+    LoadSelf,       // загрузка self-переменной: arg1 = индекс в self-фрейме
+    StoreSelf,      // сохранение в self-переменную (для out?)
+    PushAddr        // адрес переменной (для out аргументов)
 };
 
 // Инструкция (9 байт)
@@ -134,10 +146,11 @@ struct BydaoConstant {
     BydaoConstantType type;  // 1 байт
     
     union {
-        qint64 intValue;     // 8 байт
-        double realValue;    // 8 байт
-        quint32 stringIndex; // 4 байта (индекс в таблице строк)
-        quint8 boolValue;    // 1 байт
+        qint64 intValue;        // 8 байт
+        double realValue;       // 8 байт
+        quint32 stringIndex;    // 4 байта (индекс в таблице строк)
+        quint8 boolValue;       // 1 байт
+        void*  pointer;         // 8 байт - указатель на объект
     };
     
     BydaoConstant() : type(CONST_NULL), intValue(0) {}
@@ -189,6 +202,60 @@ public:
 
 #define SPECIAL_VAR     "__SelfData"
 
+
+// Информация о аргументе функции для сериализации
+struct FunctionArgInfo {
+    QString name;
+    QStringList types;
+    bool isOut;
+    bool hasDefault;
+    BydaoValue defaultValue;
+
+    FunctionArgInfo() : isOut(false), hasDefault(false) {}
+};
+
+// Информация о функции для сериализации
+struct FunctionInfo {
+    QString name;
+    int entryPc = 0;
+    int arity = 0;
+    bool isPublic = false;
+    bool isImmutable = false;
+    bool isStatic = true;
+    QString retType;
+
+    QVector<FunctionArgInfo> args;
+    QVector<BydaoInstruction> code;
+    QVector<BydaoConstant> constants;      // константы, используемые только этой функцией
+    QVector<QString> stringTable;          // строки, используемые только этой функцией
+    QHash<QString, int> selfRefs;          // имя переменной модуля -> индекс в глобальном фрейме
+
+    // Локальные переменные функции
+    struct LocalVar {
+        QString name;
+        QString type;
+    };
+    QVector<LocalVar> localVars;
+};
+
+// Информация о модуле для сериализации
+struct ModuleInfo {
+    QString name;
+    QVector<FunctionInfo> functions;
+    QVector<QString> globalStringTable;
+    QVector<BydaoConstant> globalConstants;
+    QVector<BydaoInstruction> globalCode;
+
+    // Публичные переменные модуля
+    struct PubVar {
+        QString name;
+        QString type;
+        bool isConst;
+        BydaoValue initValue;
+    };
+    QVector<PubVar> pubVars;
+};
+
 } // namespace BydaoScript
 
-Q_DECLARE_METATYPE(BydaoScript::BydaoInstruction)
+// Q_DECLARE_METATYPE(BydaoScript::BydaoInstruction)
