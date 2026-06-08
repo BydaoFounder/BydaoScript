@@ -119,8 +119,22 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
         funcObj->name = funcInfo.name;
         // funcObj->bytecode = funcInfo.code;
         // funcObj->entryPc = funcInfo.entryPc;
+
         funcObj->entryPc = m_code.size();
         m_code.append( funcInfo.code );
+        for ( int pc = funcObj->entryPc; pc < m_code.size(); ++pc ) {
+            BydaoInstruction& instr = m_code[ pc ];
+            switch ( instr.op ) {
+            case BydaoOpCode::Jump:
+            case BydaoOpCode::JumpIfFalse:
+            case BydaoOpCode::JumpIfTrue:
+                instr.arg1 += funcObj->entryPc;
+            default:
+
+                break;
+            }
+        }
+
         funcObj->arity = funcInfo.arity;
         funcObj->selfIndex = m_scopeLevel;
         funcObj->selfVarIndices = funcInfo.selfRefs;

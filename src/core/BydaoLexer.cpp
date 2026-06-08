@@ -99,7 +99,7 @@ BydaoToken BydaoLexer::readIdentifier() {
     int start = m_pos, startCol = m_column;
     while (m_pos < m_source.length()) {
         QChar ch = m_source[m_pos];
-        if (ch.isLetterOrNumber() || ch == '_' || ch == '-') {
+        if (ch.isLetterOrNumber() || ch == '_' /* || ch == '-' */) {
             m_pos++; m_column++;
         } else break;
     }
@@ -226,7 +226,7 @@ QVector<BydaoToken> BydaoLexer::tokenize() {
         else if ( ch == '0' && (nextCh == 'b' || nextCh == 'B') ) {
             tokens.append( readBinNumber() );
         }
-        else if ( ch.isDigit() || ( ch == '-' && nextCh.isDigit() ) ) {
+        else if ( ch.isDigit() /* || ( ch == '-' && nextCh.isDigit() ) */ ) {
             tokens.append( readDecNumber() );
         }
         else if (ch.isLetter() || ch == '_') {
