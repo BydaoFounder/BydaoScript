@@ -1450,7 +1450,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Создаём новый фрейм
         CallFrame frame;
-        frame.func = func;
+//        frame.func = func;
         frame.returnPc = m_pc;
 //        frame.selfIndex = m_scopeLevel;
 

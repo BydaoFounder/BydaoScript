@@ -98,7 +98,7 @@ private:
 };
 
 struct CallFrame {
-    BydaoFuncObject*    func;           // Вызываемая функция
+//    BydaoFuncObject*    func;           // Вызываемая функция
     int                 returnPc;       // Адрес возврата
     // VarScope*           callerScope;    // Скоуп вызывающего (для восстановления)
     // VarScope            localVars;      // Локальные переменные (включая аргументы)
