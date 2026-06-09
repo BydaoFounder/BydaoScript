@@ -317,6 +317,7 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
         break;
 
     case BydaoOpCode::VarAdd:
+    case BydaoOpCode::VarSub:
     case BydaoOpCode::VarDiv:
         if ( instr.arg2 > 0 )
             args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);

@@ -20,8 +20,9 @@ namespace BydaoScript {
 
 class BydaoInt : public BydaoObject {
 
-    static QVector<BydaoInt*> s_cache;
     static const int MAX_CACHE_SIZE = 1024;
+    static QList<BydaoInt*> s_cache;
+    static bool s_initCache;
 
 protected:
 
@@ -42,6 +43,10 @@ public:
             BydaoInt* obj = s_cache.takeLast();
             obj->m_value = value;
             return obj;
+        }
+        if ( s_initCache ) {
+            s_cache.reserve( MAX_CACHE_SIZE );
+            s_initCache = false;
         }
         return new BydaoInt(value);
     }

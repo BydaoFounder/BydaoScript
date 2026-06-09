@@ -19,6 +19,7 @@
 namespace BydaoScript {
 
 QVector<BydaoInt*> BydaoInt::s_cache;
+bool BydaoInt::s_initCache = true;
 
 // Получить мета-данные
 MetaData*   BydaoInt::metaData() {

@@ -2668,6 +2668,28 @@ bool BydaoParser::parseAddition() {
                 continue;
             }
         }
+        else {
+            int size = m_bytecode.size();
+            if ( m_bytecode[size-1].op == BydaoOpCode::Load && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+
+                // Вычитание двух переменных
+
+                int rightVarIndex = m_bytecode.takeLast().arg1;
+                int leftVarIndex = m_bytecode.takeLast().arg1;
+                emitCode( BydaoOpCode::VarSub, leftVarIndex, rightVarIndex, op);
+                continue;
+            }
+            if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+
+                // Вычитание константы из переменной
+
+                int constIndex = m_bytecode.takeLast().arg1;
+                int leftVarIndex = m_bytecode.takeLast().arg1;
+                emitCode( BydaoOpCode::VarSub, leftVarIndex, -constIndex, op);
+                continue;
+            }
+
+        }
 
         emitCode(isPlus ? BydaoOpCode::Add : BydaoOpCode::Sub, 0, 0, op);
     }
