@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
             out << QString("%1 %2 ms (%3 calls)\n")
                        .arg(item.name, -12)
                        .arg(ms, 8, 'f', 3)
-                       .arg(item.count, 6);
+                       .arg(item.count, 7);
             total += item.time;
         }
         out << "----------------------------\n";

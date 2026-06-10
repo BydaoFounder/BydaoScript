@@ -100,6 +100,8 @@ private:
 struct CallFrame {
 //    BydaoFuncObject*    func;           // Вызываемая функция
     int                 returnPc;       // Адрес возврата
+    int                 scopeDeep;      // глубина стека областей видимости перед вызовом функции
+    int                 scopeOffset;
     // VarScope*           callerScope;    // Скоуп вызывающего (для восстановления)
     // VarScope            localVars;      // Локальные переменные (включая аргументы)
     // int                 selfIndex;      // Индекс области видимости для self
@@ -257,17 +259,12 @@ private:
     int m_pc;                           // счетчик байткода
     bool m_running;                     // флаг выполнения
     BydaoValueStack     m_stack;        // стек значений
-    QList<VarScope>     m_scopeStack;   // стек областей видимости:
+
+    VarScope            m_scopeStack;   // стек областей видимости:
                                         // индекс 0 - область видимости текущего модуля
                                         // индекс 1 - область видимости функций модуля
                                         // индекс 2 и далее - область функций, вложенных в другие функции
-    int                 m_scopeLevel;   // уровень вложенности области видимости:
-                                        // 0 - уровень модуля
-                                        // 1 - уровень функции модуля и т.д.
-
-    void        appendScope();
-    void        appendScope(int size);
-    void        dropScope();
+    int                 m_scopeOffset;  // смещение индекса переменных в стеке областей видимости
 
     // Ошибки
     QString m_lastError;

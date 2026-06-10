@@ -40,7 +40,7 @@ BydaoVM::BydaoVM()
     // Инициализируем область видимости
     m_scopeStack.clear();
     m_scopeStack.append( VarScope() );
-    m_scopeLevel = 0;
+    m_scopeOffset = 0;
 
     // Встроенные типы
     // Порядок добавления встроенных типов должен совпадать с порядком в парсере
@@ -89,15 +89,14 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
     // Создаём глобальный фрейм для модуля
     m_scopeStack.clear();
     m_scopeStack.append( VarScope() );
-    m_scopeLevel = 0;
+    m_scopeOffset = 0;
 
     // В стек значений добавим специальную переменную
 
     RuntimeVar var;
     var.name = SPECIAL_VAR;
     var.value = BydaoValue();
-    m_scopeStack[0].append( var );
-
+    m_scopeStack.append( var );
 
     // Добавляем публичные переменные
 /*
@@ -136,7 +135,7 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
         }
 
         funcObj->arity = funcInfo.arity;
-        funcObj->selfIndex = m_scopeLevel;
+        funcObj->selfIndex = m_scopeOffset;
         funcObj->selfVarIndices = funcInfo.selfRefs;
 
         funcObj->funcMetaData.retType = funcInfo.retType;
@@ -220,14 +219,14 @@ bool BydaoVM::load(const QVector<BydaoConstant>& constants,
     m_stack.clear();
     m_scopeStack.clear();
     m_scopeStack.append( VarScope() );
-    m_scopeLevel = 0;
+    m_scopeOffset = 0;
 
     // В стек значений добавим специальную переменную
 
     RuntimeVar var;
     var.name = SPECIAL_VAR;
     var.value = BydaoValue();
-    m_scopeStack[0].append( var );
+    m_scopeStack.append( var );
 
     return true;
 }
@@ -326,37 +325,15 @@ void BydaoVM::dumpStack(const QString& label) {
 
 // ========== Доступ к переменным ==========
 
-void        BydaoVM::appendScope() {
-    ++m_scopeLevel;
-    if ( m_scopeStack.size() < m_scopeLevel + 1 ) {
-        m_scopeStack.append( VarScope() );
-    }
-}
-
-void        BydaoVM::appendScope( int size ) {
-    ++m_scopeLevel;
-    if ( m_scopeStack.size() < m_scopeLevel + 1 ) {
-        m_scopeStack.append( VarScope() );
-    }
-    m_scopeStack[ m_scopeLevel ].resize( size );
-}
-
-void        BydaoVM::dropScope() {
-//    m_scopeStack.takeLast();
-    --m_scopeLevel;
-}
-
-
 BydaoValue& BydaoVM::getVariable(int varIndex, const BydaoInstruction& instr) {
     static BydaoValue nullValue = BydaoValue::fromNull();
 
-    VarScope& scopeStack = m_scopeStack[ m_scopeLevel ];
-    if (varIndex < 0 || varIndex >= scopeStack.size()) {
+    int index = varIndex + m_scopeOffset;
+    if ( index < 0 || index >= m_scopeStack.size()) {
         error("Invalid variable index", instr);
         return nullValue;
     }
-    
-    return scopeStack[varIndex].value;
+    return m_scopeStack[ index ].value;
 }
 
 const BydaoValue& BydaoVM::getVariable(int varIndex, const BydaoInstruction& instr) const {
@@ -364,22 +341,20 @@ const BydaoValue& BydaoVM::getVariable(int varIndex, const BydaoInstruction& ins
 
     Q_UNUSED(instr);
 
-    const VarScope& scopeStack = m_scopeStack[ m_scopeLevel ];
-    if (varIndex < 0 || varIndex >= scopeStack.size()) {
+    int index = varIndex + m_scopeOffset;
+    if ( index < 0 || index >= m_scopeStack.size()) {
         return nullValue;
     }
-    
-    return scopeStack[varIndex].value;
+    return m_scopeStack[ index ].value;
 }
 
 void BydaoVM::setVariable(int varIndex, const BydaoValue& value, const BydaoInstruction& instr) {
-    VarScope& scopeStack = m_scopeStack[ m_scopeLevel ];
-    if (varIndex < 0 || varIndex >= scopeStack.size()) {
+    int index = varIndex + m_scopeOffset;
+    if ( index < 0 || index >= m_scopeStack.size()) {
         error("Invalid variable index", instr);
         return;
     }
-    
-    scopeStack[varIndex].value = value;
+    m_scopeStack[ index ].value = value;
 }
 
 BydaoValue BydaoVM::convertValue(const BydaoValue& val, const QString& toType) {
@@ -515,7 +490,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     // ===== Области видимости =====
 
     case BydaoOpCode::ScopeDrop:
-        m_scopeStack[ m_scopeLevel ].resize(arg1);
+        m_scopeStack.resize(arg1 + m_scopeOffset);
         break;
 
     // ===== Переходы =====
@@ -547,7 +522,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         RuntimeVar var;
         var.name = name;
         var.value = m_constantValues[ arg2 ];
-        m_scopeStack[ m_scopeLevel ].append(var);
+        m_scopeStack.append(var);
         break;
     }
 
@@ -565,23 +540,23 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
                 // инициализация значением со стека
                 var.value = m_stack.pop();
             }
-            m_scopeStack[ m_scopeLevel ].append(var);
+            m_scopeStack.append(var);
         }
         else {
             // Анонимная переменная (например, временная)
 
-            int varIndex = m_scopeStack[ m_scopeLevel ].size();
+            int varIndex = m_scopeStack.size();
             RuntimeVar var;
             var.name = QString("__tmp_%1").arg(varIndex);
-            m_scopeStack[ m_scopeLevel ].append(var);
+            m_scopeStack.append(var);
         }
         break;
     }
     
     case BydaoOpCode::Drop: {
-        int varIndex = arg1;
-        if (varIndex >= 0 && varIndex < m_scopeStack[ m_scopeLevel ].size()) {
-            m_scopeStack[ m_scopeLevel ].removeAt( varIndex );
+        int varIndex = arg1 + m_scopeOffset;
+        if (varIndex >= 0 && varIndex < m_scopeStack.size()) {
+            m_scopeStack.removeAt( varIndex );
         }
         break;
     }
@@ -1398,12 +1373,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         
         // Добавляем модуль как переменную в глобальной области
 
-        int varIndex = m_scopeStack[ m_scopeLevel ].size();
+        int varIndex = m_scopeStack.size();
 
         RuntimeVar var;
         var.name = alias;
         var.value = BydaoValue(module, BydaoTypeId::TYPE_MODULE);
-        m_scopeStack[ m_scopeLevel ].append(var);
+        m_scopeStack.append(var);
 
         m_moduleName[alias] = varIndex;
         
@@ -1461,7 +1436,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         RuntimeVar var;
         var.name = m_stringTable[arg1];
         var.value = BydaoValue( m_funcs[arg2], TYPE_FUNC );
-        m_scopeStack[ m_scopeLevel ].append(var);
+        m_scopeStack.append(var);
         break;
     }
 
@@ -1482,17 +1457,20 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         CallFrame frame;
 //        frame.func = func;
         frame.returnPc = m_pc;
-//        frame.selfIndex = m_scopeLevel;
+        frame.scopeDeep = m_scopeStack.size();
+        frame.scopeOffset = m_scopeOffset;
 
         // Копируем аргументы в локальные переменные
 
-        appendScope( argCount );
+//        appendScope( argCount );
+        m_scopeStack.resizeForOverwrite( frame.scopeDeep + argCount );
+        m_scopeOffset = frame.scopeDeep;
 
         while ( --argCount >= 0 ) {
             RuntimeVar var;
             var.name = func->funcMetaData.argList[ argCount ].name;
             m_stack.popTo( var.value );
-            m_scopeStack[ m_scopeLevel ][ argCount ] = var;
+            m_scopeStack[ m_scopeOffset + argCount ] = var;
         }
 
         // Сохраняем фрейм
@@ -1538,8 +1516,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Восстанавливаем скоуп вызывающего
 
-        dropScope();
-//        m_scopeLevel = frame.selfIndex;
+//        dropScope();
+        m_scopeStack.resize( frame.scopeDeep );
+        m_scopeOffset = frame.scopeOffset;
+
         m_pc = frame.returnPc;
 /*
         // Кладём результат на стек, если функция не void
@@ -1603,11 +1583,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         // Кладём на стек значение переменной (для совместимости)
-        if (varIndex < 0 || m_scopeStack[ m_scopeLevel ].size() <= varIndex ) {
+        if (varIndex < 0 || m_scopeStack.size() <= varIndex ) {
             error("Invalid variable index in PushAddr", instr);
             return false;
         }
-        m_stack.push(m_scopeStack[m_scopeLevel][varIndex].value);
+        m_stack.push(m_scopeStack[varIndex].value);
         break;
     }
 */
