@@ -18,8 +18,12 @@
 
 namespace BydaoScript {
 
-QVector<BydaoInt*> BydaoInt::s_cache;
-bool BydaoInt::s_initCache = true;
+QList<BydaoInt*>    BydaoInt::s_cache;
+bool                BydaoInt::s_initCache = true;
+
+BydaoInt*           BydaoInt::s_pool[ MAX_CACHE_SIZE ];
+int                 BydaoInt::s_poolIndex;
+
 
 // Получить мета-данные
 MetaData*   BydaoInt::metaData() {

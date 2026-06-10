@@ -24,30 +24,53 @@ class BydaoInt : public BydaoObject {
     static QList<BydaoInt*> s_cache;
     static bool s_initCache;
 
+    static BydaoInt*        s_pool[ MAX_CACHE_SIZE ];
+    static int              s_poolIndex;    // первый свободный элемент в списке s_pool
+
 protected:
 
-    void release() override {
-        if (s_cache.size() < MAX_CACHE_SIZE) {
-            m_refCount = 0;  // сбрасываем для следующего использования
-            s_cache.append(this);
-        } else {
-            delete this;
+    static void    initCache() {
+        if ( s_initCache ) {
+            s_cache.reserve( MAX_CACHE_SIZE );
+            for ( int i = 0; i < MAX_CACHE_SIZE; ++i ) {
+                s_pool[ i ] = nullptr;
+            }
+            s_poolIndex = 0;
+            s_initCache = false;
         }
+    }
+
+    void release() override {
+        if ( s_poolIndex < MAX_CACHE_SIZE ) {
+            m_refCount = 0;  // сбрасываем для следующего использования
+            s_pool[ s_poolIndex++ ] = this;
+            return;
+        }
+        // if (s_cache.size() < MAX_CACHE_SIZE) {
+        //     m_refCount = 0;  // сбрасываем для следующего использования
+        //     s_cache.append(this);
+        //     return;
+        // }
+        delete this;
     }
     explicit BydaoInt(qint64 value = 0);
 
 public:
 
     static BydaoInt* create(qint64 value) {
-        if (!s_cache.isEmpty()) {
-            BydaoInt* obj = s_cache.takeLast();
+        if ( s_initCache ) {
+            initCache();
+        }
+        if ( s_poolIndex > 0 ) {
+            BydaoInt* obj = s_pool[ --s_poolIndex ];
             obj->m_value = value;
             return obj;
         }
-        if ( s_initCache ) {
-            s_cache.reserve( MAX_CACHE_SIZE );
-            s_initCache = false;
-        }
+        // if ( ! s_cache.isEmpty() ) {
+        //     BydaoInt* obj = s_cache.takeLast();
+        //     obj->m_value = value;
+        //     return obj;
+        // }
         return new BydaoInt(value);
     }
 
