@@ -1454,23 +1454,23 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         // Создаём новый фрейм
+        int scopeDeep = m_scopeStack.size();
         CallFrame frame;
 //        frame.func = func;
         frame.returnPc = m_pc;
-        frame.scopeDeep = m_scopeStack.size();
+        frame.scopeDeep = scopeDeep;
         frame.scopeOffset = m_scopeOffset;
 
         // Копируем аргументы в локальные переменные
 
 //        appendScope( argCount );
-        m_scopeStack.resizeForOverwrite( frame.scopeDeep + argCount );
-        m_scopeOffset = frame.scopeDeep;
+        m_scopeStack.resizeForOverwrite( scopeDeep + argCount );
+        m_scopeOffset = scopeDeep;
 
         while ( --argCount >= 0 ) {
-            RuntimeVar var;
+            RuntimeVar& var = m_scopeStack[ m_scopeOffset + argCount ];
             var.name = func->funcMetaData.argList[ argCount ].name;
             m_stack.popTo( var.value );
-            m_scopeStack[ m_scopeOffset + argCount ] = var;
         }
 
         // Сохраняем фрейм
