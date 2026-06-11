@@ -305,15 +305,16 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
             args << QString("v%1 stk").arg(instr.arg1);
         break;
 
+    case BydaoOpCode::VarEq:
+    case BydaoOpCode::VarNeq:
     case BydaoOpCode::VarLt:
-        if ( instr.arg1 > 0 ) { // сравнение переменной
-            if ( instr.arg2 > 0 )       // с переменной
-                args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
-            else if ( instr.arg2 < 0 )  // с константой
-                args << QString("v%1 c%2").arg(instr.arg1).arg(-instr.arg2);
-            else                        // со значением на стеке
-                args << QString("v%1 stk").arg(instr.arg1);
-        }
+    case BydaoOpCode::VarLe:
+        if ( instr.arg2 > 0 )       // с переменной
+            args << QString("v%1 v%2").arg(instr.arg1).arg(instr.arg2);
+        else if ( instr.arg2 < 0 )  // с константой
+            args << QString("v%1 c%2").arg(instr.arg1).arg(-instr.arg2);
+        else                        // со значением на стеке
+            args << QString("v%1 stk").arg(instr.arg1);
         break;
 
     case BydaoOpCode::VarAdd:

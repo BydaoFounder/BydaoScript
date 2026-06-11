@@ -901,6 +901,69 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
+    case BydaoOpCode::VarEq: {
+        if ( arg2 < 0 ) {         // Сравнение переменной с константой
+            BydaoObject* obj = getVariable( arg1, instr ).toObject();
+            BydaoValue& b = m_constantValues[ -arg2 ];
+            if ( ! obj || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push( obj->eq(b));
+
+        }
+        else if ( arg2 > 0 ) {    // Сравнение двух переменных
+            BydaoObject* obj = getVariable( arg1, instr ).toObject();
+            BydaoValue& b = getVariable( arg2, instr );
+            if ( ! obj || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push(obj->eq(b));
+        }
+        else {                          // сравнение переменной со значеним на стеке
+            BydaoObject* obj = getVariable( arg1, instr ).toObject();
+            BydaoValue  b = m_stack.pop();
+            if (! obj || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push(obj->eq(b));
+        }
+        break;
+    }
+
+    case BydaoOpCode::VarNeq: {
+        if ( arg2 < 0 ) {         // Сравнение переменной с константой
+            BydaoValue& a = getVariable( arg1, instr );
+            BydaoValue& b = m_constantValues[ -arg2 ];
+            if (!a.isObject() || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push(a.toObject()->neq(b));
+        }
+        else if ( arg2 > 0 ) {    // Сравнение двух переменных
+            BydaoValue& a = getVariable( arg1, instr );
+            BydaoValue& b = getVariable( arg2, instr );
+            if (!a.isObject() || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push(a.toObject()->neq(b));
+        }
+        else {                          // сравнение переменной со значеним на стеке
+            BydaoValue& a = getVariable( arg1, instr );
+            BydaoValue  b = m_stack.pop();
+            if (!a.isObject() || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push(a.toObject()->neq(b));
+        }
+        break;
+    }
+
     case BydaoOpCode::VarLt: {
         if ( arg2 < 0 ) {         // Сравнение переменной с константой
             BydaoValue& a = getVariable( arg1, instr );
@@ -929,6 +992,38 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
                 return false;
             }
             m_stack.push(a.toObject()->lt(b));
+        }
+        break;
+    }
+
+    case BydaoOpCode::VarLe: {
+        if ( arg2 < 0 ) {         // Сравнение переменной с константой
+            BydaoObject* obj = getVariable( arg1, instr ).toObject();
+            BydaoValue& b = m_constantValues[ -arg2 ];
+            if ( ! obj || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push( obj->le(b));
+
+        }
+        else if ( arg2 > 0 ) {    // Сравнение двух переменных
+            BydaoObject* obj = getVariable( arg1, instr ).toObject();
+            BydaoValue& b = getVariable( arg2, instr );
+            if ( ! obj || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push( obj->le(b));
+        }
+        else {                          // сравнение переменной со значеним на стеке
+            BydaoObject* obj = getVariable( arg1, instr ).toObject();
+            BydaoValue  b = m_stack.pop();
+            if ( ! obj || !b.isObject()) {
+                error("Comparison with non-object", instr);
+                return false;
+            }
+            m_stack.push( obj->le(b));
         }
         break;
     }

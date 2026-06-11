@@ -2515,6 +2515,26 @@ bool BydaoParser::parseEquality() {
 
         setLastType( TypeInfo("Bool", Expr ) );
 
+        int size = m_bytecode.size();
+        if ( m_bytecode[size-1].op == BydaoOpCode::Load && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+
+            // Сравнение двух переменных
+
+            int rightVarIndex = m_bytecode.takeLast().arg1;
+            int leftVarIndex = m_bytecode.takeLast().arg1;
+            emitCode( isEq ? BydaoOpCode::VarEq : BydaoOpCode::VarNeq, leftVarIndex, rightVarIndex, op);
+            continue;
+        }
+        if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+
+            // Сравнение переменной и константы
+
+            int constIndex = m_bytecode.takeLast().arg1;
+            int leftVarIndex = m_bytecode.takeLast().arg1;
+            emitCode( isEq ? BydaoOpCode::VarEq : BydaoOpCode::VarNeq, leftVarIndex, -constIndex, op);
+            continue;
+        }
+
         emitCode(isEq ? BydaoOpCode::Eq : BydaoOpCode::Neq, 0, 0, op);
     }
 
@@ -2578,6 +2598,12 @@ bool BydaoParser::parseComparison() {
                 emitCode(BydaoOpCode::VarLt, leftVarIndex, rightVarIndex, op);
                 continue;
             }
+            if ( opCode == BydaoOpCode::Le ) {
+                int rightVarIndex = m_bytecode.takeLast().arg1;
+                int leftVarIndex = m_bytecode.takeLast().arg1;
+                emitCode(BydaoOpCode::VarLe, leftVarIndex, rightVarIndex, op);
+                continue;
+            }
         }
         else if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
 
@@ -2587,12 +2613,23 @@ bool BydaoParser::parseComparison() {
                 emitCode(BydaoOpCode::VarLt, leftVarIndex, -rightVarIndex, op);
                 continue;
             }
+            if ( opCode == BydaoOpCode::Le ) {
+                int rightVarIndex = m_bytecode.takeLast().arg1;
+                int leftVarIndex = m_bytecode.takeLast().arg1;
+                emitCode(BydaoOpCode::VarLe, leftVarIndex, -rightVarIndex, op);
+                continue;
+            }
         }
         else if ( m_bytecode[size-2].op == BydaoOpCode::Load ) {
 
             if ( opCode == BydaoOpCode::Lt ) {
                 int leftVarIndex = m_bytecode.takeAt( size - 2 ).arg1;
                 emitCode(BydaoOpCode::VarLt, leftVarIndex, 0, op);
+                continue;
+            }
+            if ( opCode == BydaoOpCode::Le ) {
+                int leftVarIndex = m_bytecode.takeAt( size - 2 ).arg1;
+                emitCode(BydaoOpCode::VarLe, leftVarIndex, 0, op);
                 continue;
             }
         }
