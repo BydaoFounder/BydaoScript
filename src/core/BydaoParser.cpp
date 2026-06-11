@@ -2021,7 +2021,6 @@ bool BydaoParser::parseFuncBody(FuncParseContext& ctx) {
         BydaoToken statementToken = m_current;
 //        int typeStackSize = m_typeStack.size();
         if ( ! parseStatement() ) {
-            exitScope();
             return false;
         }
 /*
@@ -2038,7 +2037,7 @@ bool BydaoParser::parseFuncBody(FuncParseContext& ctx) {
     // TODO: Анализ потока управления
 
     // Если последняя инструкция не Return, и функция должна возвращать значение
-    bool hasReturn = ! m_bytecode.isEmpty() && m_bytecode.last().op == BydaoOpCode::Return;
+    bool hasReturn = ( ! m_bytecode.isEmpty() && m_bytecode.last().op == BydaoOpCode::Return );
     if ( ! hasReturn ) {    // оператора return нет
 
         if ( ctx.retType != "Void") {   // но функция должна вернуть результат
@@ -2046,19 +2045,13 @@ bool BydaoParser::parseFuncBody(FuncParseContext& ctx) {
             return false;
         }
 
-        // Добавить выход из области видимости и оператор возврата из функции
-
-//        exitScope();
-        if ( m_varScopes[ m_scopeLevel ].size() > m_scopeStart.top() ) {
-            m_varScopes[ m_scopeLevel ].resize( m_scopeStart.top() );
-            emitCode( BydaoOpCode::ScopeDrop, m_scopeStart.top() );
-        }
+        // Добавить оператор возврата из функции
         emitCode( BydaoOpCode::Return, 0, 0 );
     }
 
     // Вернемся к предыдущей области видимости
 
-    m_scopeStart.pop();
+//    m_scopeStart.pop();
     dropScope();
 
     // Сохраняем байт-код функции в пул
@@ -2081,7 +2074,6 @@ bool BydaoParser::parseFuncCall(const BydaoFuncObject* funcObj) {
 
     while ( ! match(BydaoTokenType::RParen) ) {
         BydaoToken argToken = m_current;
-//        int typeStackSize = m_typeStack.size();
 
         // Для out-аргументов ожидаем идентификатор переменной
         bool isOut = (argCount < metaData.argList.size() && metaData.argList[argCount].isOut);
@@ -2104,7 +2096,8 @@ bool BydaoParser::parseFuncCall(const BydaoFuncObject* funcObj) {
             // Генерируем PUSH_ADDR вместо обычного PUSH
             emitCode(BydaoOpCode::PushAddr, info.varIndex, 0, argToken);
             m_typeStack.push(TypeInfo(info.type, Var));
-        } else {
+        }
+        else {
             // Обычный аргумент
             if (!parseExpression()) {
                 return false;
@@ -2227,22 +2220,12 @@ bool BydaoParser::parseReturn() {
             // TODO: инструкция приведения
         }
 
-//        exitScope();
-        if ( m_varScopes[ m_scopeLevel ].size() > m_scopeStart.top() ) {
-            m_varScopes[ m_scopeLevel ].resize( m_scopeStart.top() );
-            emitCode( BydaoOpCode::ScopeDrop, m_scopeStart.top() );
-        }
         emitCode(BydaoOpCode::Return, 1, 0, returnToken);
     }
     else {
         if (m_currentFunc->retType != "Void") {
             error("Function must return a value of type '" + m_currentFunc->retType + "'", returnToken);
             return false;
-        }
-//        exitScope();
-        if ( m_varScopes[ m_scopeLevel ].size() > m_scopeStart.top() ) {
-            m_varScopes[ m_scopeLevel ].resize( m_scopeStart.top() );
-            emitCode( BydaoOpCode::ScopeDrop, m_scopeStart.top() );
         }
         emitCode(BydaoOpCode::Return, 0, 0, returnToken);
     }
