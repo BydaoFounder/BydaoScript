@@ -56,7 +56,8 @@ BydaoParser::BydaoParser(const QString& moduleName, const QVector<BydaoToken>& t
 
     // Добавляем константу NULL, чтобы все другие константы имели индекс > 0
 
-    addNullConstant();
+//    addNullConstant();
+    addConstant("_@%_%@_");
 
     // Добавляем служебную переменную, чтобы все индексы переменных были > 0.
     // TODO: Служебная переменная специального типа, которая содержит информацию
