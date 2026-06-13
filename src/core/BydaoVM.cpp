@@ -863,15 +863,14 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoValue b = m_stack.pop();
         BydaoValue a = m_stack.pop();
         
-        if ( a.isNull() ) {
-            m_stack.push( BydaoValue::fromBool( b.isNull() ) );
+        if (!a.isObject() || !b.isObject()) {
+            // Сравнение с null
+            bool result = (a.isNull() && b.isNull());
+            m_stack.push(BydaoValue::fromBool(result));
+            break;
         }
-        else if ( b.isNull() ){
-            m_stack.push( BydaoValue::fromBool( false ) );
-        }
-        else {
-            m_stack.push(a.toObject()->eq(b));
-        }
+        
+        m_stack.push(a.toObject()->eq(b));
         break;
     }
     
@@ -904,55 +903,32 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::VarEq: {
         if ( arg2 < 0 ) {         // Сравнение переменной с константой
-            BydaoValue& a = getVariable( arg1, instr );
+            BydaoObject* obj = getVariable( arg1, instr ).toObject();
             BydaoValue& b = m_constantValues[ -arg2 ];
-            if ( b.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( a.isNull() ) );
-                break;
-            }
-            if ( a.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( b.isNull() ) );
-                break;
-            }
-            if ( ! a.toObject() || !b.isObject()) {
+            if ( ! obj || !b.isObject()) {
                 error("Comparison with non-object", instr);
                 return false;
             }
-            m_stack.push( a.toObject()->eq(b));
+            m_stack.push( obj->eq(b));
+
         }
         else if ( arg2 > 0 ) {    // Сравнение двух переменных
-            BydaoValue& a = getVariable( arg1, instr );
+            BydaoObject* obj = getVariable( arg1, instr ).toObject();
             BydaoValue& b = getVariable( arg2, instr );
-            if ( b.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( a.isNull() ) );
-                break;
-            }
-            if ( a.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( b.isNull() ) );
-                break;
-            }
-            if ( ! a.toObject() || !b.isObject()) {
+            if ( ! obj || !b.isObject()) {
                 error("Comparison with non-object", instr);
                 return false;
             }
-            m_stack.push( a.toObject()->eq(b));
+            m_stack.push(obj->eq(b));
         }
         else {                          // сравнение переменной со значеним на стеке
-            BydaoValue& a = getVariable( arg1, instr );
+            BydaoObject* obj = getVariable( arg1, instr ).toObject();
             BydaoValue  b = m_stack.pop();
-            if ( b.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( a.isNull() ) );
-                break;
-            }
-            if ( a.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( b.isNull() ) );
-                break;
-            }
-            if ( ! a.toObject() || !b.isObject()) {
+            if (! obj || !b.isObject()) {
                 error("Comparison with non-object", instr);
                 return false;
             }
-            m_stack.push( a.toObject()->eq(b));
+            m_stack.push(obj->eq(b));
         }
         break;
     }
@@ -961,14 +937,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         if ( arg2 < 0 ) {         // Сравнение переменной с константой
             BydaoValue& a = getVariable( arg1, instr );
             BydaoValue& b = m_constantValues[ -arg2 ];
-            if ( b.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( ! a.isNull() ) );
-                break;
-            }
-            if ( a.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( ! b.isNull() ) );
-                break;
-            }
             if (!a.isObject() || !b.isObject()) {
                 error("Comparison with non-object", instr);
                 return false;
@@ -978,14 +946,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         else if ( arg2 > 0 ) {    // Сравнение двух переменных
             BydaoValue& a = getVariable( arg1, instr );
             BydaoValue& b = getVariable( arg2, instr );
-            if ( b.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( ! a.isNull() ) );
-                break;
-            }
-            if ( a.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( ! b.isNull() ) );
-                break;
-            }
             if (!a.isObject() || !b.isObject()) {
                 error("Comparison with non-object", instr);
                 return false;
@@ -995,14 +955,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         else {                          // сравнение переменной со значеним на стеке
             BydaoValue& a = getVariable( arg1, instr );
             BydaoValue  b = m_stack.pop();
-            if ( b.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( ! a.isNull() ) );
-                break;
-            }
-            if ( a.isNull() ) {
-                m_stack.push( BydaoValue::fromBool( ! b.isNull() ) );
-                break;
-            }
             if (!a.isObject() || !b.isObject()) {
                 error("Comparison with non-object", instr);
                 return false;
