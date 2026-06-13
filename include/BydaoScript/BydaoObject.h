@@ -59,7 +59,7 @@ public:
     virtual bool callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) = 0;
 
     virtual bool    getVar( const QString& varName, BydaoValue& value ) {
-        if ( varName == "type" ) {
+        if ( varName == QStringLiteral( "type" ) ) {
             value = BydaoValue::fromString( typeName() );
             return true;
         }

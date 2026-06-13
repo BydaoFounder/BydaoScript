@@ -2465,7 +2465,7 @@ bool BydaoParser::parseEquality() {
     if (!parseComparison()) return false;
 
     while ( match(BydaoTokenType::Equal) || match(BydaoTokenType::NotEqual)
-           /*|| match(BydaoTokenType::IsType) || match(BydaoTokenType::NotType)*/ ) {
+           || match(BydaoTokenType::IsType) || match(BydaoTokenType::NotType) ) {
 
         TypeInfo leftTypeInfo = getLastType();
 

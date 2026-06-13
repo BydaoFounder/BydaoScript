@@ -63,7 +63,7 @@ BydaoVM::BydaoVM()
 
     // auto* nullClass = new BydaoNull();
     // nullClass->ref();
-    // s_builtinTypes.append( {"Null", BydaoValue(nullClass, BydaoTypeId::TYPE_OBJECT)} );
+    // s_builtinTypes.append( {QStringLiteral("Null"), BydaoValue(nullClass, BydaoTypeId::TYPE_OBJECT)} );
 
     auto* arrayClass = new BydaoArray();
     arrayClass->ref();
@@ -361,7 +361,7 @@ void BydaoVM::setVariable(int varIndex, const BydaoValue& value, const BydaoInst
 
 BydaoValue BydaoVM::convertValue(const BydaoValue& val, const QString& toType) {
     if (!val.isObject()) {
-        if (toType == "String") {
+        if (toType == QStringLiteral( "String" ) ) {
             return BydaoValue::fromString(val.toString());
         }
         return BydaoValue();
@@ -375,66 +375,66 @@ BydaoValue BydaoVM::convertValue(const BydaoValue& val, const QString& toType) {
     }
 
     // Встроенные приведения
-    if (fromType == "Int") {
+    if (fromType == QStringLiteral( "Int" ) ) {
         qint64 i = static_cast<BydaoInt*>(obj)->value();
-        if (toType == "Real") {
+        if (toType == QStringLiteral( "Real" )) {
             return BydaoValue::fromReal(static_cast<double>(i));
         }
-        if (toType == "Bool") {
+        if (toType == QStringLiteral( "Bool" ) ) {
             return BydaoValue::fromBool(i != 0);
         }
-        if (toType == "String") {
+        if (toType == QStringLiteral( "String" ) ) {
             return BydaoValue::fromString(QString::number(i));
         }
     }
-    else if (fromType == "Real") {
+    else if (fromType == QStringLiteral( "Real" )) {
         double r = static_cast<BydaoReal*>(obj)->value();
-        if (toType == "Int") {
+        if (toType == QStringLiteral( "Int" )) {
             return BydaoValue::fromInt(static_cast<qint64>(r));
         }
-        if (toType == "Bool") {
+        if (toType == QStringLiteral( "Bool" )) {
             return BydaoValue::fromBool(r != 0.0);
         }
-        if (toType == "String") {
+        if (toType == QStringLiteral( "String" )) {
             return BydaoValue::fromString(QString::number(r));
         }
     }
-    else if (fromType == "Bool") {
+    else if (fromType == QStringLiteral( "Bool" ) ) {
         bool b = static_cast<BydaoBool*>(obj)->value();
-        if (toType == "Int") {
+        if (toType == QStringLiteral( "Int" )) {
             return BydaoValue::fromInt(b ? 1 : 0);
         }
-        if (toType == "String") {
+        if (toType == QStringLiteral( "String" )) {
             return BydaoValue::fromString(b ? "true" : "false");
         }
     }
-    else if (fromType == "String") {
+    else if (fromType == QStringLiteral( "String" )) {
         QString s = static_cast<BydaoString*>(obj)->value();
-        if (toType == "Int") {
+        if (toType == QStringLiteral( "Int" )) {
             bool ok;
             qint64 i = s.toLongLong(&ok);
             if (ok) return BydaoValue::fromInt(i);
         }
-        if (toType == "Real") {
+        if (toType == QStringLiteral( "Real" )) {
             bool ok;
             double r = s.toDouble(&ok);
             if (ok) return BydaoValue::fromReal(r);
         }
-        if (toType == "Bool") {
+        if (toType == QStringLiteral( "Bool" )) {
             return BydaoValue::fromBool(!s.isEmpty());
         }
     }
-    else if (fromType == "Null") {
-        if (toType == "String") {
+    else if (fromType == QStringLiteral("Null")) {
+        if (toType == QStringLiteral( "String" )) {
             return BydaoValue::fromString("null");
         }
-        if (toType == "Bool") {
+        if (toType == QStringLiteral( "Bool" )) {
             return BydaoValue::fromBool(false);
         }
-        if (toType == "Int") {
+        if (toType == QStringLiteral( "Int" )) {
             return BydaoValue::fromInt(0);
         }
-        if (toType == "Real") {
+        if (toType == QStringLiteral( "Real" )) {
             return BydaoValue::fromReal(0.0);
         }
     }
@@ -1119,14 +1119,14 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             BydaoValue& a = getVariable( arg1, instr );
             m_stack.push( a.isObject()
                              ? BydaoValue::fromBool( a.toObject()->typeName() == typeName )
-                             : BydaoValue::fromBool( false )
+                             : BydaoValue::fromBool( typeName == QStringLiteral("Null") )
                          );
         }
         else {              // сравнение типа значения на стеке
             BydaoValue a = m_stack.pop();
             m_stack.push( a.isObject()
                              ? BydaoValue::fromBool( a.toObject()->typeName() == typeName )
-                             : BydaoValue::fromBool( false )
+                             : BydaoValue::fromBool( typeName == QStringLiteral("Null") )
                          );
         }
         break;
@@ -1138,14 +1138,14 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             BydaoValue& a = getVariable( arg1, instr );
             m_stack.push( a.isObject()
                              ? BydaoValue::fromBool( a.toObject()->typeName() != typeName )
-                             : BydaoValue::fromBool( true )
+                             : BydaoValue::fromBool( typeName != QStringLiteral("Null") )
                          );
         }
         else {              // сравнение типа значения на стеке
             BydaoValue a = m_stack.pop();
             m_stack.push( a.isObject()
                              ? BydaoValue::fromBool( a.toObject()->typeName() != typeName )
-                             : BydaoValue::fromBool( true )
+                             : BydaoValue::fromBool( typeName != QStringLiteral("Null") )
                          );
         }
         break;
@@ -1257,6 +1257,11 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             obj = m_stack.pop().toObject();
         }
         if ( ! obj ) {
+            if ( memberName == QStringLiteral("type") ) {
+                BydaoValue value( BydaoString::create(QStringLiteral("Null")), TYPE_STRING );
+                m_stack.push( value );
+                break;
+            }
             error("MEMBER on non-object", instr);
             return false;
         }

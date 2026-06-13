@@ -22,11 +22,7 @@
 
 namespace BydaoScript {
 
-BydaoValue::BydaoValue() {
-    m_obj = BydaoNull::instance();
-    m_obj->ref();
-    m_typeId = TYPE_NULL;
-}
+BydaoValue::BydaoValue() : m_obj(nullptr), m_typeId(TYPE_UNKNOWN) {}
 
 BydaoValue::BydaoValue(BydaoObject* obj, BydaoTypeId typeId ) : m_obj(obj) {
     if (m_obj) {
@@ -132,7 +128,7 @@ BydaoValue BydaoValue::fromNull() {
 // }
 
 QString BydaoValue::toString() const {
-    if (!m_obj) return "null";
+    if (!m_obj) return QStringLiteral( "null" );
 /*
     // Быстрый путь для известных типов
     switch (m_typeId) {
@@ -167,9 +163,9 @@ QString BydaoValue::toString() const {
 */
     // Для неизвестных типов пробуем вызвать метод toString
     BydaoValue result;
-    if (m_obj->callMethod("toString", {}, result)) {
+    if (m_obj->callMethod(QStringLiteral( "toString" ), {}, result)) {
         BydaoObject* obj = result.toObject();
-        if ( obj && obj->typeName() == "String" ) {
+        if ( obj && obj->typeName() == QStringLiteral( "String" ) ) {
             return ((BydaoString*)obj)->value();
         }
         qWarning() << "toString() returned non-object or not string";
