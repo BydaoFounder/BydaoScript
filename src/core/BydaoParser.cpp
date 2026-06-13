@@ -2467,10 +2467,25 @@ bool BydaoParser::parseEquality() {
         TypeInfo leftTypeInfo = getLastType();
 
         bool isEq = match(BydaoTokenType::Equal);
+
         BydaoToken op = m_current;
         nextToken();
 
         BydaoToken rightToken = m_current;
+        if ( rightToken.text == "null" ) {  // сравнение с null
+
+            nextToken();
+
+            setLastType( TypeInfo("Bool", Expr ) );
+
+            int size = m_bytecode.size();
+            int leftIndex = ( m_bytecode[size-1].op == BydaoOpCode::Load )
+                ? m_bytecode.takeLast().arg1
+                : 0;
+            emitCode(isEq ? BydaoOpCode::EqNull : BydaoOpCode::NeqNull, leftIndex, 0, op);
+            continue;
+        }
+
         if (!parseComparison()) return false;
 
         TypeInfo rightTypeInfo = getLastType();

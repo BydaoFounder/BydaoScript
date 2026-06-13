@@ -88,6 +88,8 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::StoreSelf] = "STORESELF";
         names[BydaoOpCode::PushAddr] = "PUSHADDR";
         names[BydaoOpCode::StkPop] = "STKPOP";
+        names[BydaoOpCode::EqNull] = "EQNULL";
+        names[BydaoOpCode::NeqNull] = "NEQNULL";
     }
     return names.value(op, "???");
 }

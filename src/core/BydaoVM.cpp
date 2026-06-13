@@ -1088,7 +1088,31 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_stack.push(a.toObject()->ge(b));
         break;
     }
-    
+
+    case BydaoOpCode::EqNull: {
+        if ( arg1 > 0 ) {   // сравнение переменной на равенство null
+            BydaoValue& a = getVariable( arg1, instr );
+            m_stack.push( BydaoValue::fromBool( a.isNull() ) );
+        }
+        else {              // сравнение значения на стеке на равенство null
+            BydaoValue a = m_stack.pop();
+            m_stack.push( BydaoValue::fromBool( a.isNull() ) );
+        }
+        break;
+    }
+
+    case BydaoOpCode::NeqNull: {
+        if ( arg1 > 0 ) {   // сравнение переменной на неравенство null
+            BydaoValue& a = getVariable( arg1, instr );
+            m_stack.push( BydaoValue::fromBool( ! a.isNull() ) );
+        }
+        else {              // сравнение значения на стеке на неравенство null
+            BydaoValue a = m_stack.pop();
+            m_stack.push( BydaoValue::fromBool( ! a.isNull() ) );
+        }
+        break;
+    }
+
     // ===== Логические операции =====
     
     case BydaoOpCode::Not: {

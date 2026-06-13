@@ -452,6 +452,11 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
         args << QString("&v%1").arg(instr.arg1);
         break;
 
+    case BydaoOpCode::EqNull:
+    case BydaoOpCode::NeqNull:
+        args << (instr.arg1 == 0 ? "stk" : QString("v%1").arg(instr.arg1) );
+        break;
+
     default:
         if (instr.arg1 != 0)
             args << QString("%1").arg(instr.arg1);
