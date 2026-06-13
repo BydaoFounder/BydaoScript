@@ -56,8 +56,6 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::VarNeq] = "VARNEQ";
         names[BydaoOpCode::VarLt] = "VARLT";
         names[BydaoOpCode::VarLe] = "VARLE";
-        names[BydaoOpCode::And] = "AND";
-        names[BydaoOpCode::Or] = "OR";
         names[BydaoOpCode::Not] = "NOT";
         names[BydaoOpCode::BitAnd] = "BITAND";
         names[BydaoOpCode::BitOr] = "BITOR";
@@ -74,8 +72,10 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::CallVoid] = "CALLVOID";
         names[BydaoOpCode::NewObj] = "NEWOBJ";
         names[BydaoOpCode::Jump] = "JUMP";
-        names[BydaoOpCode::JumpIfFalse] = "JMPF";
-        names[BydaoOpCode::JumpIfTrue] = "JMPT";
+        names[BydaoOpCode::JumpFalse] = "JMPF";
+        names[BydaoOpCode::JumpTrue] = "JMPT";
+        names[BydaoOpCode::JumpFalsePeek] = "JMPFP";
+        names[BydaoOpCode::JumpTruePeek] = "JMPTP";
         names[BydaoOpCode::ScopeDrop] = "SCOPEDROP";
         names[BydaoOpCode::UseModule] = "USE";
         names[BydaoOpCode::UseBuiltin] = "BUILTIN";
@@ -87,6 +87,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::LoadSelf] = "LOADSELF";
         names[BydaoOpCode::StoreSelf] = "STORESELF";
         names[BydaoOpCode::PushAddr] = "PUSHADDR";
+        names[BydaoOpCode::StkPop] = "STKPOP";
     }
     return names.value(op, "???");
 }
@@ -360,8 +361,10 @@ bool BydaoBytecode::validate(const QVector<BydaoInstruction>& code,
         
         // Проверка переходов
         if (instr.op == BydaoOpCode::Jump ||
-            instr.op == BydaoOpCode::JumpIfFalse ||
-            instr.op == BydaoOpCode::JumpIfTrue) {
+            instr.op == BydaoOpCode::JumpFalsePeek ||
+            instr.op == BydaoOpCode::JumpTruePeek ||
+            instr.op == BydaoOpCode::JumpFalse ||
+            instr.op == BydaoOpCode::JumpTrue) {
             
             if (instr.arg1 < 0 || instr.arg1 >= code.size()) {
                 if (error) *error = QString("Invalid jump target: %1").arg(instr.arg1);

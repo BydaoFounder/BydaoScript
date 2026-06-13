@@ -57,7 +57,7 @@ BydaoParser::BydaoParser(const QString& moduleName, const QVector<BydaoToken>& t
     // Добавляем константу NULL, чтобы все другие константы имели индекс > 0
 
 //    addNullConstant();
-    addConstant("_@%_%@_");
+    addConstant( QString("_@%_%@_") );
 
     // Добавляем служебную переменную, чтобы все индексы переменных были > 0.
     // TODO: Служебная переменная специального типа, которая содержит информацию
@@ -1295,7 +1295,7 @@ bool BydaoParser::parseIf() {
     }
 
     // Условный переход на else/elsif
-    int elseJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, ifToken);
+    int elseJump = emitCode(BydaoOpCode::JumpFalse, 0, 0, ifToken);
 
     // Запомним состояние стека типов
     int typeStackSize = m_typeStack.size();
@@ -1334,7 +1334,7 @@ bool BydaoParser::parseIf() {
             }
         }
 
-        int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, elsifToken);
+        int condJump = emitCode(BydaoOpCode::JumpFalse, 0, 0, elsifToken);
 
         typeStackSize = m_typeStack.size();
 
@@ -1466,7 +1466,7 @@ bool BydaoParser::parseWhile() {
         m_bytecode.resize(savedPos);
     }
 
-    int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, whileToken);
+    int condJump = emitCode(BydaoOpCode::JumpFalse, 0, 0, whileToken);
 
     m_loopStack.push(loop);
     m_inLoop = true;
@@ -1538,7 +1538,7 @@ bool BydaoParser::parseDoWhile() {
         }
     }
 
-    emitCode(BydaoOpCode::JumpIfTrue, loopBegin, 0, doToken);
+    emitCode(BydaoOpCode::JumpTrue, loopBegin, 0, doToken);
 
     m_inLoop = false;
     loop = m_loopStack.pop();
@@ -1602,7 +1602,7 @@ bool BydaoParser::parseIter() {
     // iter.next()
     emitCode(BydaoOpCode::ItNext, iterInfo.varIndex, 0, token);
 
-    int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
+    int condJump = emitCode(BydaoOpCode::JumpFalse, 0, 0, token);
 
     m_loopStack.push(loop);
     m_inLoop = true;
@@ -1718,7 +1718,7 @@ bool BydaoParser::parseEnum() {
     FuncMetaData nextMetaData = iterMetaData->objFunc( "next" );
     emitCode(BydaoOpCode::ItNext, iterInfo.varIndex, nextMetaData.index, token);
 
-    int condJump = emitCode(BydaoOpCode::JumpIfFalse, 0, 0, token);
+    int condJump = emitCode(BydaoOpCode::JumpFalse, 0, 0, token);
 
     // Получаем значение и сохраняем в переменную
     emitCode(BydaoOpCode::ItValue, iterInfo.varIndex, varInfo.varIndex, token);
@@ -2301,35 +2301,32 @@ bool BydaoParser::parseExpression() {
 }
 
 bool BydaoParser::parseLogicalOr() {
-
     BydaoToken leftToken = m_current;
     if (!parseLogicalAnd()) return false;
 
     while (match(BydaoTokenType::Or)) {
-
-        // Проверить тип левого операнда операции
-
-        if ( ! checkTypeConvert( "Bool", leftToken ) ) {
-            return false;
-        }
+        if (!checkTypeConvert("Bool", leftToken)) return false;
 
         BydaoToken op = m_current;
         nextToken();
 
+        // Левая часть на стеке.
+        // Если true — пропускаем правую часть
+        int jumpIndex = emitCode(BydaoOpCode::JumpTruePeek, 0, 0, op);   // placeholder
+
+        // Сброс левого значения со стека
+        emitCode(BydaoOpCode::StkPop, 0, 0, op);
+
         BydaoToken rightToken = m_current;
         if (!parseLogicalAnd()) return false;
 
-        // Проверить тип правого операнда
+        if (!checkTypeConvert("Bool", rightToken)) return false;
 
-        if ( ! checkTypeConvert( "Bool", rightToken ) ) {
-            return false;
-        }
+        // Заполнить адрес перехода
+        m_bytecode[jumpIndex].arg1 = m_bytecode.size();
 
-        setLastType( TypeInfo( "Bool", Expr ) );
-
-        emitCode(BydaoOpCode::Or, 0, 0, op);
+        setLastType(TypeInfo("Bool", Expr));
     }
-
     return true;
 }
 
@@ -2338,30 +2335,30 @@ bool BydaoParser::parseLogicalAnd() {
     if (!parseBitOr()) return false;
 
     while (match(BydaoTokenType::And)) {
-
-        // Проверить тип левого операнда операции
-
-        if ( ! checkTypeConvert( "Bool", leftToken ) ) {
-            return false;
-        }
+        // Проверить тип левого операнда
+        if (!checkTypeConvert("Bool", leftToken)) return false;
 
         BydaoToken op = m_current;
         nextToken();
+
+        // Левая часть уже на стеке.
+        // Если false — пропускаем правую часть
+        int jumpIndex = emitCode(BydaoOpCode::JumpFalsePeek, 0, 0, op);  // placeholder
+
+        // Сброс левого значения со стека
+        emitCode(BydaoOpCode::StkPop, 0, 0, op);
 
         BydaoToken rightToken = m_current;
         if (!parseBitOr()) return false;
 
         // Проверить тип правого операнда
+        if (!checkTypeConvert("Bool", rightToken)) return false;
 
-        if ( ! checkTypeConvert( "Bool", rightToken ) ) {
-            return false;
-        }
+        // Заполнить адрес перехода
+        m_bytecode[jumpIndex].arg1 = m_bytecode.size();
 
-        setLastType( TypeInfo( "Bool", Expr ) );
-
-        emitCode(BydaoOpCode::And, 0, 0, op);
+        setLastType(TypeInfo("Bool", Expr));
     }
-
     return true;
 }
 

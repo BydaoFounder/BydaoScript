@@ -125,8 +125,10 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
             BydaoInstruction& instr = m_code[ pc ];
             switch ( instr.op ) {
             case BydaoOpCode::Jump:
-            case BydaoOpCode::JumpIfFalse:
-            case BydaoOpCode::JumpIfTrue:
+            case BydaoOpCode::JumpFalsePeek:
+            case BydaoOpCode::JumpTruePeek:
+            case BydaoOpCode::JumpFalse:
+            case BydaoOpCode::JumpTrue:
                 instr.arg1 += funcObj->entryPc;
             default:
 
@@ -469,6 +471,44 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     int arg2 = instr.arg2;
     switch (instr.op) {
 
+    // ===== Переходы =====
+    case BydaoOpCode::Jump: {
+        m_pc = arg1;
+        break;
+    }
+
+    case BydaoOpCode::JumpFalse: {
+        BydaoValue cond = m_stack.pop();
+        if (!cond.toBool()) {
+            m_pc = arg1;
+        }
+        break;
+    }
+
+    case BydaoOpCode::JumpTrue: {
+        BydaoValue cond = m_stack.pop();
+        if (cond.toBool()) {
+            m_pc = arg1;
+        }
+        break;
+    }
+
+    case BydaoOpCode::JumpFalsePeek: {
+        BydaoValue cond = m_stack.top();
+        if (!cond.toBool()) {
+            m_pc = arg1;
+        }
+        break;
+    }
+
+    case BydaoOpCode::JumpTruePeek: {
+        BydaoValue cond = m_stack.top();
+        if (cond.toBool()) {
+            m_pc = arg1;
+        }
+        break;
+    }
+
     case BydaoOpCode::Load: {
         m_stack.push( getVariable(arg1, instr) );
         break;
@@ -493,28 +533,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_scopeStack.resize(arg1 + m_scopeOffset);
         break;
 
-    // ===== Переходы =====
-    case BydaoOpCode::Jump: {
-        m_pc = arg1;
+    case BydaoOpCode::StkPop:
+        m_stack.pop();
         break;
-    }
 
-    case BydaoOpCode::JumpIfFalse: {
-        BydaoValue cond = m_stack.pop();
-        if (!cond.toBool()) {
-            m_pc = arg1;
-        }
-        break;
-    }
-
-    case BydaoOpCode::JumpIfTrue: {
-        BydaoValue cond = m_stack.pop();
-        if (cond.toBool()) {
-            m_pc = arg1;
-        }
-        break;
-    }
-    
     // ===== Переменные =====
 
     case BydaoOpCode::ConstDecl: {
@@ -1068,23 +1090,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
     
     // ===== Логические операции =====
-    case BydaoOpCode::And: {
-        BydaoValue b = m_stack.pop();
-        BydaoValue a = m_stack.pop();
-        
-        bool result = a.toBool() && b.toBool();
-        m_stack.push(BydaoValue::fromBool(result));
-        break;
-    }
-    
-    case BydaoOpCode::Or: {
-        BydaoValue b = m_stack.pop();
-        BydaoValue a = m_stack.pop();
-        
-        bool result = a.toBool() || b.toBool();
-        m_stack.push(BydaoValue::fromBool(result));
-        break;
-    }
     
     case BydaoOpCode::Not: {
         BydaoValue a = m_stack.pop();

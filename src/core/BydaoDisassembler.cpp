@@ -144,8 +144,10 @@ QString BydaoDisassembler::disassembleCode(const QVector<BydaoInstruction>& code
     for (int i = 0; i < code.size(); i++) {
         const auto& instr = code[i];
         if (instr.op == BydaoOpCode::Jump ||
-            instr.op == BydaoOpCode::JumpIfFalse ||
-            instr.op == BydaoOpCode::JumpIfTrue) {
+            instr.op == BydaoOpCode::JumpFalsePeek ||
+            instr.op == BydaoOpCode::JumpTruePeek ||
+            instr.op == BydaoOpCode::JumpFalse ||
+            instr.op == BydaoOpCode::JumpTrue) {
             int target = instr.arg1;
             if (!labels.contains(target)) {
                 labels[target] = QString("L%1").arg(labels.size());
@@ -410,8 +412,10 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
         break;
 
     case BydaoOpCode::Jump:
-    case BydaoOpCode::JumpIfFalse:
-    case BydaoOpCode::JumpIfTrue:
+    case BydaoOpCode::JumpFalsePeek:
+    case BydaoOpCode::JumpTruePeek:
+    case BydaoOpCode::JumpFalse:
+    case BydaoOpCode::JumpTrue:
         args << QString("%1").arg(instr.arg1);
         break;
 
