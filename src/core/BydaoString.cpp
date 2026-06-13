@@ -45,6 +45,9 @@ MetaData*   BydaoStringClass::metaData() {
             .appendType(  "SYMBOLS",    VarMetaData("Int",VMD_CONST) )
             .appendType(  "HEX",        VarMetaData("Int",VMD_CONST) )
             ;
+        metaData
+            // переменные объекта
+            ->appendObj( "type",     VarMetaData("String",VMD_CONST) );
     }
     return metaData;
 }
@@ -90,8 +93,7 @@ void BydaoStringClass::registerVar(const QString& name, GetVarPtr getter, SetVar
 bool    BydaoStringClass::getVar( const QString& varName, BydaoValue& value ) {
     auto it = m_vars.find( varName );
     if ( it == m_vars.end() ) {
-        qWarning() << QString("Variable '%1' not exists in String type").arg( varName );
-        return false;
+        return BydaoObject::getVar( varName, value );
     }
     GetVarPtr getter = it.value().getter;
     return ( this->*( getter) )( value );
@@ -155,7 +157,8 @@ MetaData*   BydaoString::metaData() {
         metaData = new MetaData();
         metaData
             // переменные объекта
-            ->appendObj( "length",     VarMetaData("Int",VMD_CONST) );
+            ->appendObj( "type",     VarMetaData("String",VMD_CONST) )
+            .appendObj( "length",     VarMetaData("Int",VMD_CONST) );
         metaData
             // методы объекта
             ->appendObj( "toString",   FuncMetaData("String", FMD_IMMUTABLE) )
@@ -241,8 +244,7 @@ void BydaoString::registerVar(const QString& name, GetVarPtr getter, SetVarPtr s
 bool    BydaoString::getVar( const QString& varName, BydaoValue& value ) {
     auto it = m_vars.find( varName );
     if ( it == m_vars.end() ) {
-        qWarning() << QString("Variable '%1' not exists in IntRangeIterator object").arg( varName );
-        return false;
+        return BydaoObject::getVar( varName, value );
     }
     GetVarPtr getter = it.value().getter;
     return ( this->*( getter) )( value );
@@ -507,7 +509,8 @@ MetaData*   BydaoStringArray::metaData() {
         metaData = new MetaData();
         metaData
             // переменные объекта
-            ->appendObj( "length",     VarMetaData("Int",VMD_CONST) );
+            ->appendObj( "type",    VarMetaData("String",VMD_CONST) )
+            .appendObj( "length",   VarMetaData("Int",VMD_CONST) );
         metaData
             // методы объекта
             ->appendObj( "iter",      FuncMetaData("StringArrayIter", FMD_IMMUTABLE) )
@@ -545,7 +548,8 @@ MetaData*   BydaoStringArrayIterator::metaData() {
             ;
         metaData
             // переменные объекта
-            ->appendObj( "key",     VarMetaData("Int",    VMD_CONST) )
+            ->appendObj( "type",    VarMetaData("String",VMD_CONST) )
+            .appendObj( "key",      VarMetaData("Int",    VMD_CONST) )
             .appendObj( "value",    VarMetaData("String", VMD_CONST) )
             ;
     }

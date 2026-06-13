@@ -22,7 +22,11 @@
 
 namespace BydaoScript {
 
-BydaoValue::BydaoValue() : m_obj(nullptr), m_typeId(TYPE_UNKNOWN) {}
+BydaoValue::BydaoValue() {
+    m_obj = BydaoNull::instance();
+    m_obj->ref();
+    m_typeId = TYPE_NULL;
+}
 
 BydaoValue::BydaoValue(BydaoObject* obj, BydaoTypeId typeId ) : m_obj(obj) {
     if (m_obj) {

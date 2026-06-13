@@ -73,6 +73,7 @@ enum BydaoOpCode : quint8 {
 
     // Сравнение
     Eq, Neq, Lt, Gt, Le, Ge,
+    IsType, NotType,
 
     // Сравнение переменных
     VarEq,

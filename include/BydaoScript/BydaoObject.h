@@ -59,9 +59,11 @@ public:
     virtual bool callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) = 0;
 
     virtual bool    getVar( const QString& varName, BydaoValue& value ) {
-        Q_UNUSED( varName );
-        Q_UNUSED( value );
-        qWarning() << "'getVar' not implemented for" << typeName();
+        if ( varName == "type" ) {
+            value = BydaoValue::fromString( typeName() );
+            return true;
+        }
+        qWarning() << QString("Variable '%1' not exists in %2 object").arg( varName, typeName() );
         return false;
     };
 
@@ -73,7 +75,9 @@ public:
     };
 
     // Информация о типе
-    virtual QString typeName() const = 0;
+    virtual QString typeName() const {
+        return QString( "none" );
+    };
 
     // Получить итератор
     virtual BydaoValue iter(){

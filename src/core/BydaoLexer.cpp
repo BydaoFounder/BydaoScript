@@ -34,6 +34,8 @@ QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
     {"false", BydaoTokenType::False},
     {"true", BydaoTokenType::True},
     {"null", BydaoTokenType::Null},
+    {"is", BydaoTokenType::IsType},
+    {"not", BydaoTokenType::NotType},
     {"ignore", BydaoTokenType::Ignore},
     {"func", BydaoTokenType::Func},
     {"immut", BydaoTokenType::Immut},
@@ -43,6 +45,10 @@ QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
 
 BydaoLexer::BydaoLexer(const QString& source)
     : m_source(source), m_pos(0), m_line(1), m_column(1) {}
+
+bool    BydaoLexer::isKeyword( const QString& word ) {
+    return m_keywords.contains( word );
+}
 
 void BydaoLexer::skipWhitespace() {
     while (m_pos < m_source.length()) {

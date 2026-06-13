@@ -1113,6 +1113,44 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
+    case BydaoOpCode::IsType: {
+        QString typeName = m_stringTable[ arg2 ];
+        if ( arg1 > 0 ) {   // сравнение типа переменной
+            BydaoValue& a = getVariable( arg1, instr );
+            m_stack.push( a.isObject()
+                             ? BydaoValue::fromBool( a.toObject()->typeName() == typeName )
+                             : BydaoValue::fromBool( false )
+                         );
+        }
+        else {              // сравнение типа значения на стеке
+            BydaoValue a = m_stack.pop();
+            m_stack.push( a.isObject()
+                             ? BydaoValue::fromBool( a.toObject()->typeName() == typeName )
+                             : BydaoValue::fromBool( false )
+                         );
+        }
+        break;
+    }
+
+    case BydaoOpCode::NotType: {
+        QString typeName = m_stringTable[ arg2 ];
+        if ( arg1 > 0 ) {   // сравнение типа переменной
+            BydaoValue& a = getVariable( arg1, instr );
+            m_stack.push( a.isObject()
+                             ? BydaoValue::fromBool( a.toObject()->typeName() != typeName )
+                             : BydaoValue::fromBool( true )
+                         );
+        }
+        else {              // сравнение типа значения на стеке
+            BydaoValue a = m_stack.pop();
+            m_stack.push( a.isObject()
+                             ? BydaoValue::fromBool( a.toObject()->typeName() != typeName )
+                             : BydaoValue::fromBool( true )
+                         );
+        }
+        break;
+    }
+
     // ===== Логические операции =====
     
     case BydaoOpCode::Not: {

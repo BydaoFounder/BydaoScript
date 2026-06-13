@@ -302,8 +302,7 @@ bool BydaoFileObject::callMethod(const QString& name, const QVector<BydaoValue>&
 bool BydaoFileObject::getVar( const QString& varName, BydaoValue& value ) {
     auto it = m_vars.find( varName );
     if ( it == m_vars.end() ) {
-        qWarning() << QString("Variable '%1' not exists in file object").arg( varName );
-        return false;
+        return BydaoObject::getVar( varName, value );
     }
     GetVarPtr getter = it.value().getter;
     return ( this->*( getter) )( value );

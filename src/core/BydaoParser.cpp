@@ -464,6 +464,8 @@ bool BydaoParser::isNameToken(BydaoTokenType type) const {
            type == BydaoTokenType::Drop ||
            type == BydaoTokenType::Use ||
            type == BydaoTokenType::Ignore ||
+           type == BydaoTokenType::IsType ||
+           type == BydaoTokenType::NotType ||
            type == BydaoTokenType::As;
 }
 
@@ -2462,76 +2464,114 @@ bool BydaoParser::parseEquality() {
     BydaoToken leftToken = m_current;
     if (!parseComparison()) return false;
 
-    while (match(BydaoTokenType::Equal) || match(BydaoTokenType::NotEqual)) {
+    while ( match(BydaoTokenType::Equal) || match(BydaoTokenType::NotEqual)
+           /*|| match(BydaoTokenType::IsType) || match(BydaoTokenType::NotType)*/ ) {
 
         TypeInfo leftTypeInfo = getLastType();
 
-        bool isEq = match(BydaoTokenType::Equal);
-
         BydaoToken op = m_current;
-        nextToken();
+        nextToken();                        // забрать операцию
+        BydaoToken rightToken = m_current;  // элемент справа от знака операции
 
-        BydaoToken rightToken = m_current;
-        if ( rightToken.text == "null" ) {  // сравнение с null
+        if ( op.type == BydaoTokenType::IsType || op.type == BydaoTokenType::NotType ) {
 
-            nextToken();
+            bool isType = ( op.type == BydaoTokenType::IsType );
+
+            // Операции сравнения типа "is" и "not"
+            // Правый операн или название типа или выражение, значение которого
+            // есть строка с обозначением типа
+
+            QString name = rightToken.text;
+            if ( ! m_metaData.contains( name ) ) {
+
+                // TODO: Добавить код для вычисления выражения, возвращающего строку названия типа
+
+                error( "Expected type name" );
+                return false;
+            }
+
+            // Это название типа - Int, Real и т.д.
+
+            nextToken();    // пропустить название типа
+
+            setLastType( TypeInfo("Bool", Expr ) );
+
+            int nameIndex = addString( name );
+
+            int size = m_bytecode.size();
+            int leftIndex = ( m_bytecode[size-1].op == BydaoOpCode::Load )
+                                ? m_bytecode.takeLast().arg1
+                                : 0;
+            emitCode( isType ? BydaoOpCode::IsType : BydaoOpCode::NotType, leftIndex, nameIndex, op);
+            continue;
+        }
+        else {
+
+            // Операции "==" и "!="
+
+            bool isEq = ( op.type == BydaoTokenType::Equal );
+
+            if ( rightToken.text == "null" ) {  // сравнение с null
+
+                nextToken();    // пропустить null
+
+                setLastType( TypeInfo("Bool", Expr ) );
+
+                int size = m_bytecode.size();
+                int leftIndex = ( m_bytecode[size-1].op == BydaoOpCode::Load )
+                                    ? m_bytecode.takeLast().arg1
+                                    : 0;
+                emitCode(isEq ? BydaoOpCode::EqNull : BydaoOpCode::NeqNull, leftIndex, 0, op);
+                continue;
+            }
+
+            if (!parseComparison()) return false;
+
+            TypeInfo rightTypeInfo = getLastType();
+
+            // Проверить наличие операции сравнения для левого операнда
+
+            QString leftType = leftTypeInfo.type;
+            if ( ! checkTypeOper( leftType, isEq ? "eq" : "neq" , leftToken ) ) {
+                return false;
+            }
+
+            // Если сравнение значений разного типа
+
+            if ( leftTypeInfo.type != rightTypeInfo.type ) {
+
+                // Проверить возможность преобразования типа правого операнда
+                // к типу левого операнда
+
+                if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
+                    return false;
+                }
+            }
 
             setLastType( TypeInfo("Bool", Expr ) );
 
             int size = m_bytecode.size();
-            int leftIndex = ( m_bytecode[size-1].op == BydaoOpCode::Load )
-                ? m_bytecode.takeLast().arg1
-                : 0;
-            emitCode(isEq ? BydaoOpCode::EqNull : BydaoOpCode::NeqNull, leftIndex, 0, op);
-            continue;
-        }
+            if ( m_bytecode[size-1].op == BydaoOpCode::Load && m_bytecode[size-2].op == BydaoOpCode::Load ) {
 
-        if (!parseComparison()) return false;
+                // Сравнение двух переменных
 
-        TypeInfo rightTypeInfo = getLastType();
-
-        // Проверить наличие операции сравнения для левого операнда
-
-        QString leftType = leftTypeInfo.type;
-        if ( ! checkTypeOper( leftType, isEq ? "eq" : "neq" , leftToken ) ) {
-            return false;
-        }
-
-        // Если сравнение значений разного типа
-
-        if ( leftTypeInfo.type != rightTypeInfo.type ) {
-
-            // Проверить возможность преобразования типа правого операнда
-            // к типу левого операнда
-
-            if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
-                return false;
+                int rightVarIndex = m_bytecode.takeLast().arg1;
+                int leftVarIndex = m_bytecode.takeLast().arg1;
+                emitCode( isEq ? BydaoOpCode::VarEq : BydaoOpCode::VarNeq, leftVarIndex, rightVarIndex, op);
+                continue;
             }
+            if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+
+                // Сравнение переменной и константы
+
+                int constIndex = m_bytecode.takeLast().arg1;
+                int leftVarIndex = m_bytecode.takeLast().arg1;
+                emitCode( isEq ? BydaoOpCode::VarEq : BydaoOpCode::VarNeq, leftVarIndex, -constIndex, op);
+                continue;
+            }
+
+            emitCode(isEq ? BydaoOpCode::Eq : BydaoOpCode::Neq, 0, 0, op);
         }
-
-        setLastType( TypeInfo("Bool", Expr ) );
-
-        int size = m_bytecode.size();
-        if ( m_bytecode[size-1].op == BydaoOpCode::Load && m_bytecode[size-2].op == BydaoOpCode::Load ) {
-
-            // Сравнение двух переменных
-
-            int rightVarIndex = m_bytecode.takeLast().arg1;
-            int leftVarIndex = m_bytecode.takeLast().arg1;
-            emitCode( isEq ? BydaoOpCode::VarEq : BydaoOpCode::VarNeq, leftVarIndex, rightVarIndex, op);
-            continue;
-        }
-        if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
-
-            // Сравнение переменной и константы
-
-            int constIndex = m_bytecode.takeLast().arg1;
-            int leftVarIndex = m_bytecode.takeLast().arg1;
-            emitCode( isEq ? BydaoOpCode::VarEq : BydaoOpCode::VarNeq, leftVarIndex, -constIndex, op);
-            continue;
-        }
-
-        emitCode(isEq ? BydaoOpCode::Eq : BydaoOpCode::Neq, 0, 0, op);
     }
 
     return true;

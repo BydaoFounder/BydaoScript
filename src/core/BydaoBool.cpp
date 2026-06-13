@@ -34,6 +34,9 @@ MetaData*   BydaoBool::metaData() {
             ->appendObj( "eq",     OperMetaData("Any", "Bool" ) )
             .appendObj( "neq",     OperMetaData("Any", "Bool" ) )
             ;
+        metaData
+            // переменные объекта
+            ->appendObj( "type",     VarMetaData("String",VMD_CONST) );
     }
     return metaData;
 }

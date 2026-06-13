@@ -27,7 +27,8 @@ MetaData*   BydaoArray::metaData() {
         metaData = new MetaData();
         metaData
             // переменные объекта
-            ->appendObj( "length",     VarMetaData("Int", VMD_CONST) );
+            ->appendObj( "type",      VarMetaData("String",VMD_CONST) )
+            .appendObj( "length",     VarMetaData("Int", VMD_CONST) );
         metaData
             // методы объекта
             ->appendObj( "iter",      FuncMetaData("ArrayIter", FMD_IMMUTABLE) )

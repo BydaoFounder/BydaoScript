@@ -78,6 +78,9 @@ MetaData*   BydaoInt::metaData() {
             .appendObj( "mod",     OperMetaData("Any", "Int" ) )
             .appendObj( "neg",     OperMetaData("", "Int" ) )
             ;
+        metaData
+            // переменные объекта
+            ->appendObj( "type",     VarMetaData("String",VMD_CONST) );
     }
     return metaData;
 }

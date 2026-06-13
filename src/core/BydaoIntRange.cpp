@@ -24,6 +24,9 @@ MetaData*   BydaoIntRange::metaData() {
             // методы объекта
             ->appendObj( "iter",   FuncMetaData("IntRangeIter", FMD_IMMUTABLE) )
             ;
+        metaData
+            // переменные объекта
+            ->appendObj( "type",     VarMetaData("String",VMD_CONST) );
     }
     return metaData;
 }
@@ -78,7 +81,8 @@ MetaData*   BydaoIntRangeIterator::metaData() {
             ;
         metaData
             // переменные объекта
-            ->appendObj( "key",     VarMetaData("Int", VMD_CONST) )
+            ->appendObj( "type",    VarMetaData("String",VMD_CONST) )
+            .appendObj( "key",      VarMetaData("Int", VMD_CONST) )
             .appendObj( "value",    VarMetaData("Int", VMD_CONST) )
             ;
     }
@@ -115,8 +119,7 @@ void BydaoIntRangeIterator::registerVar(const QString& name, GetVarPtr getter, S
 bool    BydaoIntRangeIterator::getVar( const QString& varName, BydaoValue& value ) {
     auto it = m_vars.find( varName );
     if ( it == m_vars.end() ) {
-        qWarning() << QString("Variable '%1' not exists in IntRangeIterator object").arg( varName );
-        return false;
+        return BydaoIterator::getVar( varName, value );
     }
     GetVarPtr getter = it.value().getter;
     return ( this->*( getter) )( value );

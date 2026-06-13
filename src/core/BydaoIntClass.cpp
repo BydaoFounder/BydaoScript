@@ -46,6 +46,9 @@ MetaData*   BydaoIntClass::metaData() {
                                   << FuncArgMetaData("to","Int")
                     )
             ;
+        metaData
+            // переменные объекта
+            ->appendObj( "type",     VarMetaData("String",VMD_CONST) );
     }
     return metaData;
 }

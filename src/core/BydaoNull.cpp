@@ -31,6 +31,7 @@ MetaData*   BydaoNull::metaData() {
     static MetaData* metaData = nullptr;
     if ( ! metaData ) {
         metaData = new MetaData();
+        metaData->name = "Null";
         metaData
             // методы объекта
             ->appendObj( "toString",   FuncMetaData("String", FMD_IMMUTABLE) )
@@ -42,6 +43,9 @@ MetaData*   BydaoNull::metaData() {
             ->appendObj( "eq",     OperMetaData("Any", "Bool" ) )
             .appendObj( "neq",     OperMetaData("Any", "Bool" ) )
             ;
+        metaData
+            // переменные объекта
+            ->appendObj( "type",     VarMetaData("String",VMD_CONST) );
     }
     return metaData;
 }
@@ -51,10 +55,10 @@ MetaData*   BydaoNull::metaData() {
 BydaoNull::BydaoNull() {
     // Увеличиваем счётчик, чтобы никогда не удалялся
     ref();  // теперь никогда не станет 0
-    registerMethod("toString", &BydaoNull::method_toString);
-    registerMethod("toBool", &BydaoNull::method_toBool);
-    registerMethod("isNull", &BydaoNull::method_isNull);
-    registerMethod("isEmpty", &BydaoNull::method_isNull);
+    registerMethod("toString",  &BydaoNull::method_toString);
+    registerMethod("toBool",    &BydaoNull::method_toBool);
+    registerMethod("isNull",    &BydaoNull::method_isNull);
+    registerMethod("isEmpty",   &BydaoNull::method_isNull);
 }
 
 void BydaoNull::registerMethod(const QString& name, MethodPtr method) {

@@ -60,6 +60,9 @@ MetaData*   BydaoReal::metaData() {
                     )
             .appendObj( "neg",     OperMetaData("", "Real" ) )
             ;
+        metaData
+            // переменные объекта
+            ->appendObj( "type",     VarMetaData("String",VMD_CONST) );
     }
     return metaData;
 }

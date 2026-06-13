@@ -457,6 +457,16 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
         args << (instr.arg1 == 0 ? "stk" : QString("v%1").arg(instr.arg1) );
         break;
 
+    case BydaoOpCode::IsType:
+    case BydaoOpCode::NotType: {
+        QString typeName = "'" + formatString(stringTable[instr.arg2]) + "'";
+        if ( instr.arg1 > 0 )
+            args << QString("v%1 %2").arg(instr.arg1).arg( typeName );
+        else
+            args << QString("stk %1").arg( typeName );
+        break;
+    }
+
     default:
         if (instr.arg1 != 0)
             args << QString("%1").arg(instr.arg1);

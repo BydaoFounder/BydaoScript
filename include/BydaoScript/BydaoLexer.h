@@ -33,6 +33,8 @@ enum class BydaoTokenType {
 
     // Сравнение
     Equal, NotEqual, Less, Greater, LessEqual, GreaterEqual,
+    IsType,
+    NotType,
 
     // Разделители
     LParen, RParen,     // ()
@@ -66,6 +68,8 @@ public:
     explicit BydaoLexer(const QString& source);
     QVector<BydaoToken> tokenize();
     QString errorMessage() const { return m_error; }
+
+    static bool    isKeyword( const QString& word );
 
 private:
 
