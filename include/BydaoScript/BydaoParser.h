@@ -135,6 +135,7 @@ private:
     bool parseBreakNext();
     bool parseUse();
     bool parseIgnore();
+    bool parseStopAbort();
 
     // Выражения (с приоритетами)
     bool parseExpression();

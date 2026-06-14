@@ -218,6 +218,10 @@ public:
     };
     QVector<ProfileItem> takeProfile();
 
+    int         exitStatus() {
+        return m_exitStatus;
+    }
+
 private:
 
     BydaoCallStack      m_callStack;            // Стек вызовов
@@ -238,6 +242,9 @@ private:
     void setVariable(int varIndex, const BydaoValue& value, const BydaoInstruction& instr);
 
     void dumpStack(const QString& label = QString());
+
+    // Статус возврата: 0 - нормально, 1 - ошибка
+    int                 m_exitStatus;
 
     struct BuiltinType {
         QString     name;
@@ -267,12 +274,12 @@ private:
     int                 m_scopeOffset;  // смещение индекса переменных в стеке областей видимости
 
     // Ошибки
-    QString m_lastError;
-    int m_errorLine;
+    QString             m_lastError;
+    int                 m_errorLine;
 
     // Режимы
-    bool m_traceMode;
-    bool m_profileMode;
+    bool                m_traceMode;
+    bool                m_profileMode;
 
     // Профилирование
     struct ProfileData {

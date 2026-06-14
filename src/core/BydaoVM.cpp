@@ -1764,6 +1764,24 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
 
     case BydaoOpCode::Halt:
+        if ( arg1 > 0 ) {
+            BydaoValue val = m_stack.pop();
+            if ( val.isObject() ) {
+                QString str;
+                if ( val.typeId() != TYPE_STRING ) {
+                    val = convertValue( val, "String" );
+                }
+                if ( val.typeId() == TYPE_STRING ) {
+                    str = val.toString();
+                }
+                if ( ! str.isEmpty() ) {
+                    QTextStream out(stdout);
+                    out.setEncoding(QStringConverter::Utf8);
+                    out << str << "\n";
+                }
+            }
+        }
+        m_exitStatus = arg2;
         m_running = false;
         break;
 

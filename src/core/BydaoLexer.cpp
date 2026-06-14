@@ -41,6 +41,8 @@ QHash<QString, BydaoTokenType> BydaoLexer::m_keywords = {
     {"immut", BydaoTokenType::Immut},
     {"out", BydaoTokenType::Out},
     {"return", BydaoTokenType::Return},
+    {"abort", BydaoTokenType::Abort},
+    {"stop", BydaoTokenType::Stop},
 };
 
 BydaoLexer::BydaoLexer(const QString& source)

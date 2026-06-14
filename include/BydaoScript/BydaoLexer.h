@@ -23,6 +23,8 @@ enum class BydaoTokenType {
     // Ключевые слова
     Var, Const, Pub, Drop, Do, While, Next, If, Elsif, Else, Iter, Enum,
     As, Break, Use, False, True, Null, Ignore,
+    Func, Immut, Out, Return,
+    Abort, Stop,
 
     // Операторы
     Assign, PlusAssign, MinusAssign, MulAssign, DivAssign, ModAssign,
@@ -47,10 +49,6 @@ enum class BydaoTokenType {
 
     // Спецсимволы
     Error, EndOfFile,
-
-    // Функции модуля/класса
-    Func, Immut, Out, Return,
-
 };
 
 struct BydaoToken {

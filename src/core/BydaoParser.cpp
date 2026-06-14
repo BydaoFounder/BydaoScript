@@ -466,6 +466,12 @@ bool BydaoParser::isNameToken(BydaoTokenType type) const {
            type == BydaoTokenType::Ignore ||
            type == BydaoTokenType::IsType ||
            type == BydaoTokenType::NotType ||
+           type == BydaoTokenType::Abort ||
+           type == BydaoTokenType::Stop ||
+           type == BydaoTokenType::Func ||
+           type == BydaoTokenType::Pub ||
+           type == BydaoTokenType::Out ||
+           type == BydaoTokenType::Return ||
            type == BydaoTokenType::As;
 }
 
@@ -634,6 +640,8 @@ bool BydaoParser::parseStatement() {
     if (match(BydaoTokenType::LBrace)) return parseBlock(true);
     if (match(BydaoTokenType::Ignore)) return parseIgnore();
     if (match(BydaoTokenType::Return)) return parseReturn();
+    if (match(BydaoTokenType::Stop)) return parseStopAbort();
+    if (match(BydaoTokenType::Abort)) return parseStopAbort();
 
     if ( parseExpression() ) return true;
 
@@ -1277,6 +1285,36 @@ bool BydaoParser::parseModAssign() {
 
     emitCode(BydaoOpCode::ModStore, info.varIndex, 0, nameToken);
 
+    return true;
+}
+
+/**
+ * Разбор оператора stop|abort [<expr>]
+ */
+bool    BydaoParser::parseStopAbort() {
+
+    BydaoToken token = m_current;
+    nextToken(); // пропустить stop | abort
+
+    if ( ! match( BydaoTokenType::RBrace) && ! match( BydaoTokenType::EndOfFile ) ) {
+
+        BydaoToken exprToken = m_current;
+        if (!parseExpression()) {
+            return false;
+        }
+        TypeInfo exprTypeInfo = getLastType();
+        if ( exprTypeInfo.type != "String" ) {
+
+            if ( ! checkTypeConvert( exprTypeInfo.type, "String", exprToken ) ) {
+                return false;
+            }
+        }
+
+        emitCode(BydaoOpCode::Halt, 1, ( token.text == "stop" ) ? 0 : 2, exprToken);
+    }
+    else {
+        emitCode(BydaoOpCode::Halt, 0, ( token.text == "stop" ) ? 0 : 2 );
+    }
     return true;
 }
 

@@ -159,7 +159,8 @@ int main(int argc, char *argv[]) {
         }
         
         execTime = execTimer.elapsed();
-    } else {
+    }
+    else {
         if (!vm.run()) {
             out << "Runtime error: " << vm.lastError() << eol;
             return 1;
@@ -191,5 +192,5 @@ int main(int argc, char *argv[]) {
         out << QString("Total time (incl. parsing): %1 ms\n").arg(totalTimer.elapsed());
     }
 
-    return 0;
+    return vm.exitStatus();
 }
