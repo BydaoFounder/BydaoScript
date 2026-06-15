@@ -24,7 +24,7 @@ enum class BydaoTokenType {
     Var, Const, Pub, Drop, Do, While, Next, If, Elsif, Else, Iter, Enum,
     As, Break, Use, False, True, Null, Ignore,
     Func, Immut, Out, Return,
-    Abort, Stop,
+    Abort, Stop, Scope,
 
     // Операторы
     Assign, PlusAssign, MinusAssign, MulAssign, DivAssign, ModAssign,

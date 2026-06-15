@@ -29,12 +29,13 @@ namespace BydaoScript {
 
 // Информация о переменной
 struct VariableInfo {
-    QString     name;
-    QString     type;
-    int         varIndex;       // индекс в списке переменных
-    bool        isConstant;     // true для констант
-    bool        isPublic;       // true для pub-переменных/констант
-    BydaoValue  constValue;     // значение константы для вычислителя
+    QString         name;
+    QString         type;
+    int             varIndex;       // индекс в списке переменных
+    bool            isConstant;     // true для констант
+    bool            isPublic;       // true для pub-переменных/констант
+    BydaoValue      constValue;     // значение константы для вычислителя
+    FuncMetaData    funcMeta;
 };
 
 // Информация о цикле (для break/next)
@@ -105,6 +106,7 @@ private:
     bool isVariableDeclared(const QString& name);
     bool removeVariable(const QString& name);
     void setVariableType( const QString& name, const QString type, bool isConst = false );
+    void setVariableFunc( const QString& name, const FuncMetaData& meta );
 
     // ===== Семантический анализ =====
     bool isNameToken(BydaoTokenType type) const;
@@ -179,12 +181,14 @@ private:
     QList<BydaoFuncObject*> m_funcs;        // список функция модуля
 
     // Новые методы парсинга
-    bool parseFuncDecl();
-    bool parseFuncBody(FuncParseContext& ctx);
-    bool parseReturn();
-    bool parseLambda();
-    bool parseFuncCall(const BydaoFuncObject* funcObj);
-    bool parseArguments(FuncArgMetaDataList& argList, QVector<QString>& argNames, QVector<bool>& argIsOut);
+    bool        parseFuncDecl();
+    bool        parseFuncSignature( FuncMetaData& metaData, bool useArgNames );
+    bool        parseFuncBody(FuncParseContext& ctx);
+    bool        parseReturn();
+    bool        parseLambda();
+    bool        parseFuncCall(const BydaoFuncObject* funcObj);
+    bool        parseFuncCall(const FuncMetaData& funcMeta );
+    bool        parseArguments(FuncArgMetaDataList& argList, QVector<QString>& argNames, QVector<bool>& argIsOut);
 
     // Проверка типов
     bool canConvertType(const QString& from, const QString& to);
@@ -251,7 +255,7 @@ private:
     // Модули и типы
     QStringList m_modulePaths;
 
-    // Список втсроенных типов
+    // Список встроенных типов
     QList<QString> m_builtinTypes;
 
     // Счётчики

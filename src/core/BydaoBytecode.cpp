@@ -84,8 +84,8 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::CallFunc] = "CALLFUNC";
         names[BydaoOpCode::CallFuncVoid] = "CALLFUNCVOID";
         names[BydaoOpCode::Return] = "RETURN";
-        names[BydaoOpCode::LoadSelf] = "LOADSELF";
-        names[BydaoOpCode::StoreSelf] = "STORESELF";
+        names[BydaoOpCode::LoadScope] = "LOADSCOPE";
+        names[BydaoOpCode::StoreScope] = "STORESCOPE";
         names[BydaoOpCode::PushAddr] = "PUSHADDR";
         names[BydaoOpCode::StkPop] = "STKPOP";
         names[BydaoOpCode::EqNull] = "EQNULL";

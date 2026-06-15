@@ -282,7 +282,12 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
     case BydaoOpCode::MulStore:
     case BydaoOpCode::DivStore:
     case BydaoOpCode::ModStore:
-        args << QString("v%1 stk").arg(instr.arg1);
+        if ( instr.arg1 < 0 ) {
+            args << QString("-v%1 stk").arg( -instr.arg1 );
+        }
+        else {
+            args << QString("v%1 stk").arg(instr.arg1);
+        }
         break;
 
     case BydaoOpCode::Drop:
@@ -443,9 +448,9 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
         args << (instr.arg1 ? "stk" : "void");
         break;
 
-    case BydaoOpCode::LoadSelf:
-    case BydaoOpCode::StoreSelf:
-        args << QString("self[%1]").arg(instr.arg1);
+    case BydaoOpCode::LoadScope:
+    case BydaoOpCode::StoreScope:
+        args << QString("scope[%1]").arg(instr.arg1);
         break;
 
     case BydaoOpCode::PushAddr:

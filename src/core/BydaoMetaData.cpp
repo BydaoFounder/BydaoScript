@@ -52,6 +52,7 @@ FuncArgMetaData::FuncArgMetaData( const FuncArgMetaData& funcArg ) {
     types = funcArg.types;
     isOut = funcArg.isOut;
     defVal = funcArg.defVal;
+    funcs = funcArg.funcs;
 }
 
 FuncArgMetaData::FuncArgMetaData( const QString& name, const QString& type, bool isOut ) {
@@ -78,6 +79,7 @@ void    FuncArgMetaData::operator=( const FuncArgMetaData& funcArg ) {
     types = funcArg.types;
     isOut = funcArg.isOut;
     defVal = funcArg.defVal;
+    funcs = funcArg.funcs;
 }
 
 /**
@@ -89,6 +91,8 @@ void    FuncArgMetaData::operator=( const FuncArgMetaData& funcArg ) {
  */
 FuncMetaData::FuncMetaData(){
     retType = "Void";
+    isStatic = false;
+    isPublic = false;
     isImmutable = false;
     index = -1;
 }
@@ -97,18 +101,24 @@ FuncMetaData::FuncMetaData( const FuncMetaData& func ){
     argList = func.argList;
     retType = func.retType;
     isImmutable = func.isImmutable;
+    isStatic = func.isStatic;
+    isPublic = func.isPublic;
     index = func.index;
 }
 
 FuncMetaData::FuncMetaData( const QString& retType, bool isImmutable ) {
     this->retType = retType;
     this->isImmutable = isImmutable;
+    this->isStatic = false;
+    this->isPublic = false;
     this->index = -1;
 }
 
 FuncMetaData::FuncMetaData( int index, const QString& retType, bool isImmutable ) {
     this->retType = retType;
     this->isImmutable = isImmutable;
+    this->isStatic = false;
+    this->isPublic = false;
     this->index = index;
 }
 
@@ -116,6 +126,8 @@ FuncMetaData::FuncMetaData( const FuncArgMetaDataList& argList, const QString& r
     this->argList = argList;
     this->retType = retType;
     this->isImmutable = isImmutable;
+    this->isStatic = false;
+    this->isPublic = false;
     this->index = -1;
 }
 
@@ -123,6 +135,8 @@ void    FuncMetaData::operator=( const FuncMetaData& func ){
     this->argList = func.argList;
     this->retType = func.retType;
     this->isImmutable = func.isImmutable;
+    this->isStatic = func.isStatic;
+    this->isPublic = func.isPublic;
     this->index = func.index;
 }
 

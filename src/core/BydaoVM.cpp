@@ -139,6 +139,7 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
         funcObj->arity = funcInfo.arity;
         funcObj->selfIndex = m_scopeOffset;
         funcObj->selfVarIndices = funcInfo.selfRefs;
+        funcObj->scopeOffset = funcInfo.scopeOffset;
 
         funcObj->funcMetaData.retType = funcInfo.retType;
         funcObj->funcMetaData.isPublic = funcInfo.isPublic;
@@ -525,6 +526,53 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             setVariable(arg1, m_stack.pop(), instr);
         }
         break;
+    }
+
+    case BydaoOpCode::LoadScope: {
+        m_stack.push( getVariable(arg1, instr) );
+        break;
+/*
+        int varIndex = arg1;
+
+        if (!m_currentSelfFrame) {
+            error("LoadSelf outside module function", instr);
+            return false;
+        }
+
+        if (varIndex < 0 || varIndex >= m_currentSelfFrame->size()) {
+            error("Invalid self variable index", instr);
+            return false;
+        }
+
+        m_stack.push((*m_currentSelfFrame)[varIndex].value);
+        break;
+*/
+    }
+
+    case BydaoOpCode::StoreScope: {
+        setVariable(arg1, m_stack.pop(), instr);
+        break;
+/*
+        int varIndex = arg1;
+
+        if (!m_currentSelfFrame) {
+            error("StoreSelf outside module function", instr);
+            return false;
+        }
+
+        if (varIndex < 0 || varIndex >= m_currentSelfFrame->size()) {
+            error("Invalid self variable index", instr);
+            return false;
+        }
+
+        if (m_stack.isEmpty()) {
+            error("Stack underflow in StoreSelf", instr);
+            return false;
+        }
+
+        (*m_currentSelfFrame)[varIndex].value = m_stack.pop();
+        break;
+*/
     }
 
     // ===== Области видимости =====
@@ -1610,7 +1658,19 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     case BydaoOpCode::CallFunc:
     case BydaoOpCode::CallFuncVoid: {
 
-        auto* func = m_funcs[ arg2 ];
+        BydaoFuncObject* func;
+        if ( arg2 < 0 ) {  // косвенный вызов через переменную
+
+            BydaoValue val = m_stack.pop();
+            if ( ! val.isObject() ) {
+                error( "Call non-object as function", instr );
+                return false;
+            }
+            func = (BydaoFuncObject*)val.toObject();
+        }
+        else {
+            func = m_funcs[ arg2 ];
+        }
 
         // Проверяем количество аргументов
         int argCount = arg1;
@@ -1632,7 +1692,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
 //        appendScope( argCount );
         m_scopeStack.resizeForOverwrite( scopeDeep + argCount );
-        m_scopeOffset = scopeDeep;
+        m_scopeOffset = ( arg2 < 0 ) ? func->scopeOffset : scopeDeep;
 
         while ( --argCount >= 0 ) {
             RuntimeVar& var = m_scopeStack[ m_scopeOffset + argCount ];
@@ -1694,45 +1754,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             m_stack.push(retVal);
         }
 */
-        break;
-    }
-
-    case BydaoOpCode::LoadSelf: {
-        int varIndex = arg1;
-
-        if (!m_currentSelfFrame) {
-            error("LoadSelf outside module function", instr);
-            return false;
-        }
-
-        if (varIndex < 0 || varIndex >= m_currentSelfFrame->size()) {
-            error("Invalid self variable index", instr);
-            return false;
-        }
-
-        m_stack.push((*m_currentSelfFrame)[varIndex].value);
-        break;
-    }
-
-    case BydaoOpCode::StoreSelf: {
-        int varIndex = arg1;
-
-        if (!m_currentSelfFrame) {
-            error("StoreSelf outside module function", instr);
-            return false;
-        }
-
-        if (varIndex < 0 || varIndex >= m_currentSelfFrame->size()) {
-            error("Invalid self variable index", instr);
-            return false;
-        }
-
-        if (m_stack.isEmpty()) {
-            error("Stack underflow in StoreSelf", instr);
-            return false;
-        }
-
-        (*m_currentSelfFrame)[varIndex].value = m_stack.pop();
         break;
     }
 

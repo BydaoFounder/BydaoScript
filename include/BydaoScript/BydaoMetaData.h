@@ -51,12 +51,14 @@ typedef QMap< QString, VarMetaData > VarMetaDataDict;
 /**
  * Свойства аргумента функции.
  */
+struct FuncMetaData;
 struct FuncArgMetaData {
 
-    QString         name;
-    QStringList     types;
-    bool            isOut;
-    QString         defVal;
+    QString             name;
+    QStringList         types;
+    QList<FuncMetaData> funcs;
+    bool                isOut;
+    QString             defVal;
 
     FuncArgMetaData();
     FuncArgMetaData( const FuncArgMetaData& funcArg );

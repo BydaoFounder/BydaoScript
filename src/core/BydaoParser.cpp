@@ -144,6 +144,7 @@ ModuleInfo BydaoParser::buildModuleInfo(const QString& moduleName) {
         funcInfo.isPublic = funcObj->funcMetaData.isPublic;
         funcInfo.retType = funcObj->funcMetaData.retType;
         funcInfo.arity = funcObj->arity;
+        funcInfo.scopeOffset = funcObj->scopeOffset;
         funcInfo.code = funcObj->bytecode;
         funcInfo.selfRefs = funcObj->selfVarIndices;
 
@@ -446,6 +447,18 @@ void BydaoParser::setVariableType(const QString& name, const QString type, bool 
     }
 }
 
+void BydaoParser::setVariableFunc( const QString& name, const FuncMetaData& meta ) {
+
+    VarScope& varScopes = m_varScopes[ m_scopeLevel ];
+    int index = varScopes.size();
+    while ( --index >= 0 ) {
+        if ( varScopes[ index ].name == name ) {
+            varScopes[ index ].varInfo.funcMeta = meta;
+            return;
+        }
+    }
+}
+
 // ============================================================
 // ВСТРОЕННЫЕ ТИПЫ
 // ============================================================
@@ -645,6 +658,12 @@ bool BydaoParser::parseStatement() {
 
     if ( parseExpression() ) return true;
 
+    if ( m_errors.empty() ) {
+        if ( m_current.text == ";" ) {
+            error( "Invalid symbol ';'" );
+            return false;
+        }
+    }
 //    error( "Unknown token '" + m_current.text + "'", m_current );
     return false;
 }
@@ -974,58 +993,6 @@ bool BydaoParser::parseConstDecl( bool isPublic ) {
 
 bool BydaoParser::parseAssign() {
     QString name = m_current.text;
-
-    // Проверяем self.var = expr
-    if (match(BydaoTokenType::Identifier) && name == "self") {
-        BydaoToken selfToken = m_current;
-        nextToken();
-
-        if (!expect(BydaoTokenType::Dot)) return false;
-
-        if (!match(BydaoTokenType::Identifier)) {
-            error("Expected member name after 'self.'");
-            return false;
-        }
-
-        QString memberName = m_current.text;
-        nextToken();
-
-        if (!expect(BydaoTokenType::Assign)) return false;
-
-        // Проверяем, что переменная существует
-        VariableInfo info = resolveVariable(memberName);
-        if (info.name.isEmpty()) {
-            error("Undeclared module variable: " + memberName, selfToken);
-            return false;
-        }
-
-        // Проверяем, не константа ли
-        if (info.isConstant) {
-            error("Cannot assign to constant: " + memberName, selfToken);
-            return false;
-        }
-
-        // Парсим выражение
-        if (!parseExpression()) return false;
-
-        TypeInfo exprType = m_typeStack.pop();
-        if (exprType.type != info.type && info.type != "Null") {
-            if (!canConvertType(exprType.type, info.type)) {
-                error("Type mismatch: cannot assign '" + exprType.type + "' to '" + info.type + "'", selfToken);
-                return false;
-            }
-        }
-
-        // Генерируем StoreSelf
-        emitCode(BydaoOpCode::StoreSelf, info.varIndex, 0, selfToken);
-
-        // Запоминаем доступ к self
-        if (m_currentFunc) {
-            m_currentFunc->selfAccesses[memberName] = info.varIndex;
-        }
-
-        return true;
-    }
 
     BydaoToken nameToken = m_current;
 
@@ -1827,6 +1794,119 @@ bool BydaoParser::parseBreakNext() {
     return false;
 }
 
+/**
+ * Разбор сигнатуры функции.
+ *
+ * Два режима работы:
+ * 1. с разбором имени аргументов
+ * "(" [ argName [ ":" argType ] [ = defaultValue ] { "," argName [ ":" argType ] [ = defaultValue ] } ] ")" [ ":" retType ]
+ * 2. без названий аргументов
+ * "(" [ argType { "," argType } ] ")" [ ":" retType ]
+ *
+ * @return
+ */
+bool    BydaoParser::parseFuncSignature( FuncMetaData& metaData, bool useArgNames ) {
+
+    // Парсим параметры
+    if ( ! expect(BydaoTokenType::LParen) ) {
+        return false;
+    }
+
+    while ( ! match(BydaoTokenType::RParen) ) {
+
+        FuncArgMetaData argMeta; //(argName, argType, isOut, defVal);
+
+        argMeta.isOut = false;
+        if ( match(BydaoTokenType::Out) ) {
+            argMeta.isOut = true;
+            nextToken();
+        }
+
+        // Имя аргумента
+
+        QString argName;
+        if ( useArgNames ) {
+            if ( ! match(BydaoTokenType::Identifier) ) {
+                error("Expected parameter name");
+                return false;
+            }
+            argName = m_current.text;
+            nextToken();
+        }
+        argMeta.name = argName;
+
+        // Тип аргумента
+
+        QString argType = "Any";
+        if ( match( BydaoTokenType::Colon ) ) {
+            nextToken();
+            argType = m_current.text;
+
+            // TODO: проверить тип аргумента
+
+            nextToken();
+            if ( argType == "Func" ) {
+                FuncMetaData argFunc;
+                if ( ! parseFuncSignature( argFunc, false ) ) {
+                    return false;
+                }
+                argMeta.funcs.append( argFunc );
+            }
+        }
+        argMeta.types.append( argType );
+
+        // Значение по умолчанию
+
+        QString defVal;
+        if ( useArgNames ) {
+            if (match(BydaoTokenType::Assign)) {
+                nextToken();
+                BydaoToken defToken = m_current;
+
+                BydaoConstantFolder folder(this);
+                BydaoValue constVal = folder.evaluate();
+                if (constVal.isNull() && !match(BydaoTokenType::Null)) {
+                    error("Default value must be constant expression", defToken);
+                    return false;
+                }
+                defVal = m_current.text;
+                // m_pos уже на следующем токене после evaluate()
+            }
+        }
+        argMeta.defVal = defVal;
+
+        metaData.argList.append(argMeta);
+
+        if ( match(BydaoTokenType::Comma) ) {
+            nextToken();
+        }
+        else if ( ! match(BydaoTokenType::RParen) ) {
+            error("Missed comma in argument list");
+            return false;
+        }
+    }
+
+    if (!expect(BydaoTokenType::RParen)) {
+        return false;
+    }
+
+    // Тип возврата
+    if ( match(BydaoTokenType::Colon) ) {
+        nextToken();
+        if (!match(BydaoTokenType::Identifier)) {
+            error("Expected return type");
+            return false;
+        }
+        metaData.retType = m_current.text;
+        nextToken();
+    }
+    else {
+        // Если не задан - считаем Void
+        metaData.retType = "Void";
+    }
+    return true;
+}
+
 bool BydaoParser::parseFuncDecl() {
     BydaoToken funcToken = m_current;
 
@@ -1853,10 +1933,8 @@ bool BydaoParser::parseFuncDecl() {
         error("Expected function name");
         return false;
     }
-
-    QString funcName = m_current.text;
     BydaoToken nameToken = m_current;
-    nextToken();
+    QString funcName = m_current.text;
 
     // Проверим, что ранее нет переменной с таким именем
 
@@ -1865,6 +1943,8 @@ bool BydaoParser::parseFuncDecl() {
         return false;
     }
 
+    nextToken();
+
     // Создаём контекст парсинга функции
     FuncParseContext ctx;
     ctx.name = funcName;
@@ -1872,115 +1952,32 @@ bool BydaoParser::parseFuncDecl() {
     ctx.isImmutable = isImmutable;
     ctx.isStatic = true;  // Функции модуля всегда статические
 
-    // Парсим параметры
-    if (!expect(BydaoTokenType::LParen)) {
+    FuncMetaData funcMetaData;
+    if ( ! parseFuncSignature( funcMetaData, true ) ) {
         return false;
     }
-    while ( ! match(BydaoTokenType::RParen) ) {
-        bool isOut = false;
-        if (match(BydaoTokenType::Out)) {
-            isOut = true;
-            nextToken();
-        }
-
-        if (!match(BydaoTokenType::Identifier)) {
-            error("Expected parameter name");
-            return false;
-        }
-        QString argName = m_current.text;
-        BydaoToken argToken = m_current;
-        nextToken();
-
-        // Тип аргумента
-        QString argType = "Any";
-        if (match(BydaoTokenType::Colon)) {
-            nextToken();
-            argType = m_current.text;
-            nextToken();
-        }
-
-        // Значение по умолчанию
-        QString defVal;
-        if (match(BydaoTokenType::Assign)) {
-            nextToken();
-            BydaoToken defToken = m_current;
-
-            BydaoConstantFolder folder(this);
-            BydaoValue constVal = folder.evaluate();
-            if (constVal.isNull() && !match(BydaoTokenType::Null)) {
-                error("Default value must be constant expression", defToken);
-                return false;
-            }
-            defVal = m_current.text;
-            // m_pos уже на следующем токене после evaluate()
-        }
-
-        FuncArgMetaData argMeta(argName, argType, isOut, defVal);
-        ctx.argList.append(argMeta);
-
-        if ( match(BydaoTokenType::Comma) ) {
-            nextToken();
-        }
-        else if ( ! match(BydaoTokenType::RParen) ) {
-            error("Missed comma in argument list");
-            return false;
-        }
-    }
-
-    if (!expect(BydaoTokenType::RParen)) {
-        return false;
-    }
-
-    // Тип возврата
-    if (match(BydaoTokenType::Colon)) {
-        nextToken();
-        if (!match(BydaoTokenType::Identifier)) {
-            error("Expected return type");
-            return false;
-        }
-        ctx.retType = m_current.text;
-        nextToken();
-    } else {
-        ctx.retType = "Void";
-    }
-
-    // Добавим определение функции до разбора тела, чтобы можно было
-    // определять рекурсивные функции
+    ctx.argList = funcMetaData.argList;
+    ctx.retType = funcMetaData.retType;
 
     // Создаём объект функции
+
     auto* funcObj = new BydaoFuncObject();
     funcObj->ref();
     funcObj->name = funcName;
-    funcObj->entryPc = 0;  // Начало функции — всегда 0 в её пуле
+    funcObj->entryPc = 0;       // Начало функции — всегда 0 в её пуле
     funcObj->arity = ctx.argList.size();
     funcObj->funcMetaData.retType = ctx.retType;
     funcObj->funcMetaData.isImmutable = ctx.isImmutable;
     funcObj->funcMetaData.isPublic = ctx.isPublic;
     funcObj->funcMetaData.argList = ctx.argList;
+    funcObj->bytecode.clear();  // Байт код будет определен после разбора тела функции
 
-    // Байт код будет определен после разбора тела функции
-    funcObj->bytecode.clear();
+    // Добавить функцию в общий список функций, чтобы можно было
+    // определять рекурсивные функции
 
-    // Self-фрейм — текущий скоуп модуля
-    /*
-    funcObj->selfFrame = &m_varScopes;
-    // Сохраняем индексы self-переменных
-    for (auto it = ctx.selfAccesses.begin(); it != ctx.selfAccesses.end(); ++it) {
-        // Находим переменную в текущем скоупе
-        int index = m_varScopes.size();
-        while (--index >= 0) {
-            if (m_varScopes[index].name == it.key()) {
-                funcObj->selfVarIndices[it.key()] = index;
-                break;
-            }
-        }
-    }
-*/
-
-    int funcIdx = m_funcs.size();
-    m_funcs.append( funcObj );
 
     // Объявляем постоянную переменную с именем функции в текущей области видимости
+    int funcIdx = m_funcs.size();
     if ( ! appendVariable(funcName, true, isPublic) ) {
         m_funcs.removeAt( funcIdx );
         delete funcObj;
@@ -1993,6 +1990,13 @@ bool BydaoParser::parseFuncDecl() {
 
     // Индекс текущей области видимости для self
     funcObj->selfIndex = m_scopeLevel;
+    int scopeOffset = 0;
+    for ( int i = m_scopeLevel; i >= 0; --i ) {
+        scopeOffset += m_varScopes[ i ].size();
+    }
+    funcObj->scopeOffset = scopeOffset;
+
+    m_funcs.append( funcObj );
 
     // Тело функции
     if ( match(BydaoTokenType::LBrace) ) {
@@ -2045,14 +2049,20 @@ bool BydaoParser::parseFuncBody(FuncParseContext& ctx) {
     // Доступ к переменным модуля или вышестоящей функции - через self.
 
     // Объявляем параметры как локальные переменные
+    int funcIndex = 0;
     for (int i = 0; i < ctx.argList.size(); i++) {
 
+        const FuncArgMetaData& funcArg = ctx.argList[i];
+        QString varName = funcArg.name;
         // Аргументы объявляем как константы - их изменять нельзя
-        if (!appendVariable(ctx.argList[i].name, true, false)) {
+        if (!appendVariable( varName, true, false)) {
             return false;
         }
-        QString type = ctx.argList[i].types.isEmpty() ? "Any" : ctx.argList[i].types[0];
-        setVariableType(ctx.argList[i].name, type, false);
+        QString type = funcArg.types.isEmpty() ? "Any" : funcArg.types[0];
+        setVariableType( varName, type, false);
+        if ( type == "Func" ) {
+            setVariableFunc( varName, funcArg.funcs[ funcIndex++ ] );
+        }
     }
 
     // Парсим тело функции
@@ -2100,6 +2110,52 @@ bool BydaoParser::parseFuncBody(FuncParseContext& ctx) {
 
     // Восстанавливаем байт-код модуля
     m_bytecode = std::move(savedCode);
+
+    return true;
+}
+
+bool BydaoParser::parseReturn() {
+    BydaoToken returnToken = m_current;
+    nextToken(); // return
+
+    if (!m_currentFunc) {
+        error("'return' outside function", returnToken);
+        return false;
+    }
+
+    if (  ! match(BydaoTokenType::RBrace) ) {
+
+        // Парсим возвращаемое выражение
+        if (!parseExpression()) {
+            return false;
+        }
+
+        TypeInfo exprType = m_typeStack.pop();
+
+        // Проверяем соответствие типа возврата
+        if (m_currentFunc->retType == "Void") {
+            error("Void function cannot return a value", returnToken);
+            return false;
+        }
+
+        if (exprType.type != m_currentFunc->retType) {
+            if (!canConvertType(exprType.type, m_currentFunc->retType)) {
+                error("Return type mismatch: expected '" + m_currentFunc->retType +
+                          "', got '" + exprType.type + "'", returnToken);
+                return false;
+            }
+            // TODO: инструкция приведения
+        }
+
+        emitCode(BydaoOpCode::Return, 1, 0, returnToken);
+    }
+    else {
+        if (m_currentFunc->retType != "Void") {
+            error("Function must return a value of type '" + m_currentFunc->retType + "'", returnToken);
+            return false;
+        }
+        emitCode(BydaoOpCode::Return, 0, 0, returnToken);
+    }
 
     return true;
 }
@@ -2228,48 +2284,124 @@ bool BydaoParser::parseFuncCall(const BydaoFuncObject* funcObj) {
     return true;
 }
 
-bool BydaoParser::parseReturn() {
-    BydaoToken returnToken = m_current;
-    nextToken(); // return
+bool        BydaoParser::parseFuncCall(const FuncMetaData& metaData ) {
+    BydaoToken lparenToken = m_current;
+    nextToken(); // '('
 
-    if (!m_currentFunc) {
-        error("'return' outside function", returnToken);
+    int argCount = 0;
+    QVector<BydaoValue> args;
+
+    while ( ! match(BydaoTokenType::RParen) ) {
+        BydaoToken argToken = m_current;
+
+        // Для out-аргументов ожидаем идентификатор переменной
+        bool isOut = (argCount < metaData.argList.size() && metaData.argList[argCount].isOut);
+
+        if (isOut) {
+            if (!match(BydaoTokenType::Identifier)) {
+                error("'out' argument must be a variable name", argToken);
+                return false;
+            }
+
+            QString varName = m_current.text;
+            if (!isVariableDeclared(varName)) {
+                error("Undeclared variable: " + varName, argToken);
+                return false;
+            }
+
+            VariableInfo info = resolveVariable(varName);
+            nextToken();
+
+            // Генерируем PUSH_ADDR вместо обычного PUSH
+            emitCode(BydaoOpCode::PushAddr, info.varIndex, 0, argToken);
+            m_typeStack.push(TypeInfo(info.type, Var));
+        }
+        else {
+            // Обычный аргумент
+            if (!parseExpression()) {
+                return false;
+            }
+        }
+
+        // Проверяем тип аргумента
+        if (argCount < metaData.argList.size()) {
+            TypeInfo argTypeInfo = m_typeStack.pop();
+            const FuncArgMetaData& expected = metaData.argList[argCount];
+
+            bool typeOk = false;
+            for (const QString& allowedType : expected.types) {
+                if (argTypeInfo.type == allowedType || allowedType == "Any") {
+                    typeOk = true;
+                    break;
+                }
+                if (canConvertType(argTypeInfo.type, allowedType)) {
+                    // TODO: добавить инструкцию приведения
+                    typeOk = true;
+                    break;
+                }
+            }
+
+            if (!typeOk) {
+                error(QString("Argument %1 type mismatch: expected %2, got %3")
+                          .arg(argCount + 1)
+                          .arg(expected.types.join(" or "))
+                          .arg(argTypeInfo.type), argToken);
+                return false;
+            }
+        }
+
+        argCount++;
+
+        if (  match(BydaoTokenType::Comma) ) {
+            nextToken();
+        }
+        else if ( ! match(BydaoTokenType::RParen) ) {
+            error( "Missed comma in argument list");
+            return false;
+        }
+    }
+
+    expect(BydaoTokenType::RParen);
+
+    // Проверяем количество аргументов
+    if (argCount > metaData.argList.size()) {
+        error(QString("Too many arguments: expected %1, got %2")
+                  .arg(metaData.argList.size())
+                  .arg(argCount), lparenToken);
         return false;
     }
 
-    if (  ! match(BydaoTokenType::RBrace) ) {
-
-        // Парсим возвращаемое выражение
-        if (!parseExpression()) {
+    // Добавляем недостающие аргументы из значений по умолчанию
+    for (int i = argCount; i < metaData.argList.size(); i++) {
+        const FuncArgMetaData& arg = metaData.argList[i];
+        if (arg.defVal.isEmpty()) {
+            error(QString("Missing argument %1: '%2'").arg(i + 1).arg(arg.name), lparenToken);
             return false;
         }
 
-        TypeInfo exprType = m_typeStack.pop();
+        // Парсим значение по умолчанию
+        BydaoLexer lexer(arg.defVal);
+        auto tokens = lexer.tokenize();
+        BydaoParser parser( m_moduleName, tokens);
+        BydaoConstantFolder folder(&parser);
+        BydaoValue defVal = folder.evaluate();
 
-        // Проверяем соответствие типа возврата
-        if (m_currentFunc->retType == "Void") {
-            error("Void function cannot return a value", returnToken);
+        if (defVal.isNull()) {
+            error("Invalid default value for argument: " + arg.name, lparenToken);
             return false;
         }
 
-        if (exprType.type != m_currentFunc->retType) {
-            if (!canConvertType(exprType.type, m_currentFunc->retType)) {
-                error("Return type mismatch: expected '" + m_currentFunc->retType +
-                          "', got '" + exprType.type + "'", returnToken);
-                return false;
-            }
-            // TODO: инструкция приведения
-        }
-
-        emitCode(BydaoOpCode::Return, 1, 0, returnToken);
+        qint16 constIdx = addConstant(defVal);
+        emitCode(BydaoOpCode::PushConst, constIdx, 0);
     }
-    else {
-        if (m_currentFunc->retType != "Void") {
-            error("Function must return a value of type '" + m_currentFunc->retType + "'", returnToken);
-            return false;
-        }
-        emitCode(BydaoOpCode::Return, 0, 0, returnToken);
-    }
+
+    // Генерируем вызов
+    bool isVoid = (metaData.retType == "Void");
+    emitCode(isVoid ? BydaoOpCode::CallFuncVoid : BydaoOpCode::CallFunc,
+             metaData.argList.size(), -1, lparenToken);
+
+    // Тип результата
+    m_typeStack.push(TypeInfo(metaData.retType, Expr));
 
     return true;
 }
@@ -2281,6 +2413,14 @@ bool BydaoParser::parseReturn() {
 bool BydaoParser::parseUse() {
     BydaoToken token = m_current;
 
+    if ( m_currentFunc ) {
+        error("'Use' cannot be used inside function");
+        return false;
+    }
+    if ( m_scopeLevel > 0 ) {
+        error("'Use' must be used module level only");
+        return false;
+    }
     do {
 
         // Получим следующий токен после оператора "use" или запятой
@@ -3025,66 +3165,96 @@ bool BydaoParser::parsePrimary() {
     }
 
     // Обрабатываем идентификаторы (переменные, типы, модули)
-    if (match(BydaoTokenType::Identifier)) {
+    if ( match(BydaoTokenType::Scope) ) {
+
+        BydaoToken nameToken = m_current;
+
+        if ( ! m_currentFunc ) {
+            error("'scope' can only be used inside functions", nameToken);
+            return false;
+        }
+
+        nextToken(); // scope
+
+        if ( ! match(BydaoTokenType::Dot ) ) {
+            error("Expected '.' after 'scope'", nameToken);
+            return false;
+        }
+        nextToken(); // пропустить '.'
+
+        if ( ! match( BydaoTokenType::Identifier ) ) {
+            error("Expected member name after 'scope.'");
+            return false;
+        }
+
+        QString memberName = m_current.text;    // member name after '.'
+        nextToken();
+
+        // Проверяем, есть ли такая переменная в предыдущей области видимости
+
+        int prevScopeLevel = m_scopeLevel;
+        m_scopeLevel -= 1;
+        VariableInfo varInfo = resolveVariable( memberName);
+        m_scopeLevel = prevScopeLevel;
+        if ( varInfo.name.isEmpty() ) {
+            error( QString("Variable '%1' not found").arg( memberName ), nameToken );
+            return false;
+        }
+
+        // Определить смещение переменной для ВМ
+
+        int scopeOffset = m_varScopes[ m_scopeLevel - 1 ].size();
+
+        // Запоминаем, что функция обращается к этой переменной self
+        m_currentFunc->selfAccesses[memberName] = varInfo.varIndex;
+
+        // Генерируем LoadScope
+        emitCode(BydaoOpCode::LoadScope, varInfo.varIndex - scopeOffset, 0, nameToken);
+        m_typeStack.push( TypeInfo( varInfo.type, Var ) );
+    }
+    else if (match(BydaoTokenType::Identifier)) {
+
         QString name = m_current.text;
         BydaoToken nameToken = m_current;
 
-        // Проверяем self
-        if ( name == "self" ) {
-            if (!m_currentFunc) {
-                error("'self' can only be used inside module functions", nameToken);
-                return false;
-            }
+        if ( m_metaData.contains( name ) ) {    // это название типа данных или модуля
 
-            nextToken(); // self
-
-            if (!match(BydaoTokenType::Dot)) {
-                error("Expected '.' after 'self'", nameToken);
-                return false;
-            }
-            nextToken(); // '.'
-
-            if (!match(BydaoTokenType::Identifier)) {
-                error("Expected member name after 'self.'");
-                return false;
-            }
-
-            QString memberName = m_current.text;
-            nextToken();
-
-            // Проверяем, есть ли такая переменная в модуле
-            VariableInfo info = resolveVariable(memberName);
-            if (info.name.isEmpty()) {
-                error("Undeclared module variable: " + memberName, nameToken);
-                return false;
-            }
-
-            // Запоминаем, что функция обращается к этой переменной self
-            m_currentFunc->selfAccesses[memberName] = info.varIndex;
-
-            // Генерируем LoadSelf
-            emitCode(BydaoOpCode::LoadSelf, info.varIndex, 0, nameToken);
-            m_typeStack.push(TypeInfo(info.type, Var));
-        }
-        else if ( m_metaData.contains( name ) ) {    // это название типа данных или модуля
+            nextToken(); // съедаем имя модуля или типа
 
             MetaData* metaData = m_metaData[ name ];
             if ( metaData->external ) {         // внешний модуль/класс
-                // Должен быть уже загружен через use
-                if (!isVariableDeclared(name)) {
-                    error("External module not loaded: " + name);
+
+                int prevScopeLevel = m_scopeLevel;
+                m_scopeLevel = 0;
+                VariableInfo varInfo = resolveVariable(name);
+                m_scopeLevel = prevScopeLevel;
+                if ( varInfo.name.isEmpty() ) {
+                    error("External module not loaded: " + name, nameToken );
                     return false;
                 }
-                nextToken(); // съедаем имя модуля
-                VariableInfo info = resolveVariable(name);
-                emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
+
+                // Если обращение к модулю внутри функции, определить смещение
+                // переменной для ВМ
+
+                int scopeOffset = 0;
+                if ( m_currentFunc ) {
+                    while ( --prevScopeLevel >= 0 ) {
+                        scopeOffset += m_varScopes[ prevScopeLevel ].size();
+                    }
+                }
+
+                emitCode(BydaoOpCode::Load, varInfo.varIndex - scopeOffset, 0, nameToken);
                 setLastType( TypeInfo( name, Module ) );
             }
             else {                              // внутренний тип/класс
+
                 // Встроенный тип: Int, String, Array и т.д.
-                nextToken(); // съедаем имя типа
-                qint16 nameIdx = addString(name);
-                emitCode(BydaoOpCode::UseBuiltin, m_builtinTypes.indexOf( name ), nameIdx, nameToken);
+                int index = m_builtinTypes.indexOf( name );
+                if ( index < 0 ) {
+                    error( QString("Type '%1' not found").arg(name), nameToken );
+                    return false;
+                }
+                emitCode(BydaoOpCode::UseBuiltin, index, addString(name), nameToken);
                 setLastType( TypeInfo( name, Type ) );
             }
         }
@@ -3128,12 +3298,17 @@ bool BydaoParser::parsePrimary() {
             BydaoValue funcVal = info.constValue;
             BydaoObject* obj = funcVal.toObject();
             if ( obj && obj->typeName() == "Func") {
+
+                // Вызов напрямую по индексу
+
                 auto* func = static_cast<BydaoFuncObject*>(funcVal.toObject());
                 return parseFuncCall( func );
             }
-            error( QString("Function '%1' is not define").arg( name ), nameToken );
-            return false;
 
+            // Вызов через переменную
+
+            emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
+            return parseFuncCall( info.funcMeta );
         }
         else if (isVariableDeclared(name)) {    // обычная переменная
             nextToken(); // съедаем имя переменной
@@ -3170,6 +3345,9 @@ bool BydaoParser::parsePrimary() {
         }
         else if (match(BydaoTokenType::LBracket)) {
             if (!parseIndexSuffix()) return false;
+        }
+        else if ( match(  BydaoTokenType::Assign ) ) {
+            return parseMemberAssing();
         }
         else {
             break;
@@ -3519,9 +3697,25 @@ bool    BydaoParser::parseMemberAssing() {
     TypeInfo memberTypeInfo = getLastType();
     BydaoInstruction memberInst = m_bytecode.takeLast();
 
-    // Символ '=' уже забрали.
+    // Проверить возможность изменения переменной
 
-    nextToken();
+    if ( memberInst.op == BydaoOpCode::LoadScope ) {
+
+        int scopeLevel = m_scopeLevel - 1;
+        int varIndex = m_varScopes[ scopeLevel ].size() + memberInst.arg1;
+        VariableInfo varInfo = m_varScopes[ scopeLevel ][ varIndex ].varInfo;
+        if ( varInfo.isConstant ) {
+            error( "Assign to constant is prohibited" );
+            return false;
+        }
+    }
+    else {
+
+        // TODO:
+    }
+
+
+    nextToken();    // забрать символ '='
 
     BydaoToken exprToken = m_current;
     if (!parseExpression()) {
@@ -3536,7 +3730,12 @@ bool    BydaoParser::parseMemberAssing() {
         return false;
     }
 
-    emitCode(BydaoOpCode::SetMember, memberInst.arg1, memberInst.arg2, exprToken);
+    if ( memberInst.op == BydaoOpCode::LoadScope ) {
+        emitCode(BydaoOpCode::StoreScope, memberInst.arg1, 0, exprToken);
+    }
+    else {
+        emitCode(BydaoOpCode::SetMember, memberInst.arg1, memberInst.arg2, exprToken);
+    }
     return true;
 }
 

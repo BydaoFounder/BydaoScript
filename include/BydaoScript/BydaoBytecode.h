@@ -126,8 +126,8 @@ enum BydaoOpCode : quint8 {
     CallFunc,       // вызов функции: arg1 = кол-во аргументов, arg2 - индекс переменной типа фнукция
     CallFuncVoid,   // вызов void-функции: arg1 = кол-во аргументов, arg2 - индекс переменной типа фнукция
     Return,         // возврат: arg1 = 1 если есть значение, 0 если void
-    LoadSelf,       // загрузка self-переменной: arg1 = индекс в self-фрейме
-    StoreSelf,      // сохранение в self-переменную (для out?)
+    LoadScope,      // загрузка scope-переменной: arg1 = индекс
+    StoreScope,     // сохранение в scope-переменную (для out?)
     PushAddr,       // адрес переменной (для out аргументов)
 
     // Управление стеком значений
@@ -250,6 +250,7 @@ struct FunctionInfo {
     bool isPublic = false;
     bool isImmutable = false;
     bool isStatic = true;
+    int scopeOffset = 0;
     QString retType;
 
     QVector<FunctionArgInfo> args;
