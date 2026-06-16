@@ -1902,7 +1902,7 @@ bool    BydaoParser::parseFuncSignature( FuncMetaData& metaData, bool useArgName
     }
     else {
         // Если не задан - считаем Void
-        metaData.retType = "Void";
+        metaData.retType = "Any";
     }
     return true;
 }
@@ -2904,12 +2904,15 @@ bool BydaoParser::parseAddition() {
 
                 // Сложение двух переменных
 
-                int rightVarIndex = m_bytecode.takeLast().arg1;
-                int leftVarIndex = m_bytecode.takeLast().arg1;
-                emitCode( BydaoOpCode::VarAdd, leftVarIndex, rightVarIndex, op);
-                continue;
+                int rightVarIndex = m_bytecode.last().arg1;
+                if ( rightVarIndex > 0 ) {
+                    m_bytecode.takeLast();
+                    int leftVarIndex = m_bytecode.takeLast().arg1;
+                    emitCode( BydaoOpCode::VarAdd, leftVarIndex, rightVarIndex, op);
+                    continue;
+                }
             }
-            if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+            else if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
 
                 // Сложение переменной и константы
 
@@ -2925,12 +2928,15 @@ bool BydaoParser::parseAddition() {
 
                 // Вычитание двух переменных
 
-                int rightVarIndex = m_bytecode.takeLast().arg1;
-                int leftVarIndex = m_bytecode.takeLast().arg1;
-                emitCode( BydaoOpCode::VarSub, leftVarIndex, rightVarIndex, op);
-                continue;
+                int rightVarIndex = m_bytecode.last().arg1;
+                if ( rightVarIndex > 0 ) {
+                    m_bytecode.takeLast();
+                    int leftVarIndex = m_bytecode.takeLast().arg1;
+                    emitCode( BydaoOpCode::VarSub, leftVarIndex, rightVarIndex, op);
+                    continue;
+                }
             }
-            if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
+            else if ( m_bytecode[size-1].op == BydaoOpCode::PushConst && m_bytecode[size-2].op == BydaoOpCode::Load ) {
 
                 // Вычитание константы из переменной
 

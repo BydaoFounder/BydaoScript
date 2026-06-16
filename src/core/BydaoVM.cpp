@@ -651,8 +651,8 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             m_stack.push( a.toObject()->add(b) );
         }
         else {                          // сложение переменной со значением на стеке
-            BydaoValue& b = getVariable(arg1, instr);
-            BydaoValue a = m_stack.pop();
+            BydaoValue& a = getVariable(arg1, instr);
+            BydaoValue b = m_stack.pop();
             if (!a.isObject() || !b.isObject()) {
                 error("'+' operation on non-object", instr);
                 return false;
