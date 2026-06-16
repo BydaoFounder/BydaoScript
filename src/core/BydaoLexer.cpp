@@ -64,14 +64,15 @@ void BydaoLexer::skipWhitespace() {
 }
 
 bool BydaoLexer::skipComment() {
-    if (m_source.mid(m_pos, 2) == "//") {
+    QString str = m_source.mid(m_pos, 2);
+    if (str == "//" || str == "#!") {
         m_pos += 2; m_column += 2;
         while (m_pos < m_source.length() && m_source[m_pos] != '\n') {
             m_pos++; m_column++;
         }
         return true;
     }
-    if (m_source.mid(m_pos, 2) == "/*") {
+    if (str == "/*") {
         m_pos += 2; m_column += 2;
         while (m_pos < m_source.length() - 1) {
             if (m_source[m_pos] == '\n') { m_line++; m_column = 1; }
