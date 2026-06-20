@@ -41,11 +41,15 @@ public:
     virtual bool initialize();
     virtual bool shutdown();
 
+    void setOutputStream(QTextStream* stream);
+
 protected:
 
     virtual void release() {
     }
 
+    bool            m_ownOutStream;
+    QTextStream*    m_outStream;
 };
 
 // Менеджер модулей

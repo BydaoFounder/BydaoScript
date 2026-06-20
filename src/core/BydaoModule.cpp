@@ -21,13 +21,29 @@ namespace BydaoScript {
 
 BydaoModule::BydaoModule()
     : BydaoObject()
-{}
+{
+    m_outStream = new QTextStream( stdout );
+    m_outStream->setEncoding( QStringConverter::Utf8 );
+    m_ownOutStream = true;
+}
 
 BydaoModule::~BydaoModule() {
+    if (m_ownOutStream && m_outStream) {
+        delete m_outStream;
+        m_outStream = nullptr;
+    }
 }
 
 bool BydaoModule::initialize() { return true; }
 bool BydaoModule::shutdown() { return true; }
+
+void BydaoModule::setOutputStream(QTextStream* stream) {
+    if (m_ownOutStream) {
+        delete m_outStream;
+        m_ownOutStream = false;
+    }
+    m_outStream = stream;
+}
 
 // ========== BydaoModuleManager ==========
 

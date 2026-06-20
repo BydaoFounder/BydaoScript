@@ -191,6 +191,10 @@ public:
     BydaoVM();
     ~BydaoVM();
 
+    void setOutputStream(QTextStream* stream) {
+        m_outStream = stream;
+    };
+
     bool loadModule(const ModuleInfo& module);
 
     // Загрузка байткода
@@ -291,6 +295,7 @@ private:
 
     QHash<QString, int> m_moduleName;    // для проверки повторной загрузки модулей
 
+    QTextStream*    m_outStream;
 };
 
 } // namespace BydaoScript

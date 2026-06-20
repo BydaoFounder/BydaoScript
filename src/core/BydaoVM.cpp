@@ -37,6 +37,8 @@ BydaoVM::BydaoVM()
     , m_profileMode(false)
     , m_lastInstrStart(0)
 {
+    m_outStream = nullptr;
+
     // Инициализируем область видимости
     m_scopeStack.clear();
     m_scopeStack.append( VarScope() );
@@ -1584,6 +1586,9 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         if (!module) {
             error("Cannot load module: " + errorMsg, instr);
             return false;
+        }
+        if ( m_outStream ) {
+            module->setOutputStream( m_outStream );
         }
         
         // Добавляем модуль как переменную в глобальной области

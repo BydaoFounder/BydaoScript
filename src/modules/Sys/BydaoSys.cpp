@@ -66,8 +66,6 @@ BydaoSysModule::BydaoSysModule()
     registerMethod("drives",     &BydaoSysModule::method_drives);
 
     m_timer.start();
-    m_outStream = new QTextStream( stdout );
-    m_outStream->setEncoding( QStringConverter::Utf8 );
 }
 
 BydaoSysModule::~BydaoSysModule() {
@@ -96,9 +94,11 @@ bool BydaoSysModule::initialize() {
 
 bool BydaoSysModule::shutdown() {
     // qDebug() << "BydaoSysModule::shutdown()";
-    if (m_process && m_process->state() != QProcess::NotRunning) {
-        m_process->terminate();
-        m_process->waitForFinished(3000);
+    if (m_process ) {
+        if ( m_process->state() != QProcess::NotRunning) {
+            m_process->terminate();
+            m_process->waitForFinished(3000);
+        }
         delete m_process;
         m_process = nullptr;
     }

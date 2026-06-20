@@ -69,7 +69,6 @@ private:
 
     QProcess* m_process;
     QElapsedTimer m_timer;
-    QTextStream*    m_outStream;
 };
 
 } // namespace Modules
