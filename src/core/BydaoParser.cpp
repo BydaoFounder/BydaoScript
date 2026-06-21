@@ -888,9 +888,28 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
         QString name = m_current.text;
         nextToken();
 
+        // Обработать тип переменной, если задан
+        QString typeName;
+        if ( match(BydaoTokenType::Colon) ) {
+
+            nextToken();
+            BydaoToken typeToken = m_current;
+            typeName = m_current.text;
+
+            if ( ! m_metaData.contains( typeName ) ) {
+                error( QString("Unknown type '%1'").arg( typeName ) );
+                return false;
+            }
+
+            nextToken();
+        }
+
         // Добавляем переменную с флагом public
         if (!appendVariable(name, false, isPublic)) {  // false = не константа
             return false;
+        }
+        if ( ! typeName.isEmpty() ) {
+            setVariableType( name, typeName, false );
         }
 
         VariableInfo info = resolveVariable(name);
@@ -902,8 +921,6 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
         if (match(BydaoTokenType::Assign)) {    // с инициализацией
 
             nextToken();
-
-            int prevSize = m_bytecode.size();
 
             BydaoToken exprToken = m_current;
             if (!parseExpression()) return false;
@@ -917,10 +934,30 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
                 error("Cannot assign void value", exprToken );
                 return false;
             }
-            setVariableType( name, typeInfo.type );
+            if ( typeName.isEmpty() ) {
+                setVariableType( name, typeInfo.type );
+            }
+            else if ( typeInfo.type != typeName ) {
+                error("The expression type does not match the variable type", exprToken );
+                return false;
+            }
 
             int size = m_bytecode.size();
-            if ( size - prevSize == 1 && m_bytecode[ size-1 ].op == BydaoOpCode::PushConst ) {
+            if ( size > 0 && m_bytecode[ size-1 ].op == BydaoOpCode::Load ) {
+
+                // Инициализация переменной значением другой переменной
+
+                // Если это присвоение функции, скопировать метода-данные функции
+                VarScope& varScopes = m_varScopes[ m_scopeLevel ];
+                if ( varScopes[ m_bytecode[ size-1 ].arg1 ].varInfo.type == "Func" ) {
+
+                    setVariableFunc( name, varScopes[ m_bytecode[ size-1 ].arg1 ].varInfo.funcMeta );
+                }
+
+                // Инициализация значением со стека значений
+                valueIndex = 1;
+            }
+            else if ( size > 0 && m_bytecode[ size-1 ].op == BydaoOpCode::PushConst ) {
 
                 // Инициализация переменной константным значением
                 valueIndex = -m_bytecode.takeLast().arg1;
@@ -942,58 +979,65 @@ bool BydaoParser::parseVarDecl( bool isPublic ) {
 }
 
 bool BydaoParser::parseConstDecl( bool isPublic ) {
-//    qDebug() << "parseConstDecl: start at line" << m_current.line;
-    nextToken(); // const
 
-    if (!match(BydaoTokenType::Identifier)) {
-        error("Expected constant name");
-        return false;
-    }
+    do {
 
-    QString name = m_current.text;
-    BydaoToken nameToken = m_current;
-    nextToken();
+        // Получим следующий токен после оператора "var" или запятой
 
-    if (!match(BydaoTokenType::Assign)) {
-        error("Expected '=' in constant declaration");
-        return false;
-    }
-    nextToken(); // '='
+        nextToken(); // const
 
-    // Добавляем константу в таблицу (без значения)
-    if (!appendVariable(name, true, isPublic)) {
-        return false;
-    }
+        if (!match(BydaoTokenType::Identifier)) {
+            error("Expected constant name");
+            return false;
+        }
 
-    // Пытаемся вычислить выражение
-    BydaoToken exprToken = m_current;
-    BydaoConstantFolder folder(this);
-    BydaoValue constValue = folder.evaluate();  // Один проход!
-    if ( ! constValue.isObject() ) {
-        removeVariable(name);
-        error("Constant expression expected");
-        return false;
-    }
+        QString name = m_current.text;
+        BydaoToken nameToken = m_current;
+        nextToken();
 
-    // Обновляем значение в таблице
+        if (!match(BydaoTokenType::Assign)) {
+            error("Expected '=' in constant declaration");
+            return false;
+        }
+        nextToken(); // '='
 
-    VariableInfo info = resolveVariable(name);
-    VarScope& varScopes = m_varScopes[ m_scopeLevel ];
-    varScopes[ info.varIndex ].varInfo.type = constValue.toObject()->typeName();
-    varScopes[ info.varIndex ].varInfo.constValue = constValue;
+        // Добавляем константу в таблицу (без значения)
+        if (!appendVariable(name, true, isPublic)) {
+            return false;
+        }
 
-    // Добавляем значение в таблицу констант и генерируем PUSH
-    qint16 constIndex = addConstant( constValue );
-    if ( constIndex == 0 ) {
-        removeVariable(name);
-        error("Invalid constant expression", exprToken);
-        return false;
-    }
+        // Пытаемся вычислить выражение
+        BydaoToken exprToken = m_current;
+        BydaoConstantFolder folder(this);
+        BydaoValue constValue = folder.evaluate();  // Один проход!
+        if ( ! constValue.isObject() ) {
+            removeVariable(name);
+            error("Constant expression expected");
+            return false;
+        }
 
-    // Генерируем код
-    qint16 nameIndex = addString(name);
-    //    qDebug() << "  generating VarDecl for" << name << "index =" << nameIndex;
-    emitCode(BydaoOpCode::ConstDecl, nameIndex, constIndex, nameToken);
+        // Обновляем значение в таблице
+
+        VariableInfo info = resolveVariable(name);
+        VarScope& varScopes = m_varScopes[ m_scopeLevel ];
+        varScopes[ info.varIndex ].varInfo.type = constValue.toObject()->typeName();
+        varScopes[ info.varIndex ].varInfo.constValue = constValue;
+
+        // Добавляем значение в таблицу констант и генерируем PUSH
+        qint16 constIndex = addConstant( constValue );
+        if ( constIndex == 0 ) {
+            removeVariable(name);
+            error("Invalid constant expression", exprToken);
+            return false;
+        }
+
+        // Генерируем код
+        qint16 nameIndex = addString(name);
+        emitCode(BydaoOpCode::ConstDecl, nameIndex, constIndex, nameToken);
+
+        // Продолжим обработку, если есть запятая
+
+    } while ( match(BydaoTokenType::Comma) );
 
     return true;
 }
@@ -1011,6 +1055,10 @@ bool BydaoParser::parseAssign() {
     // ПРОВЕРКА НА КОНСТАНТУ
     VariableInfo varInfo = resolveVariable(name);
     if (varInfo.isConstant) {
+        if ( isFuncArg( name ) ) {  // аргумент функции
+            error( QString("Cannot change the func argument '%1'").arg( name ) );
+            return false;
+        }
         error("Cannot assign to constant: " + name);
         return false;
     }
@@ -1077,7 +1125,11 @@ bool BydaoParser::parseAddAssign() {
     // ПРОВЕРКА НА КОНСТАНТУ
     VariableInfo info = resolveVariable(name);
     if (info.isConstant) {
-        error("Cannot assign to constant: " + name);
+        if ( isFuncArg( name ) ) {  // аргумент функции
+            error( QString("Cannot change the func argument '%1'").arg( name ) );
+            return false;
+        }
+        error( QString("Cannot assign to constant '%1'").arg( name ) );
         return false;
     }
 
@@ -1138,6 +1190,20 @@ bool BydaoParser::parseAddAssign() {
     return true;
 }
 
+bool        BydaoParser::isFuncArg( const QString& name ) {
+    if ( m_currentFunc ) {  // тело функции
+
+        // Проверить изменение аргумента функции
+
+        for ( int i = 0; i < m_currentFunc->argList.count(); ++i ) {
+            if ( m_currentFunc->argList[i].name == name ) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool BydaoParser::parseSubAssign() {
     QString name = m_current.text;
     BydaoToken nameToken = m_current;
@@ -1150,6 +1216,10 @@ bool BydaoParser::parseSubAssign() {
     // ПРОВЕРКА НА КОНСТАНТУ
     VariableInfo info = resolveVariable(name);
     if (info.isConstant) {
+        if ( isFuncArg( name ) ) {  // аргумент функции
+            error( QString("Cannot assign to func argument '%1'").arg( name ) );
+            return false;
+        }
         error("Cannot assign to constant: " + name);
         return false;
     }
@@ -1181,6 +1251,10 @@ bool BydaoParser::parseMulAssign() {
     // ПРОВЕРКА НА КОНСТАНТУ
     VariableInfo info = resolveVariable(name);
     if (info.isConstant) {
+        if ( isFuncArg( name ) ) {  // аргумент функции
+            error( QString("Cannot change the func argument '%1'").arg( name ) );
+            return false;
+        }
         error("Cannot assign to constant: " + name);
         return false;
     }
@@ -1212,6 +1286,10 @@ bool BydaoParser::parseDivAssign() {
     // ПРОВЕРКА НА КОНСТАНТУ
     VariableInfo info = resolveVariable(name);
     if (info.isConstant) {
+        if ( isFuncArg( name ) ) {  // аргумент функции
+            error( QString("Cannot change the func argument '%1'").arg( name ) );
+            return false;
+        }
         error("Cannot assign to constant: " + name);
         return false;
     }
@@ -1243,6 +1321,10 @@ bool BydaoParser::parseModAssign() {
     // ПРОВЕРКА НА КОНСТАНТУ
     VariableInfo info = resolveVariable(name);
     if (info.isConstant) {
+        if ( isFuncArg( name ) ) {  // аргумент функции
+            error( QString("Cannot change the func argument '%1'").arg( name ) );
+            return false;
+        }
         error("Cannot assign to constant: " + name);
         return false;
     }
@@ -1993,6 +2075,7 @@ bool BydaoParser::parseFuncDecl() {
     VariableInfo info = resolveVariable(funcName);
     VarScope& varScopes = m_varScopes[ m_scopeLevel ];
     varScopes[info.varIndex].varInfo.type = "Func";
+    varScopes[info.varIndex].varInfo.funcMeta = funcMetaData;
     varScopes[info.varIndex].varInfo.constValue = BydaoValue(funcObj, TYPE_FUNC);
 
     // Индекс текущей области видимости для self
@@ -2061,12 +2144,13 @@ bool BydaoParser::parseFuncBody(FuncParseContext& ctx) {
 
         const FuncArgMetaData& funcArg = ctx.argList[i];
         QString varName = funcArg.name;
+        bool isConst = ! funcArg.isOut;
         // Аргументы объявляем как константы - их изменять нельзя
-        if (!appendVariable( varName, true, false)) {
+        if (!appendVariable( varName, isConst, false)) {
             return false;
         }
         QString type = funcArg.types.isEmpty() ? "Any" : funcArg.types[0];
-        setVariableType( varName, type, false);
+        setVariableType( varName, type, isConst);
         if ( type == "Func" ) {
             setVariableFunc( varName, funcArg.funcs[ funcIndex++ ] );
         }
@@ -2198,7 +2282,8 @@ bool BydaoParser::parseFuncCall(const BydaoFuncObject* funcObj) {
             nextToken();
 
             // Генерируем PUSH_ADDR вместо обычного PUSH
-            emitCode(BydaoOpCode::PushAddr, info.varIndex, 0, argToken);
+//            emitCode(BydaoOpCode::PushAddr, info.varIndex, 0, argToken);
+            emitCode(BydaoOpCode::Load, info.varIndex, 0, argToken);
             m_typeStack.push(TypeInfo(info.type, Var));
         }
         else {
@@ -2291,9 +2376,14 @@ bool BydaoParser::parseFuncCall(const BydaoFuncObject* funcObj) {
     return true;
 }
 
-bool        BydaoParser::parseFuncCall(const FuncMetaData& metaData ) {
+bool        BydaoParser::parseFuncCall( int varIndex, const VariableInfo& varInfo ) {
+
+    const FuncMetaData& metaData = varInfo.funcMeta;
+
     BydaoToken lparenToken = m_current;
     nextToken(); // '('
+
+    // Обработать аргументы вызова
 
     int argCount = 0;
     QVector<BydaoValue> args;
@@ -2320,7 +2410,8 @@ bool        BydaoParser::parseFuncCall(const FuncMetaData& metaData ) {
             nextToken();
 
             // Генерируем PUSH_ADDR вместо обычного PUSH
-            emitCode(BydaoOpCode::PushAddr, info.varIndex, 0, argToken);
+//            emitCode(BydaoOpCode::PushAddr, info.varIndex, 0, argToken);
+            emitCode(BydaoOpCode::Load, info.varIndex, 0, argToken);
             m_typeStack.push(TypeInfo(info.type, Var));
         }
         else {
@@ -2405,7 +2496,7 @@ bool        BydaoParser::parseFuncCall(const FuncMetaData& metaData ) {
     // Генерируем вызов
     bool isVoid = (metaData.retType == "Void");
     emitCode(isVoid ? BydaoOpCode::CallFuncVoid : BydaoOpCode::CallFunc,
-             metaData.argList.size(), -1, lparenToken);
+             metaData.argList.size(), -( varIndex + 1 ), lparenToken);
 
     // Тип результата
     m_typeStack.push(TypeInfo(metaData.retType, Expr));
@@ -3279,6 +3370,7 @@ bool BydaoParser::parsePrimary() {
 
             VariableInfo info;
             bool found = false;
+            int varIndex = 0;
             int scopeLevel = m_scopeLevel;
             while ( scopeLevel >= 0 ) {
 
@@ -3290,6 +3382,7 @@ bool BydaoParser::parsePrimary() {
                         found = true;
                         break;
                     }
+                    --varIndex;
                 }
                 if ( found ) break;
 
@@ -3320,8 +3413,8 @@ bool BydaoParser::parsePrimary() {
 
             // Вызов через переменную
 
-            emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
-            return parseFuncCall( info.funcMeta );
+//            emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
+            return parseFuncCall( varIndex, info );
         }
         else if (isVariableDeclared(name)) {    // обычная переменная
             nextToken(); // съедаем имя переменной

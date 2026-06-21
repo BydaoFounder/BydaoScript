@@ -186,9 +186,11 @@ private:
     bool        parseFuncBody(FuncParseContext& ctx);
     bool        parseReturn();
     bool        parseLambda();
-    bool        parseFuncCall(const BydaoFuncObject* funcObj);
-    bool        parseFuncCall(const FuncMetaData& funcMeta );
+    bool        parseFuncCall( const BydaoFuncObject* funcObj);
+    bool        parseFuncCall( int varIndex, const VariableInfo& varInfo );
     bool        parseArguments(FuncArgMetaDataList& argList, QVector<QString>& argNames, QVector<bool>& argIsOut);
+
+    bool        isFuncArg( const QString& name );
 
     // Проверка типов
     bool canConvertType(const QString& from, const QString& to);

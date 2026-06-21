@@ -519,7 +519,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
     case BydaoOpCode::Store: {
         if ( arg2 > 0 ) {
-            setVariable(arg1, getVariable( arg2, instr ), instr);
+            setVariable(arg1, getVariable( arg2, instr ).copy(), instr);
         }
         else if ( arg2 < 0 ) {
             setVariable(arg1, m_constantValues[ -arg2 ].copy(), instr);
@@ -1666,7 +1666,9 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoFuncObject* func;
         if ( arg2 < 0 ) {  // косвенный вызов через переменную
 
-            BydaoValue val = m_stack.pop();
+            int varIndex = -arg2 - 1;
+            BydaoValue val = getVariable( varIndex, instr );
+//            BydaoValue val = m_stack.pop();
             if ( ! val.isObject() ) {
                 error( "Call non-object as function", instr );
                 return false;
@@ -1688,14 +1690,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         // Создаём новый фрейм
         int scopeDeep = m_scopeStack.size();
         CallFrame frame;
-//        frame.func = func;
         frame.returnPc = m_pc;
         frame.scopeDeep = scopeDeep;
         frame.scopeOffset = m_scopeOffset;
 
         // Копируем аргументы в локальные переменные
 
-//        appendScope( argCount );
         m_scopeStack.resizeForOverwrite( scopeDeep + argCount );
         m_scopeOffset = ( arg2 < 0 ) ? func->scopeOffset : scopeDeep;
 
