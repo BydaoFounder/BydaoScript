@@ -65,7 +65,7 @@ void BydaoLexer::skipWhitespace() {
 
 bool BydaoLexer::skipComment() {
     QString str = m_source.mid(m_pos, 2);
-    if (str == "//" || str == "#!") {
+    if (str == "//") {
         m_pos += 2; m_column += 2;
         while (m_pos < m_source.length() && m_source[m_pos] != '\n') {
             m_pos++; m_column++;

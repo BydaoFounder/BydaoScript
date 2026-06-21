@@ -870,66 +870,73 @@ bool BydaoParser::parsePubDecl() {
 }
 
 /**
- * Определение новой переменной: "var" name [ "=" expr ]
+ * Определение новой переменной: "var" name [ "=" expr ] {"," name [ "=" expr ]}
  */
 bool BydaoParser::parseVarDecl( bool isPublic ) {
-    BydaoToken token = m_current;
-    nextToken(); // var
 
-    if (!match(BydaoTokenType::Identifier)) {
-        error("Expected variable name");
-        return false;
-    }
+    do {
 
-    QString name = m_current.text;
-    BydaoToken nameToken = m_current;
-    nextToken();
-
-    // Добавляем переменную с флагом public
-    if (!appendVariable(name, false, isPublic)) {  // false = не константа
-        return false;
-    }
-
-    VariableInfo info = resolveVariable(name);
-
-    // Генерируем код (как обычно)
-    qint16 nameIndex = addString(name);
-
-    int valueIndex = 0;  // без инициализации
-    if (match(BydaoTokenType::Assign)) {    // с инициализацией
+        // Получим следующий токен после оператора "var" или запятой
 
         nextToken();
-
-        int prevSize = m_bytecode.size();
-
-        BydaoToken exprToken = m_current;
-        if (!parseExpression()) return false;
-
-        if ( m_typeStack.size() == 0 ) {
-            error("Internal error: empty stack of value types");
+        if (!match(BydaoTokenType::Identifier)) {
+            error("Expected variable name");
             return false;
         }
-        TypeInfo typeInfo = getLastType();
-        if ( typeInfo.type == "Void" ) {
-            error("Cannot assign void value", exprToken );
+
+        BydaoToken nameToken = m_current;
+        QString name = m_current.text;
+        nextToken();
+
+        // Добавляем переменную с флагом public
+        if (!appendVariable(name, false, isPublic)) {  // false = не константа
             return false;
         }
-        setVariableType( name, typeInfo.type );
 
-        int size = m_bytecode.size();
-        if ( size - prevSize == 1 && m_bytecode[ size-1 ].op == BydaoOpCode::PushConst ) {
+        VariableInfo info = resolveVariable(name);
 
-            // Инициализация переменной константным значением
-            valueIndex = -m_bytecode.takeLast().arg1;
+        // Генерируем код (как обычно)
+        qint16 nameIndex = addString(name);
+
+        int valueIndex = 0;  // без инициализации
+        if (match(BydaoTokenType::Assign)) {    // с инициализацией
+
+            nextToken();
+
+            int prevSize = m_bytecode.size();
+
+            BydaoToken exprToken = m_current;
+            if (!parseExpression()) return false;
+
+            if ( m_typeStack.size() == 0 ) {
+                error("Internal error: empty stack of value types");
+                return false;
+            }
+            TypeInfo typeInfo = getLastType();
+            if ( typeInfo.type == "Void" ) {
+                error("Cannot assign void value", exprToken );
+                return false;
+            }
+            setVariableType( name, typeInfo.type );
+
+            int size = m_bytecode.size();
+            if ( size - prevSize == 1 && m_bytecode[ size-1 ].op == BydaoOpCode::PushConst ) {
+
+                // Инициализация переменной константным значением
+                valueIndex = -m_bytecode.takeLast().arg1;
+            }
+            else {
+
+                // Инициализация значением со стека значений
+                valueIndex = 1;
+            }
         }
-        else {
 
-            // Инициализация значением со стека значений
-            valueIndex = 1;
-        }
-    }
+        emitCode(BydaoOpCode::VarDecl, nameIndex, valueIndex, nameToken);
 
-    emitCode(BydaoOpCode::VarDecl, nameIndex, valueIndex, token);
+        // Продолжим обработку, если есть запятая
+
+    } while ( match(BydaoTokenType::Comma) );
 
     return true;
 }
