@@ -38,6 +38,7 @@ bool BydaoModule::initialize() { return true; }
 bool BydaoModule::shutdown() { return true; }
 
 void BydaoModule::setOutputStream(QTextStream* stream) {
+//    qDebug() << "BydaoModule::setOutputStream called, stream =" << (void*)stream;
     if (m_ownOutStream) {
         delete m_outStream;
         m_ownOutStream = false;

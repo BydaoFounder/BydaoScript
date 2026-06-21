@@ -133,6 +133,14 @@ bool BydaoSysModule::method_out(const QVector<BydaoValue>& args, BydaoValue& res
 }
 
 bool BydaoSysModule::method_outln(const QVector<BydaoValue>& args, BydaoValue& result) {
+
+    // if ( m_ownOutStream ) {
+    //     qDebug() << "Sys.outln() writing to own stream:" << (void*)m_outStream;
+    // }
+    // else {
+    //     qDebug() << "Sys.outln() writing to external stream:" << (void*)m_outStream;
+    // }
+
     QTextStream& out = *m_outStream;
     int argCnt = args.size();
     for ( int i = 0; i < argCnt; ++i ) {
