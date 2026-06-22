@@ -1270,8 +1270,8 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     }
 
     case BydaoOpCode::Index: {
-        BydaoValue obj = m_stack.pop();
         BydaoValue index = m_stack.pop();
+        BydaoValue obj = m_stack.pop();
 
         if (auto* array = (BydaoArray*)(obj.toObject())) {
             m_stack.push(array->get(index));
@@ -1627,6 +1627,13 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         // Создаём новый массив
         auto* array = new BydaoArray();
 
+        QVector<BydaoValue> elements;
+        elements.resizeForOverwrite( count );
+        while ( --count >= 0 ) {
+            m_stack.popTo( elements[ count ] );
+        }
+
+/*
         // Извлекаем элементы со стека
         // Элементы лежат на стеке в порядке вычисления:
         // первый элемент вычислен первым и лежит внизу стека,
@@ -1639,9 +1646,9 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             // используем prepend
             elements.prepend(m_stack.pop());
         }
-
+*/
         // Добавляем элементы в массив
-        for (const auto& elem : elements) {
+        foreach ( const auto& elem, elements ) {
             array->append(elem);
         }
 

@@ -3852,6 +3852,12 @@ bool BydaoParser::parseIndexSuffix() {
         return false;
     }
 
+    TypeInfo typeInfo = getLastType();
+    if ( typeInfo.type != "Array" && typeInfo.type != "Any" ) {
+        error( QString("Indexed expression cannot apply to type '%1'").arg( typeInfo.type ) );
+        return false;
+    }
+
     BydaoToken bracketToken = m_current;
 //    qDebug() << "parseIndexSuffix at line" << bracketToken.line << "," << bracketToken.column;
 
@@ -3860,7 +3866,7 @@ bool BydaoParser::parseIndexSuffix() {
 
     // Парсим выражение-индекс
     if (!parseExpression()) {
-        error("Expected expression inside '[]'");
+        error("Invalid expression inside '[]'");
         return false;
     }
 

@@ -34,9 +34,9 @@ public:
 
     QString typeName() const override { return "Array"; }
 
-    bool callMethod(const QString& name,
-                    const QVector<BydaoValue>& args,
-                    BydaoValue& result) override;
+    bool    getVar( const QString& varName, BydaoValue& value ) override;
+
+    bool callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
 
     virtual int         size() const { return m_elements.size(); }
     virtual BydaoValue  at(qint64 index) const;
@@ -68,6 +68,21 @@ private:
     void registerMethod(const QString& name, MethodPtr method);
 
     QHash<QString, MethodPtr> m_methods;
+
+    using GetVarPtr = bool (BydaoArray::*)(BydaoValue&);
+    using SetVarPtr = bool (BydaoArray::*)(const BydaoValue&);
+    struct VarMethod {
+        GetVarPtr   getter;
+        SetVarPtr   setter;
+    };
+    QHash<QString,VarMethod> m_vars;
+
+    void registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter = nullptr );
+
+    bool getvar_length( BydaoValue& value ) {
+        value = BydaoValue::fromInt( m_elements.size() );
+        return true;
+    };
 
     QVector<BydaoValue> m_elements;
 };

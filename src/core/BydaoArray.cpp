@@ -33,7 +33,6 @@ MetaData*   BydaoArray::metaData() {
             // методы объекта
             ->appendObj( "iter",      FuncMetaData("ArrayIter", FMD_IMMUTABLE) )
             .appendObj( "toString",   FuncMetaData("String", FMD_IMMUTABLE) )
-            .appendObj( "length",     FuncMetaData("Int", FMD_IMMUTABLE) )
             .appendObj( "get",        FuncMetaData("Int", FMD_IMMUTABLE)
                                         << FuncArgMetaData("pos","Int",false) )
             .appendObj( "set",        FuncMetaData("Void", FMD_IMMUTABLE)
@@ -62,7 +61,6 @@ BydaoArray::BydaoArray()
 {
     // Регистрация методов (без макросов)
     registerMethod("toString", &BydaoArray::method_toString);
-    registerMethod("length", &BydaoArray::method_length);
     registerMethod("get", &BydaoArray::method_get);
     registerMethod("set", &BydaoArray::method_set);
     registerMethod("push", &BydaoArray::method_push);
@@ -71,19 +69,27 @@ BydaoArray::BydaoArray()
     registerMethod("unshift", &BydaoArray::method_unshift);
     registerMethod("slice", &BydaoArray::method_slice);
     registerMethod("join", &BydaoArray::method_join);
-
     registerMethod("iter", &BydaoArray::method_iter);  // ← добавить
 
-    // Регистрация свойства length (ReadOnly)
     // Свойства
-    // registerProperty("length",
-    //                  [this]() { return BydaoValue::fromInt(m_elements.size()); },
-    //                  nullptr,
-    //                  BydaoPropertyInfo(BydaoPropertyInfo::ReadOnly));
+    registerVar( "length",  &BydaoArray::getvar_length );
 }
 
 void BydaoArray::registerMethod(const QString& name, MethodPtr method) {
     m_methods[name] = method;
+}
+
+void BydaoArray::registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter ) {
+    m_vars[ name ] = { getter, setter };
+}
+
+bool    BydaoArray::getVar( const QString& varName, BydaoValue& value ) {
+    auto it = m_vars.find( varName );
+    if ( it == m_vars.end() ) {
+        return BydaoObject::getVar( varName, value );
+    }
+    GetVarPtr getter = it.value().getter;
+    return ( this->*( getter) )( value );
 }
 
 bool BydaoArray::callMethod(const QString& name,
