@@ -1,0 +1,30 @@
+use Sys
+
+var a = [
+    11, 22, 33, [
+        "4-1",
+        '4-2'
+    ]
+]
+Sys.outln( 'a = ' + a )
+
+a[0] = 'first'
+Sys.outln( 'a = ' + a )
+
+Sys.outln( 'a[3].length = ' + a[3].length )
+
+var i = 0
+while i < a.length next i += 1 {
+    if a[i] is Array {
+        var j = 0
+        while j < a[i].length next j += 1 {
+            Sys.outln( 'a[' + i + '][' + j + '] = ' + a[i][j] )
+        }
+    }
+    else {
+        Sys.outln( 'a[' + i + '] = ' + a[i] )
+    }
+}
+
+a[3][0] = 'newVal'
+Sys.outln( 'a = ' + a )

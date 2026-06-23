@@ -2894,8 +2894,10 @@ bool BydaoParser::parseComparison() {
             // Проверить возможность преобразования типа правого операнда
             // к типу левого операнда
 
-            if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
-                return false;
+            if ( rightTypeInfo.type != "Any" ) {
+                if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
+                    return false;
+                }
             }
         }
 
@@ -3413,7 +3415,6 @@ bool BydaoParser::parsePrimary() {
 
             // Вызов через переменную
 
-//            emitCode(BydaoOpCode::Load, info.varIndex, 0, nameToken);
             return parseFuncCall( varIndex, info );
         }
         else if (isVariableDeclared(name)) {    // обычная переменная
@@ -3660,12 +3661,12 @@ bool BydaoParser::parseMemberSuffix() {
     TypeInfo& objTypeInfo = m_typeStack.top();
     bool thisIsType = ( objTypeInfo.operand == Module || objTypeInfo.operand == Type );
     QString objType = objTypeInfo.type;
-    if ( /* typeInfo.type != "Any" && */ ! m_metaData.contains( objType ) ) {
-//        qDebug() << "Check member for type" + typeInfo.type;
+    bool thisIsAny = ( objType == "Any" );
+    if ( ! thisIsAny && ! m_metaData.contains( objType ) ) {
         error("Not found metadata for " + objType, memberToken );
         return false;
     }
-    MetaData* objMetaData = m_metaData[ objType ];
+    MetaData* objMetaData = thisIsAny ? nullptr : m_metaData[ objType ];
 
     // Добавляем имя члена в таблицу строк
     qint16 memberIdx = addString(memberName);
@@ -3676,54 +3677,59 @@ bool BydaoParser::parseMemberSuffix() {
     // Смотрим, что идёт после имени члена
     if (match(BydaoTokenType::LParen)) {            // это вызов метода
 
-        // Проверим, что у текущего типа есть такая функция
-
-        if ( thisIsType ) {
-            if ( ! objMetaData->hasTypeFunc( memberName ) ) {
-                error("Type '" + objType + "' does not have function '" + memberName + "'", memberToken);
-                return false;
-            }
-        }
-        else {
-            if ( ! objMetaData->hasObjFunc( memberName ) ) {
-                error("Object of type '" + objType + "' does not have function '" + memberName + "'", memberToken);
-                return false;
-            }
-        }
-
         // Запомним название метода
 
         objTypeInfo.member = memberName;
 
-        FuncMetaData func = thisIsType ? objMetaData->typeFunc( memberName ) : objMetaData->objFunc( memberName );
-        if ( func.index < 0 ) {
+        // Проверим, что у текущего типа есть такая функция
 
-            // Это вызов метода по имени - используем METHOD
+        if ( objMetaData ) {
+            if ( thisIsType ) {
+                if ( ! objMetaData->hasTypeFunc( memberName ) ) {
+                    error("Type '" + objType + "' does not have function '" + memberName + "'", memberToken);
+                    return false;
+                }
+            }
+            else {
+                if ( ! objMetaData->hasObjFunc( memberName ) ) {
+                    error("Object of type '" + objType + "' does not have function '" + memberName + "'", memberToken);
+                    return false;
+                }
+            }
 
-            emitCode(BydaoOpCode::Method, memberIdx, 0, memberToken);
+            FuncMetaData func = thisIsType ? objMetaData->typeFunc( memberName ) : objMetaData->objFunc( memberName );
+            if ( func.index < 0 ) {
+
+                // Это вызов метода по имени - используем METHOD
+
+                emitCode(BydaoOpCode::Method, memberIdx, 0, memberToken);
+            }
         }
     }
     else if ( match( BydaoTokenType::Assign ) ) {   // это присвоение переменной
 
         // Проверим, что у текущего типа есть такая переменная и ей можно присвоить значение
 
-        if ( thisIsType ) {
-            if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasTypeVar( memberName ) ) {
-                error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+        QString memberType = "Any";
+        if ( objMetaData ) {
+            if ( thisIsType ) {
+                if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasTypeVar( memberName ) ) {
+                    error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+                    return false;
+                }
+            }
+            else {
+                if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasObjVar( memberName ) ) {
+                    error("Object of type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+                    return false;
+                }
+            }
+            const VarMetaData varMetaData = thisIsType ? objMetaData->typeVar( memberName ) : objMetaData->objVar( memberName );
+            if ( varMetaData.isConst ) {
+                error( QString( "Member '%1' of '%2' is read only" ).arg( memberName, objType ), memberToken );
                 return false;
             }
-        }
-        else {
-            if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasObjVar( memberName ) ) {
-                error("Object of type '" + objType + "' does not have member '" + memberName + "'", memberToken );
-                return false;
-            }
-        }
-
-        const VarMetaData varMetaData = thisIsType ? objMetaData->typeVar( memberName ) : objMetaData->objVar( memberName );
-        if ( varMetaData.isConst ) {
-            error( QString( "Member '%1' of '%2' is read only" ).arg( memberName, objType ), memberToken );
-            return false;
+            memberType = varMetaData.type;
         }
 
         nextToken();    // забрали '='
@@ -3735,8 +3741,7 @@ bool BydaoParser::parseMemberSuffix() {
         TypeInfo exprTypeInfo = getLastType();
         QString exprType = exprTypeInfo.type;
 
-        QString memberType = varMetaData.type;
-        if ( memberType != exprType ) {
+        if ( memberType != "Any" && memberType != exprType ) {
             error( "Cannot assign value of type '" + exprType + "' to member of type '" + memberType + "'", exprToken );
             return false;
         }
@@ -3750,25 +3755,27 @@ bool BydaoParser::parseMemberSuffix() {
         // Проверим, что у текущего типа есть такая переменная
 
         QString memberType;
-        if ( thisIsType ) {
-            if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasTypeVar( memberName ) ) {
-                error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
-                return false;
+        if ( objMetaData ) {
+            if ( thisIsType ) {
+                if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasTypeVar( memberName ) ) {
+                    error("Type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+                    return false;
+                }
+                memberType = objMetaData->typeVar( memberName ).type;
             }
-            memberType = objMetaData->typeVar( memberName ).type;
-        }
-        else {
-            if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasObjVar( memberName ) ) {
-                error("Object of type '" + objType + "' does not have member '" + memberName + "'", memberToken );
-                return false;
+            else {
+                if ( /* typeInfo.type != "Any" && */ ! objMetaData->hasObjVar( memberName ) ) {
+                    error("Object of type '" + objType + "' does not have member '" + memberName + "'", memberToken );
+                    return false;
+                }
+                memberType = objMetaData->objVar( memberName ).type;
             }
-            memberType = objMetaData->objVar( memberName ).type;
         }
 
         // Сохраним тип переменной
 
         getLastType();
-        setLastType( objType != "Any" ? memberType : "Any" );
+        setLastType( thisIsAny ? "Any" : memberType );
 
         // Это доступ к свойству - используем MEMBER
 
@@ -3801,7 +3808,7 @@ bool BydaoParser::parseMemberSuffix() {
 bool    BydaoParser::parseMemberAssing() {
 
     TypeInfo memberTypeInfo = getLastType();
-    BydaoInstruction memberInst = m_bytecode.takeLast();
+    BydaoInstruction& memberInst = m_bytecode.last(); //.takeLast();
 
     // Проверить возможность изменения переменной
 
@@ -3823,6 +3830,8 @@ bool    BydaoParser::parseMemberAssing() {
 
     nextToken();    // забрать символ '='
 
+    int exprPos = m_bytecode.size();
+
     BydaoToken exprToken = m_current;
     if (!parseExpression()) {
         return false;
@@ -3831,13 +3840,18 @@ bool    BydaoParser::parseMemberAssing() {
     QString exprType = exprTypeInfo.type;
 
     QString memberType = memberTypeInfo.type;
-    if ( memberType != exprType ) {
+    if ( memberType != "Any" && memberType != exprType ) {
         error( "Cannot assign value of type '" + exprType + "' to member of type '" + memberType + "'", exprToken );
         return false;
     }
 
     if ( memberInst.op == BydaoOpCode::LoadScope ) {
+        m_bytecode.takeLast();
         emitCode(BydaoOpCode::StoreScope, memberInst.arg1, 0, exprToken);
+    }
+    else if ( m_bytecode[ exprPos - 1 ].op == BydaoOpCode::GetByIdx ) {
+        m_bytecode.takeAt( exprPos - 1 );
+        emitCode(BydaoOpCode::SetByIdx, memberInst.arg1, 0, exprToken);
     }
     else {
         emitCode(BydaoOpCode::SetMember, memberInst.arg1, memberInst.arg2, exprToken);
@@ -3870,16 +3884,22 @@ bool BydaoParser::parseIndexSuffix() {
         return false;
     }
 
+    TypeInfo exprTypeInfo = getLastType();
+
     // Ожидаем закрывающую скобку
     if (!expect(BydaoTokenType::RBracket)) {
         error("Expected ']' after index expression");
         return false;
     }
 
+    // После операции индекса мы не знаем, какой тип данных имеет элемент
+    // массива, т.к. массив может содержать любые типы данных
+    setLastType( TypeInfo( "Any" ) );
+
     // Генерируем инструкцию INDEX
     // Объект для индексации уже лежит на стеке (результат предыдущих операций)
     // Индекс тоже уже на стеке (результат parseExpression)
-    emitCode(BydaoOpCode::Index, 0, 0, bracketToken);
+    emitCode(BydaoOpCode::GetByIdx, 0, 0, bracketToken);
 
 //    qDebug() << "parseIndexSuffix: emitted INDEX";
 

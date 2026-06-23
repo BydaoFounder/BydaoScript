@@ -67,7 +67,8 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::Member] = "MEMBER";
         names[BydaoOpCode::SetMember] = "SETMEMBER";
         names[BydaoOpCode::Method] = "METHOD";  // ← новая строка
-        names[BydaoOpCode::Index] = "INDEX";
+        names[BydaoOpCode::GetByIdx] = "GETBYIDX";
+        names[BydaoOpCode::SetByIdx] = "SETBYIDX";
         names[BydaoOpCode::Call] = "CALL";
         names[BydaoOpCode::CallVoid] = "CALLVOID";
         names[BydaoOpCode::NewObj] = "NEWOBJ";

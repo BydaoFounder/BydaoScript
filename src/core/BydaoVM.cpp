@@ -1269,7 +1269,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
-    case BydaoOpCode::Index: {
+    case BydaoOpCode::GetByIdx: {
         BydaoValue index = m_stack.pop();
         BydaoValue obj = m_stack.pop();
 
@@ -1277,6 +1277,20 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             m_stack.push(array->get(index));
         } else {
             error("INDEX not supported for Null value", instr);
+            return false;
+        }
+        break;
+    }
+
+    case BydaoOpCode::SetByIdx: {
+        BydaoValue val = m_stack.pop();
+        BydaoValue index = m_stack.pop();
+        BydaoValue obj = m_stack.pop();
+
+        if (auto* array = (BydaoArray*)(obj.toObject())) {
+            array->set( index.toInt(), val );
+        } else {
+            error("SETBYIDX not supported for non-Array object", instr);
             return false;
         }
         break;
