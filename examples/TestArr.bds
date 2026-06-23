@@ -28,3 +28,9 @@ while i < a.length next i += 1 {
 
 a[3][0] = 'newVal'
 Sys.outln( 'a = ' + a )
+
+var b = a[1 + 2]
+Sys.outln( 'b = ' + b )
+b[1] = 'second'
+Sys.outln( 'b = ' + b )
+Sys.outln( 'a = ' + a )
