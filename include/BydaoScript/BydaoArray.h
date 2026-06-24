@@ -51,18 +51,21 @@ public:
 
 private:
 
+    bool method_iter(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_length(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_get(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_set(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_push(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_pop(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_shift(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_unshift(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_append(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_takeLast(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_take(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_takeFirst(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_prepend(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_slice(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_join(const QVector<BydaoValue>& args, BydaoValue& result);
-
-    bool method_iter(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_glue(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_merge(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_remove(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_indexOf(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoArray::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);

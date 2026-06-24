@@ -34,3 +34,39 @@ Sys.outln( 'b = ' + b )
 b[1] = 'second'
 Sys.outln( 'b = ' + b )
 Sys.outln( 'a = ' + a )
+
+Sys.outln( 'a.get(0) = ' + a.get(0) )
+a.set(1,2222)
+Sys.outln( 'a.set(1,2222) = ' + a )
+Sys.outln( 'a.slice(1,2) = ' + a.slice(1,2) )
+
+Sys.outln( 'index of 33 in a = ' + a.indexOf(33) )
+
+Sys.outln( 'Enumarate array a:' )
+enum a as item {
+    Sys.outln( 'item: ' + item )
+}
+
+a.append('next')
+Sys.outln( "After a.append('next') = " + a )
+
+ignore a.takeLast()
+Sys.outln( "After a.takeLast() = " + a )
+
+ignore a.takeFirst()
+Sys.outln( "After a.takeFirst() = " + a )
+
+a.prepend(111)
+Sys.outln( "After a.prepend(111) = " + a )
+
+a.merge(['a','b','c'])
+Sys.outln( "After a.merge(['a','b','c']) = " + a )
+
+Sys.outln( "Result a.glue('#') = " + a.glue('#') )
+
+var d = a.take(1,3)
+Sys.outln( "After a.take(1,3) = " + a )
+Sys.outln( "Result a.take(1,3) = " + d )
+
+a.remove(0,2)
+Sys.outln( "After a.remove(1,3) = " + a )

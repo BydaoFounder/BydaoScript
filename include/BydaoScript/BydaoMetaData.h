@@ -118,8 +118,8 @@ struct FuncMetaData {
 };
 typedef QMap< QString, FuncMetaData > FuncMetaDataDict;
 
-#define FMD_IMMUTABLE      true
-#define FMD_ALTERABLE      false
+#define FMD_IMMUTABLE      true     // не изменяет состояние объекта
+#define FMD_ALTERABLE      false    // изменяет состояние объекта
 
 /**
  * Свойства операции.

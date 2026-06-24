@@ -3533,24 +3533,27 @@ bool BydaoParser::parseCallSuffix() {
             QString exprType = exprTypeInfo.type;
             if ( ! argTypeList.contains( exprType ) ) {     // тип выражения не соответствует ни одному допустимому типу аргумента функции
 
-                // Для типа выражения проверить наличие функции приведения к типу аргумента
+                if ( ! argTypeList.contains( "Any" ) ) {
 
-                if ( ! m_metaData.contains( exprType ) ) {
-                    error("Unknown expession type '" + exprType + "'" );
-                    return false;
-                }
-                bool canConvert = false;
-                MetaData* exprMetaData = m_metaData[ exprType ];
-                for ( int i = 0; i < argTypeList.size(); ++i ) {
-                    const QString& argType = argTypeList[ i ];
-                    if ( exprMetaData->hasObjFunc( QString("to%1").arg(argType) ) ) {
-                        canConvert = true;
-                        break;
+                    // Для типа выражения проверить наличие функции приведения к типу аргумента
+
+                    if ( ! m_metaData.contains( exprType ) ) {
+                        error("Unknown expession type '" + exprType + "'" );
+                        return false;
                     }
-                }
-                if ( ! canConvert ) {
-                    error( QString( "Argument %1 cannot convert to allowed type" ).arg( argCount + 1 ), argToken );
-                    return false;
+                    bool canConvert = false;
+                    MetaData* exprMetaData = m_metaData[ exprType ];
+                    for ( int i = 0; i < argTypeList.size(); ++i ) {
+                        const QString& argType = argTypeList[ i ];
+                        if ( exprMetaData->hasObjFunc( QString("to%1").arg(argType) ) ) {
+                            canConvert = true;
+                            break;
+                        }
+                    }
+                    if ( ! canConvert ) {
+                        error( QString( "Argument %1 cannot convert to allowed type" ).arg( argCount + 1 ), argToken );
+                        return false;
+                    }
                 }
             }
             argCount++;
