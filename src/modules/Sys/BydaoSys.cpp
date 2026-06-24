@@ -122,34 +122,27 @@ bool BydaoSysModule::callMethod(const QString& name,
 // ========== Методы модуля (С КВАЛИФИКАТОРОМ КЛАССА) ==========
 
 bool BydaoSysModule::method_out(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED( result );
     if (args.size() != 1) return false;
-
-    QTextStream& out = *m_outStream;
-    out << args[0].toString();
-    out.flush();
-
-    result = BydaoValue();
+    if ( m_runtime ) {
+        QTextStream& out = *m_runtime->outStream();
+        out << args[0].toString();
+        out.flush();
+    }
     return true;
 }
 
 bool BydaoSysModule::method_outln(const QVector<BydaoValue>& args, BydaoValue& result) {
-
-    // if ( m_ownOutStream ) {
-    //     qDebug() << "Sys.outln() writing to own stream:" << (void*)m_outStream;
-    // }
-    // else {
-    //     qDebug() << "Sys.outln() writing to external stream:" << (void*)m_outStream;
-    // }
-
-    QTextStream& out = *m_outStream;
-    int argCnt = args.size();
-    for ( int i = 0; i < argCnt; ++i ) {
-        out << args[ i ].toString();
+    Q_UNUSED( result );
+    if ( m_runtime ) {
+        QTextStream& out = *m_runtime->outStream();
+        int argCnt = args.size();
+        for ( int i = 0; i < argCnt; ++i ) {
+            out << args[ i ].toString();
+        }
+        out << Qt::endl;
+        out.flush();
     }
-    out << Qt::endl;
-    out.flush();
-
-    result = BydaoValue::fromNull();
     return true;
 }
 

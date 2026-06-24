@@ -18,6 +18,7 @@
 #include <QHash>
 
 #include "BydaoObject.h"
+#include "BydaoRuntime.h"
 #include "BydaoMetaData.h"
 
 namespace BydaoScript {
@@ -41,15 +42,15 @@ public:
     virtual bool initialize();
     virtual bool shutdown();
 
-    void setOutputStream(QTextStream* stream);
+    void            setRuntime(BydaoRuntime* runtime) { m_runtime = runtime; };
+    BydaoRuntime*   runtime() { return m_runtime; };
 
 protected:
 
     virtual void release() {
     }
 
-    bool            m_ownOutStream;
-    QTextStream*    m_outStream;
+    BydaoRuntime*   m_runtime;
 };
 
 // Менеджер модулей

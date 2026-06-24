@@ -186,14 +186,21 @@ private:
 };
 
 
-class BydaoVM {
+class BydaoVM : public BydaoRuntime {
 public:
     BydaoVM();
     ~BydaoVM();
 
-    void setOutputStream(QTextStream* stream) {
-        m_outStream = stream;
-    };
+    // Методы BydaoRuntime
+
+    QTextStream* outStream() override { return m_outStream; }
+    QTextStream* errStream() override { return m_outStream; }
+    void logError(const QString& msg)  override;
+    bool callFunction(BydaoValue func, const QVector<BydaoValue>& args, BydaoValue& result) override;
+
+    // Методы виртуальной машины
+
+    void setOutputStream(QTextStream* stream);
 
     bool loadModule(const ModuleInfo& module);
 
@@ -296,6 +303,7 @@ private:
     QHash<QString, int> m_moduleName;    // для проверки повторной загрузки модулей
 
     QTextStream*    m_outStream;
+    bool            m_ownOutStream;
 };
 
 } // namespace BydaoScript

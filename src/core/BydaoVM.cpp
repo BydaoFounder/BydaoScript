@@ -37,7 +37,9 @@ BydaoVM::BydaoVM()
     , m_profileMode(false)
     , m_lastInstrStart(0)
 {
-    m_outStream = nullptr;
+    m_outStream = new QTextStream( stdout );
+    m_outStream->setEncoding( QStringConverter::Utf8 );
+    m_ownOutStream = true;
 
     // Инициализируем область видимости
     m_scopeStack.clear();
@@ -73,8 +75,31 @@ BydaoVM::BydaoVM()
 }
 
 BydaoVM::~BydaoVM() {
+    if (m_ownOutStream && m_outStream) {
+        delete m_outStream;
+        m_outStream = nullptr;
+    }
     // Очищаем стек областей
     m_scopeStack.clear();
+}
+
+void    BydaoVM::logError(const QString& msg) {
+    Q_UNUSED( msg );
+}
+
+bool    BydaoVM::callFunction(BydaoValue func, const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED( func );
+    Q_UNUSED( args );
+    Q_UNUSED( result );
+    return false;
+}
+
+void    BydaoVM::setOutputStream(QTextStream* stream) {
+    if (m_ownOutStream) {
+        delete m_outStream;
+        m_ownOutStream = false;
+    }
+    m_outStream = stream;
 }
 
 // ========== Загрузка байткода ==========
@@ -1602,7 +1627,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             return false;
         }
         if ( m_outStream ) {
-            module->setOutputStream( m_outStream );
+            module->setRuntime( this );
         }
         
         // Добавляем модуль как переменную в глобальной области

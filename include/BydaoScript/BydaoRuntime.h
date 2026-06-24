@@ -2,18 +2,29 @@
 #define BYDAORUNTIME_H
 
 #include <QtCore>
-
 #include "BydaoValue.h"
 
 namespace BydaoScript {
 
 // Информация о переменной в runtime
+
 struct RuntimeVar {
     QString name;        // имя переменной (для отладки)
     BydaoValue value;    // значение
 };
 
 typedef QList<RuntimeVar>   VarScope;
+
+
+class BydaoRuntime {
+public:
+    virtual ~BydaoRuntime() = default;
+
+    virtual QTextStream* outStream() = 0;
+    virtual QTextStream* errStream() = 0;
+    virtual void logError(const QString& msg) = 0;
+    virtual bool callFunction(BydaoValue func, const QVector<BydaoValue>& args, BydaoValue& result) = 0;
+};
 
 } // namespace BydaoScript
 
