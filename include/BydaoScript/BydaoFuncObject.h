@@ -13,7 +13,7 @@ namespace BydaoScript {
 class BydaoFuncObject : public BydaoObject {
 public:
     BydaoFuncObject();
-    virtual ~BydaoFuncObject() = default;
+    virtual ~BydaoFuncObject();              // = default;
 
     // BydaoObject
     QString typeName() const override { return "Func"; }
@@ -33,6 +33,8 @@ public:
     // Данные функции
     QString                 name;
     QVector<BydaoInstruction> bytecode;
+    BydaoInstruction*       code;
+    int                     codeSize;
     int                     entryPc;        // индекс первой инструкции в пуле
     int                     arity;          // количество параметров
     FuncMetaData            funcMetaData;   // метаданные объекта функции (типы и т.д.)

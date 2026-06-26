@@ -98,16 +98,11 @@ private:
 };
 
 struct CallFrame {
-//    BydaoFuncObject*    func;           // Вызываемая функция
-    int                 returnPc;       // Адрес возврата
+    BydaoInstruction*   code;           // предыдущий исполняемый код
+    int                 codeSize;       // размер предыдущего кода
+    int                 returnPc;       // адрес возврата в предыдущем коде
     int                 scopeDeep;      // глубина стека областей видимости перед вызовом функции
     int                 scopeOffset;
-    // VarScope*           callerScope;    // Скоуп вызывающего (для восстановления)
-    // VarScope            localVars;      // Локальные переменные (включая аргументы)
-    // int                 selfIndex;      // Индекс области видимости для self
-
-    // // Для out-аргументов: индексы переменных вызывающего, куда писать результат
-    // QVector<int>        outVarIndices;
 };
 
 
@@ -204,11 +199,6 @@ public:
 
     bool loadModule(const ModuleInfo& module);
 
-    // Загрузка байткода
-    bool load(const QVector<BydaoConstant>& constants,
-              const QVector<QString>& stringTable,
-              const QVector<BydaoInstruction>& code);
-
     // Выполнение
     bool run();
     void stop();
@@ -268,7 +258,9 @@ private:
     QVector<BydaoConstant>      m_constants;        // исходные константы
     QVector<BydaoValue>         m_constantValues;   // готовые значения констант
     QVector<QString>            m_stringTable;      // таблица строк
-    QVector<BydaoInstruction>   m_code;             // код
+//    QVector<BydaoInstruction>   m_code;             // код
+    BydaoInstruction*           m_bytecode;             // код
+    qint32                      m_bytecodeSize;
 
     // Функции
     QVector< BydaoFuncObject*>  m_funcs;            // функции

@@ -37,6 +37,9 @@ BydaoVM::BydaoVM()
     , m_profileMode(false)
     , m_lastInstrStart(0)
 {
+    m_bytecode = nullptr;
+    m_bytecodeSize = 0;
+
     m_outStream = new QTextStream( stdout );
     m_outStream->setEncoding( QStringConverter::Utf8 );
     m_ownOutStream = true;
@@ -82,6 +85,17 @@ BydaoVM::~BydaoVM() {
     }
     // Очищаем стек областей
     m_scopeStack.clear();
+
+    // Удаляем байт-код
+    delete[] m_bytecode;
+
+    // Удаляем все функции
+    for ( int i = 0; i < m_funcs.size(); ++i ) {
+        BydaoFuncObject* func = m_funcs[ i ];
+        delete func;
+        m_funcs[ i ] = nullptr;
+    }
+    m_funcs.remove( 0, m_funcs.size() );
 }
 
 void    BydaoVM::logError(const QString& msg) {
@@ -113,6 +127,8 @@ bool    BydaoVM::callFunction(BydaoValue valFunc, const QVector<BydaoValue>& arg
     // Создаём новый фрейм
     int scopeDeep = m_scopeStack.size();
     CallFrame frame;
+    frame.code = m_bytecode;
+    frame.codeSize = m_bytecodeSize;
     frame.returnPc = m_pc;
     frame.scopeDeep = scopeDeep;
     frame.scopeOffset = m_scopeOffset;
@@ -121,7 +137,6 @@ bool    BydaoVM::callFunction(BydaoValue valFunc, const QVector<BydaoValue>& arg
 
     m_scopeStack.resizeForOverwrite( scopeDeep + argCount );
     m_scopeOffset = scopeDeep;
-
     while ( --argCount >= 0 ) {
         RuntimeVar& var = m_scopeStack[ m_scopeOffset + argCount ];
         var.name = func->funcMetaData.argList[ argCount ].name;
@@ -132,13 +147,15 @@ bool    BydaoVM::callFunction(BydaoValue valFunc, const QVector<BydaoValue>& arg
     m_callStack.push(frame);
 
     // Переключаемся на функцию
-    m_pc = func->entryPc;
+    m_bytecode = func->code;
+    m_bytecodeSize = func->codeSize;
+    m_pc = 0;
 
     // Выполняем код функции, пока не встретим RETURN
 
     bool success = true;
-    while (m_running && m_pc >= 0 && m_pc < m_code.size()) {
-        const BydaoInstruction& instr = m_code[m_pc++];
+    while ( m_running && m_pc >= 0 && m_pc < m_bytecodeSize ) {
+        const BydaoInstruction& instr = m_bytecode[m_pc++];
 
         if (m_traceMode) {
             QString opName = BydaoBytecode::opcodeToString(instr.op);
@@ -172,7 +189,13 @@ bool    BydaoVM::callFunction(BydaoValue valFunc, const QVector<BydaoValue>& arg
     m_scopeStack.resize( frame.scopeDeep );
     m_scopeOffset = frame.scopeOffset;
 
+    // Возвращаемся в предыдущий код
+
     m_pc = frame.returnPc;
+    m_bytecode = frame.code;
+    m_bytecodeSize = frame.codeSize;
+
+    // Вернем результат выполнния функции
 
     if ( func->funcMetaData.retType != "Void" ) {
         m_stack.popTo( result );
@@ -222,7 +245,11 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
     }
 */
     // Загружаем глобальный код
-    m_code = module.globalCode;
+    m_bytecodeSize = module.globalCode.size();
+    m_bytecode = new BydaoInstruction[m_bytecodeSize];
+    for ( qint32 i = 0; i < m_bytecodeSize; ++i ) {
+        m_bytecode[ i ] = module.globalCode[ i ];
+    }
     m_pc = 0;
 
     // Создаём функции
@@ -230,9 +257,16 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
         auto* funcObj = new BydaoFuncObject();
         funcObj->ref();
         funcObj->name = funcInfo.name;
-        // funcObj->bytecode = funcInfo.code;
-        // funcObj->entryPc = funcInfo.entryPc;
 
+        int codeSize = funcInfo.code.size();
+        funcObj->codeSize = codeSize;
+        funcObj->code = new BydaoInstruction[ funcObj->codeSize ];
+        for ( int i = 0; i < codeSize; ++i ) {
+            funcObj->code[ i ] = funcInfo.code[ i ];
+        }
+        funcObj->entryPc = 0;
+
+/*
         funcObj->entryPc = m_code.size();
         m_code.append( funcInfo.code );
         for ( int pc = funcObj->entryPc; pc < m_code.size(); ++pc ) {
@@ -249,6 +283,7 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
                 break;
             }
         }
+*/
 
         funcObj->arity = funcInfo.arity;
         funcObj->selfIndex = m_scopeOffset;
@@ -273,17 +308,7 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
 
         m_funcs.append( funcObj );
 
-        // Если функция публичная, добавляем в глобальный скоуп
-/*
-        NOTE: Не уверен, что нужно так
-
-        if (funcInfo.isPublic) {
-            RuntimeVar var;
-            var.name = funcInfo.name;
-            var.value = BydaoValue(funcObj,TYPE_FUNC);
-            m_scopeStack.append(var);
-        }
-*/
+        // TODO: Если функция публичная, добавляем в глобальный скоуп
     }
 
     return true;
@@ -319,35 +344,6 @@ void BydaoVM::loadConstants( const QVector<BydaoConstant>& constants ) {
     }
 }
 
-bool BydaoVM::load(const QVector<BydaoConstant>& constants,
-                   const QVector<QString>& stringTable,
-                   const QVector<BydaoInstruction>& code) {
-    
-    m_constants = constants;
-    m_stringTable = stringTable;
-    m_code = code;
-    
-    // Преобразуем константы в готовые значения
-    m_constantValues.clear();
-    loadConstants( constants );
-    
-    // Сброс состояния
-    m_pc = 0;
-    m_stack.clear();
-    m_scopeStack.clear();
-    m_scopeStack.append( VarScope() );
-    m_scopeOffset = 0;
-
-    // В стек значений добавим специальную переменную
-
-    RuntimeVar var;
-    var.name = SPECIAL_VAR;
-    var.value = BydaoValue();
-    m_scopeStack.append( var );
-
-    return true;
-}
-
 // ========== Выполнение ==========
 
 bool BydaoVM::run() {
@@ -356,8 +352,8 @@ bool BydaoVM::run() {
     
     QElapsedTimer timer;
     
-    while (m_running && m_pc >= 0 && m_pc < m_code.size()) {
-        const BydaoInstruction& instr = m_code[m_pc++];
+    while ( m_running && 0 <= m_pc && m_pc < m_bytecodeSize ) {
+        const BydaoInstruction& instr = m_bytecode[m_pc++];
         
         if (m_traceMode) {
             QString opName = BydaoBytecode::opcodeToString(instr.op);
@@ -1799,10 +1795,8 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         BydaoFuncObject* func;
         if ( arg2 < 0 ) {  // косвенный вызов через переменную
-
             int varIndex = -arg2 - 1;
             BydaoValue val = getVariable( varIndex, instr );
-//            BydaoValue val = m_stack.pop();
             if ( ! val.isObject() ) {
                 error( "Call non-object as function", instr );
                 return false;
@@ -1824,6 +1818,8 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         // Создаём новый фрейм
         int scopeDeep = m_scopeStack.size();
         CallFrame frame;
+        frame.code = m_bytecode;
+        frame.codeSize = m_bytecodeSize;
         frame.returnPc = m_pc;
         frame.scopeDeep = scopeDeep;
         frame.scopeOffset = m_scopeOffset;
@@ -1843,24 +1839,15 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         m_callStack.push(frame);
 
         // Переключаемся на функцию
-        m_pc = func->entryPc;
+        m_pc = 0;
+        m_bytecode = func->code;
+        m_bytecodeSize = func->codeSize;
 
         break;
     }
 
     case BydaoOpCode::Return: {
-/*
-        bool hasValue = arg1;
-        BydaoValue retVal;
 
-        if (hasValue) {
-            if (m_stack.isEmpty()) {
-                error("Stack underflow in RETURN", instr);
-                return false;
-            }
-            retVal = m_stack.pop();
-        }
-*/
         if (m_callStack.isEmpty()) {
             // Возврат из главного модуля — завершаем программу
             m_running = false;
@@ -1882,17 +1869,13 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Восстанавливаем скоуп вызывающего
 
-//        dropScope();
         m_scopeStack.resize( frame.scopeDeep );
         m_scopeOffset = frame.scopeOffset;
 
         m_pc = frame.returnPc;
-/*
-        // Кладём результат на стек, если функция не void
-        if (frame.func->funcMetaData.retType != "Void") {
-            m_stack.push(retVal);
-        }
-*/
+        m_bytecode = frame.code;
+        m_bytecodeSize = frame.codeSize;
+
         break;
     }
 

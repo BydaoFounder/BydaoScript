@@ -11,8 +11,18 @@ BydaoFuncObject::BydaoFuncObject()
     arity = 0;
     selfIndex = 0;
     bytecode.clear();
+    code = nullptr;
+    codeSize = 0;
     registerMethod("toString", &BydaoFuncObject::method_toString);
     registerMethod("isNull", &BydaoFuncObject::method_isNull);
+}
+
+BydaoFuncObject::~BydaoFuncObject() {
+    if ( code ) {
+        delete[] code;
+        code = nullptr;
+    }
+    bytecode.clear();
 }
 
 void BydaoFuncObject::registerMethod(const QString& name, MethodPtr method) {
