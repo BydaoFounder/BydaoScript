@@ -71,6 +71,7 @@ BydaoVM::BydaoVM()
 
     auto* arrayClass = new BydaoArray();
     arrayClass->ref();
+    arrayClass->setRuntime( this );
     s_builtinTypes.append( {"Array", BydaoValue(arrayClass, BydaoTypeId::TYPE_OBJECT)} );
 }
 
@@ -87,11 +88,97 @@ void    BydaoVM::logError(const QString& msg) {
     Q_UNUSED( msg );
 }
 
-bool    BydaoVM::callFunction(BydaoValue func, const QVector<BydaoValue>& args, BydaoValue& result) {
-    Q_UNUSED( func );
-    Q_UNUSED( args );
-    Q_UNUSED( result );
-    return false;
+bool    BydaoVM::callFunction(BydaoValue valFunc, const QVector<BydaoValue>& args, BydaoValue& result) {
+
+    BydaoInstruction instr;
+
+    BydaoObject* obj = valFunc.toObject();
+    if ( ! obj ) {
+        error( "Call non-object as function", instr );
+        return false;
+    }
+    if ( obj->typeName() != "Func" ) {
+        error( "Call non-function as function", instr );
+        return false;
+    }
+    BydaoFuncObject* func = (BydaoFuncObject*)obj;
+
+    // Проверяем количество аргументов
+    int argCount = args.count();
+    if (argCount != func->arity) {
+        error(QString("Argument count mismatch: expected %1, got %2").arg(func->arity).arg(argCount), instr);
+        return false;
+    }
+
+    // Создаём новый фрейм
+    int scopeDeep = m_scopeStack.size();
+    CallFrame frame;
+    frame.returnPc = m_pc;
+    frame.scopeDeep = scopeDeep;
+    frame.scopeOffset = m_scopeOffset;
+
+    // Копируем аргументы в локальные переменные
+
+    m_scopeStack.resizeForOverwrite( scopeDeep + argCount );
+    m_scopeOffset = scopeDeep;
+
+    while ( --argCount >= 0 ) {
+        RuntimeVar& var = m_scopeStack[ m_scopeOffset + argCount ];
+        var.name = func->funcMetaData.argList[ argCount ].name;
+        var.value = args[ argCount ];
+    }
+
+    // Сохраняем фрейм
+    m_callStack.push(frame);
+
+    // Переключаемся на функцию
+    m_pc = func->entryPc;
+
+    // Выполняем код функции, пока не встретим RETURN
+
+    bool success = true;
+    while (m_running && m_pc >= 0 && m_pc < m_code.size()) {
+        const BydaoInstruction& instr = m_code[m_pc++];
+
+        if (m_traceMode) {
+            QString opName = BydaoBytecode::opcodeToString(instr.op);
+            if (instr.arg1 != 0 || instr.arg2 != 0) {
+                qDebug().noquote() << QString("EXEC: %1 %2 [%3,%4]")
+                .arg(m_pc-1, 4)
+                    .arg(opName, -10)
+                    .arg(instr.arg1)
+                    .arg(instr.arg2);
+            } else {
+                qDebug().noquote() << QString("EXEC: %1 %2")
+                .arg(m_pc-1, 4)
+                    .arg(opName);
+            }
+        }
+
+        if ( instr.op == BydaoOpCode::Return ) {
+            break;
+        }
+        if ( ! execute(instr) ) {
+            success = false;
+            break;
+        }
+    }
+
+    // Восстанавливаем фрейм вызывающего
+    frame = m_callStack.pop();
+
+    // Восстанавливаем скоуп вызывающего
+
+    m_scopeStack.resize( frame.scopeDeep );
+    m_scopeOffset = frame.scopeOffset;
+
+    m_pc = frame.returnPc;
+
+    if ( func->funcMetaData.retType != "Void" ) {
+        m_stack.popTo( result );
+    }
+
+    return success;
 }
 
 void    BydaoVM::setOutputStream(QTextStream* stream) {
@@ -1665,6 +1752,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Создаём новый массив
         auto* array = new BydaoArray();
+        array->setRuntime( this );
 
         QVector<BydaoValue> elements;
         elements.resizeForOverwrite( count );

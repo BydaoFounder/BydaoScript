@@ -2883,20 +2883,22 @@ bool BydaoParser::parseComparison() {
         // Проверить наличие операции сравнения на равенство для левого операнда
 
         QString leftType = leftTypeInfo.type;
-        if ( ! checkTypeOper( leftType, operName, leftToken ) ) {
-            return false;
-        }
+        if ( leftType != "Any" ) {
+            if ( ! checkTypeOper( leftType, operName, leftToken ) ) {
+                return false;
+            }
 
-        // Если сравнение значений разного типа
+            // Если сравнение значений разного типа
 
-        if ( leftType != rightTypeInfo.type ) {
+            if ( leftType != rightTypeInfo.type ) {
 
-            // Проверить возможность преобразования типа правого операнда
-            // к типу левого операнда
+                // Проверить возможность преобразования типа правого операнда
+                // к типу левого операнда
 
-            if ( rightTypeInfo.type != "Any" ) {
-                if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
-                    return false;
+                if ( rightTypeInfo.type != "Any" ) {
+                    if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
+                        return false;
+                    }
                 }
             }
         }

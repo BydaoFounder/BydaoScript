@@ -16,6 +16,7 @@
 #include <QVector>
 
 #include "BydaoObject.h"
+#include "BydaoRuntime.h"
 #include "BydaoMetaData.h"
 
 namespace BydaoScript {
@@ -49,6 +50,11 @@ public:
 
     BydaoValue  iter() override;  // создаёт итератор для массива
 
+    void            setRuntime(BydaoRuntime* runtime) {
+        m_runtime = runtime;
+    };
+    BydaoRuntime*   runtime() { return m_runtime; };
+
 private:
 
     bool method_iter(const QVector<BydaoValue>& args, BydaoValue& result);
@@ -66,6 +72,7 @@ private:
     bool method_merge(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_remove(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_indexOf(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_sort(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoArray::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);
@@ -88,6 +95,8 @@ private:
     };
 
     QVector<BydaoValue> m_elements;
+
+    BydaoRuntime*   m_runtime;
 };
 
 } // namespace BydaoScript

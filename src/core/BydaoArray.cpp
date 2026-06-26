@@ -42,6 +42,7 @@ MetaData*   BydaoArray::metaData() {
             .appendObj( "remove",       FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("start","Int",ARG_IN) << FuncArgMetaData("count","Int",ARG_IN,"null") )
             .appendObj( "take",         FuncMetaData("Int", FMD_ALTERABLE) << FuncArgMetaData("pos","Int",ARG_IN) << FuncArgMetaData("count","Int",ARG_IN,"null") )
             .appendObj( "indexOf",      FuncMetaData("Int", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
+            .appendObj( "sort",         FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN) )
             ;
     }
     return metaData;
@@ -78,6 +79,7 @@ BydaoArray::BydaoArray()
     registerMethod("take",      &BydaoArray::method_take);
     registerMethod("remove",    &BydaoArray::method_remove);
     registerMethod("indexOf",   &BydaoArray::method_indexOf);
+    registerMethod("sort",      &BydaoArray::method_sort);
 
     // Свойства объекта
     registerVar( "length",  &BydaoArray::getvar_length );
@@ -330,6 +332,21 @@ bool BydaoArray::method_indexOf(const QVector<BydaoValue>& args, BydaoValue& res
         }
     }
     result = BydaoValue::fromInt( -1 );
+    return true;
+}
+
+bool BydaoArray::method_sort(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 1) return false;
+    const BydaoValue& callback = args[0];
+
+    std::sort(m_elements.begin(), m_elements.end(), [&](BydaoValue& a, BydaoValue& b) {
+        QVector<BydaoValue> callArgs = {a, b};
+        BydaoValue cmpResult;
+        m_runtime->callFunction(callback, callArgs, cmpResult);
+        return cmpResult.toBool();
+    });
+
+    result = BydaoValue::fromBool( false );
     return true;
 }
 
