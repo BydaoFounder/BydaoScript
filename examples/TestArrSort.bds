@@ -1,0 +1,31 @@
+use Sys
+
+var t1 = Sys.time()
+var i = 0
+while i < 10000 next i += 1 {
+    var a = []
+    var j = 0
+    while j < 10 next j += 1 {
+        a.append( Int.random(0,100) )
+    }
+    a.sort( func(a,b) {
+        return a < b
+    })
+}
+t1 = Sys.time() - t1
+Sys.outln( '1. Array 10 sort time: ' + t1 + ' msec' )
+
+t1 = Sys.time()
+i = 0
+while i < 10000 next i += 1 {
+    var a = []
+    var j = 0
+    while j < 50 next j += 1 {
+        a.append( Int.random(0,100) )
+    }
+    a.sort( func(a,b) {
+        return a < b
+    })
+}
+t1 = Sys.time() - t1
+Sys.outln( '2. Array 50 sort time: ' + t1 + ' msec' )
