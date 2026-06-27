@@ -345,8 +345,9 @@ bool BydaoArray::method_sort(const QVector<BydaoValue>& args, BydaoValue& result
     if (args.size() != 1) return false;
     const BydaoValue& callback = args[0];
 
-    std::sort(m_elements.begin(), m_elements.end(), [callback,this](BydaoValue& a, BydaoValue& b) {
-        QVector<BydaoValue> callArgs(2); // = {a, b};
+    QVector<BydaoValue> callArgs(2); // = {a, b};
+
+    std::sort(m_elements.begin(), m_elements.end(), [this,callback,&callArgs](BydaoValue& a, BydaoValue& b) {
         callArgs[0] = a;
         callArgs[1] = b;
         BydaoValue cmpResult;
