@@ -286,8 +286,6 @@ bool BydaoVM::loadModule(const ModuleInfo& module) {
 */
 
         funcObj->arity = funcInfo.arity;
-        funcObj->selfIndex = m_scopeOffset;
-        funcObj->selfVarIndices = funcInfo.selfRefs;
         funcObj->scopeOffset = funcInfo.scopeOffset;
 
         funcObj->funcMetaData.retType = funcInfo.retType;
@@ -1756,20 +1754,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             m_stack.popTo( elements[ count ] );
         }
 
-/*
-        // Извлекаем элементы со стека
-        // Элементы лежат на стеке в порядке вычисления:
-        // первый элемент вычислен первым и лежит внизу стека,
-        // последний элемент - наверху стека
-        QVector<BydaoValue> elements;
-        elements.reserve(count);
-
-        for (int i = 0; i < count; i++) {
-            // Так как последний элемент наверху, а нам нужно сохранить порядок,
-            // используем prepend
-            elements.prepend(m_stack.pop());
-        }
-*/
         // Добавляем элементы в массив
         foreach ( const auto& elem, elements ) {
             array->append(elem);
@@ -1785,7 +1769,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     case BydaoOpCode::FuncDecl: {
         RuntimeVar var;
         var.name = m_stringTable[arg1];
-        var.value = BydaoValue( m_funcs[arg2], TYPE_FUNC );
+//        var.value = BydaoValue( m_funcs[arg2], TYPE_FUNC );
+        BydaoObject* func = m_funcs[arg2];
+        var.value.set( func, TYPE_FUNC );
+        func->ref();
         m_scopeStack.append(var);
         break;
     }
@@ -1828,7 +1815,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         m_scopeStack.resizeForOverwrite( scopeDeep + argCount );
         m_scopeOffset = ( arg2 < 0 ) ? func->scopeOffset : scopeDeep;
-
         while ( --argCount >= 0 ) {
             RuntimeVar& var = m_scopeStack[ m_scopeOffset + argCount ];
             var.name = func->funcMetaData.argList[ argCount ].name;

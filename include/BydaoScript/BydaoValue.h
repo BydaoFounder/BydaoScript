@@ -60,6 +60,11 @@ public:
     // Быстрый доступ к типу
     inline int typeId() const { return m_typeId; }
 
+    void    set(BydaoObject* obj, BydaoTypeId typeId ) {
+        m_obj = obj;
+        m_typeId = typeId;
+    }
+
     // Удобные методы
     QString toString() const;
     bool toBool() const;

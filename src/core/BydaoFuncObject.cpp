@@ -9,7 +9,6 @@ BydaoFuncObject::BydaoFuncObject()
 {
     entryPc = 0;
     arity = 0;
-    selfIndex = 0;
     bytecode.clear();
     code = nullptr;
     codeSize = 0;

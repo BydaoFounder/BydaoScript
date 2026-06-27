@@ -38,17 +38,7 @@ public:
     int                     entryPc;        // индекс первой инструкции в пуле
     int                     arity;          // количество параметров
     FuncMetaData            funcMetaData;   // метаданные объекта функции (типы и т.д.)
-
-    // Индекс обласьти видимости для self-доступа
-    // Заполняется при создании функции
-    int                     selfIndex;
-
     int                     scopeOffset;
-
-    // TODO: убрать
-    // Индексы переменных модуля, к которым обращается функция через self
-    // Ключ — имя переменной, значение — индекс в selfFrame
-    QHash<QString, int>     selfVarIndices;
 
 private:
     bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);

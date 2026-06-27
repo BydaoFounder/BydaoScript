@@ -146,7 +146,6 @@ ModuleInfo BydaoParser::buildModuleInfo(const QString& moduleName) {
         funcInfo.arity = funcObj->arity;
         funcInfo.scopeOffset = funcObj->scopeOffset;
         funcInfo.code = funcObj->bytecode;
-        funcInfo.selfRefs = funcObj->selfVarIndices;
 
         // Конвертируем аргументы
         for (int i = 0; i < funcObj->funcMetaData.argList.size(); i++) {
@@ -1075,7 +1074,7 @@ bool BydaoParser::parseAssign() {
     TypeInfo exprType = getLastType();
 
     QString varType = varInfo.type;
-    if ( varType != "Null" && varType != exprType.type ) {
+    if ( varType != "Null" && varType != "Any" && varType != exprType.type ) {
         if ( exprType.type != "Any" ) {
             error( "Cannot assign value of type '" + exprType.type + "' to variable of type '" + varType + "'", nameToken );
             return false;
@@ -2027,8 +2026,14 @@ bool BydaoParser::parseFuncDecl() {
 
     // Проверим, что ранее нет переменной с таким именем
 
-    if ( isVariableDeclared( funcName ) ) {
-        error( QString( "Variable '%1' already exists" ).arg( funcName ), nameToken );
+    VariableInfo prevVar = resolveVariable( funcName );
+    if ( prevVar.name == funcName ) {
+        if ( prevVar.type == "Func" ) {
+            error( QString( "Function '%1' already exists" ).arg( funcName ), nameToken );
+        }
+        else {
+            error( QString( "There is already a variable named '%1'" ).arg( funcName ), nameToken );
+        }
         return false;
     }
 
@@ -2061,14 +2066,8 @@ bool BydaoParser::parseFuncDecl() {
     funcObj->funcMetaData.argList = ctx.argList;
     funcObj->bytecode.clear();  // Байт код будет определен после разбора тела функции
 
-    // Добавить функцию в общий список функций, чтобы можно было
-    // определять рекурсивные функции
-
-
     // Объявляем постоянную переменную с именем функции в текущей области видимости
-    int funcIdx = m_funcs.size();
     if ( ! appendVariable(funcName, true, isPublic) ) {
-        m_funcs.removeAt( funcIdx );
         delete funcObj;
         return false;
     }
@@ -2079,13 +2078,16 @@ bool BydaoParser::parseFuncDecl() {
     varScopes[info.varIndex].varInfo.constValue = BydaoValue(funcObj, TYPE_FUNC);
 
     // Индекс текущей области видимости для self
-    funcObj->selfIndex = m_scopeLevel;
     int scopeOffset = 0;
     for ( int i = m_scopeLevel; i >= 0; --i ) {
         scopeOffset += m_varScopes[ i ].size();
     }
     funcObj->scopeOffset = scopeOffset;
 
+    // Добавить функцию в общий список функций, чтобы можно было
+    // определять рекурсивные функции
+
+    int funcIdx = m_funcs.size();
     m_funcs.append( funcObj );
 
     // Тело функции
@@ -2214,6 +2216,12 @@ bool BydaoParser::parseReturn() {
         return false;
     }
 
+    // Сброс области видимости
+
+    int scopeDrop = m_varScopes[ m_scopeLevel ].size() > m_scopeStart.top();
+    m_scopeStart.pop();
+
+
     if (  ! match(BydaoTokenType::RBrace) ) {
 
         // Парсим возвращаемое выражение
@@ -2238,14 +2246,14 @@ bool BydaoParser::parseReturn() {
             // TODO: инструкция приведения
         }
 
-        emitCode(BydaoOpCode::Return, 1, 0, returnToken);
+        emitCode(BydaoOpCode::Return, 1, scopeDrop, returnToken);
     }
     else {
         if (m_currentFunc->retType != "Void") {
             error("Function must return a value of type '" + m_currentFunc->retType + "'", returnToken);
             return false;
         }
-        emitCode(BydaoOpCode::Return, 0, 0, returnToken);
+        emitCode(BydaoOpCode::Return, 0, scopeDrop, returnToken);
     }
 
     return true;

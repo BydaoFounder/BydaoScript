@@ -258,7 +258,6 @@ struct FunctionInfo {
     QVector<BydaoInstruction> code;
     QVector<BydaoConstant> constants;      // константы, используемые только этой функцией
     QVector<QString> stringTable;          // строки, используемые только этой функцией
-    QHash<QString, int> selfRefs;          // имя переменной модуля -> индекс в глобальном фрейме
 
     // Локальные переменные функции
     struct LocalVar {
