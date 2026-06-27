@@ -1528,7 +1528,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Забираем аргументы
         QVector<BydaoValue> args;
-        args.resize( argCount );
+        args.resizeForOverwrite( argCount );
         while ( --argCount >= 0 ) {
             m_stack.popTo( args[ argCount ] );
         }
@@ -1769,11 +1769,17 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
     case BydaoOpCode::FuncDecl: {
         RuntimeVar var;
         var.name = m_stringTable[arg1];
-//        var.value = BydaoValue( m_funcs[arg2], TYPE_FUNC );
         BydaoObject* func = m_funcs[arg2];
         var.value.set( func, TYPE_FUNC );
         func->ref();
         m_scopeStack.append(var);
+        break;
+    }
+
+    case BydaoOpCode::FuncVal: {
+        BydaoObject* func = m_funcs[arg2];
+        BydaoValue value( func, TYPE_FUNC );
+        m_stack.push( value );
         break;
     }
 

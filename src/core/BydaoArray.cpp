@@ -28,11 +28,12 @@ MetaData*   BydaoArray::metaData() {
             .appendObj( "length",       VarMetaData("Int", VMD_CONST) );
         metaData
             // методы объекта
-            ->appendObj( "iter",        FuncMetaData("ArrayIter", FMD_IMMUTABLE) )
+            ->appendObj( "append",      FuncMetaData(0,"Void", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
+            .appendObj( "sort",         FuncMetaData(1,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN) )
+            .appendObj( "iter",         FuncMetaData("ArrayIter", FMD_IMMUTABLE) )
             .appendObj( "toString",     FuncMetaData("String", FMD_IMMUTABLE) )
             .appendObj( "get",          FuncMetaData("Int", FMD_IMMUTABLE) << FuncArgMetaData("pos","Int",ARG_IN) )
             .appendObj( "set",          FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("pos","Int",ARG_IN) << FuncArgMetaData("obj","Any",ARG_IN) )
-            .appendObj( "append",       FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
             .appendObj( "takeLast",     FuncMetaData("Any", FMD_ALTERABLE) )
             .appendObj( "takeFirst",    FuncMetaData("Any", FMD_ALTERABLE) )
             .appendObj( "prepend",      FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
@@ -42,7 +43,6 @@ MetaData*   BydaoArray::metaData() {
             .appendObj( "remove",       FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("start","Int",ARG_IN) << FuncArgMetaData("count","Int",ARG_IN,"null") )
             .appendObj( "take",         FuncMetaData("Int", FMD_ALTERABLE) << FuncArgMetaData("pos","Int",ARG_IN) << FuncArgMetaData("count","Int",ARG_IN,"null") )
             .appendObj( "indexOf",      FuncMetaData("Int", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
-            .appendObj( "sort",         FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN) )
             ;
     }
     return metaData;
@@ -83,6 +83,12 @@ BydaoArray::BydaoArray()
 
     // Свойства объекта
     registerVar( "length",  &BydaoArray::getvar_length );
+
+    // Регистрация функций для вызова по индексу
+
+    m_stdMethodTable.resize(2);
+    m_stdMethodTable[0] = &BydaoArray::appendImpl;
+    m_stdMethodTable[1] = &BydaoArray::sortImpl;
 }
 
 void BydaoArray::registerMethod(const QString& name, MethodPtr method) {
@@ -339,8 +345,10 @@ bool BydaoArray::method_sort(const QVector<BydaoValue>& args, BydaoValue& result
     if (args.size() != 1) return false;
     const BydaoValue& callback = args[0];
 
-    std::sort(m_elements.begin(), m_elements.end(), [&](BydaoValue& a, BydaoValue& b) {
-        QVector<BydaoValue> callArgs = {a, b};
+    std::sort(m_elements.begin(), m_elements.end(), [callback,this](BydaoValue& a, BydaoValue& b) {
+        QVector<BydaoValue> callArgs(2); // = {a, b};
+        callArgs[0] = a;
+        callArgs[1] = b;
         BydaoValue cmpResult;
         m_runtime->callFunction(callback, callArgs, cmpResult);
         return cmpResult.toBool();

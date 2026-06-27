@@ -70,3 +70,14 @@ Sys.outln( "Result a.take(1,3) = " + d )
 
 a.remove(0,2)
 Sys.outln( "After a.remove(1,3) = " + a )
+
+var arr = []
+var j = 0
+while j < 10 next j += 1 {
+    arr.append( Int.random(0,100) )
+}
+Sys.outln( 'Source array: ' + arr )
+arr.sort( func(a,b) {
+    return a < b
+})
+Sys.outln( 'Sorted array: ' + arr )

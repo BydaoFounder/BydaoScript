@@ -94,6 +94,16 @@ private:
         return true;
     };
 
+    static bool appendImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoArray*>(self);
+        return obj->method_append( args, result );
+    }
+
+    static bool sortImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoArray*>(self);
+        return obj->method_sort( args, result );
+    }
+
     QVector<BydaoValue> m_elements;
 
     BydaoRuntime*   m_runtime;

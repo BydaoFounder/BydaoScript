@@ -2017,27 +2017,30 @@ bool BydaoParser::parseFuncDecl() {
     }
 
     // Имя функции
-    if (!match(BydaoTokenType::Identifier)) {
-        error("Expected function name");
-        return false;
-    }
-    BydaoToken nameToken = m_current;
-    QString funcName = m_current.text;
-
-    // Проверим, что ранее нет переменной с таким именем
-
-    VariableInfo prevVar = resolveVariable( funcName );
-    if ( prevVar.name == funcName ) {
-        if ( prevVar.type == "Func" ) {
-            error( QString( "Function '%1' already exists" ).arg( funcName ), nameToken );
+    QString funcName;
+    if ( m_exprCount == 0 ) {
+        if (!match(BydaoTokenType::Identifier)) {
+            error("Expected function name");
+            return false;
         }
-        else {
-            error( QString( "There is already a variable named '%1'" ).arg( funcName ), nameToken );
-        }
-        return false;
-    }
+        BydaoToken nameToken = m_current;
+        funcName = m_current.text;
 
-    nextToken();
+        // Проверим, что ранее нет переменной с таким именем
+
+        VariableInfo prevVar = resolveVariable( funcName );
+        if ( prevVar.name == funcName ) {
+            if ( prevVar.type == "Func" ) {
+                error( QString( "Function '%1' already exists" ).arg( funcName ), nameToken );
+            }
+            else {
+                error( QString( "There is already a variable named '%1'" ).arg( funcName ), nameToken );
+            }
+            return false;
+        }
+
+        nextToken();
+    }
 
     // Создаём контекст парсинга функции
     FuncParseContext ctx;
@@ -2066,16 +2069,18 @@ bool BydaoParser::parseFuncDecl() {
     funcObj->funcMetaData.argList = ctx.argList;
     funcObj->bytecode.clear();  // Байт код будет определен после разбора тела функции
 
-    // Объявляем постоянную переменную с именем функции в текущей области видимости
-    if ( ! appendVariable(funcName, true, isPublic) ) {
-        delete funcObj;
-        return false;
+    if ( m_exprCount == 0 ) {
+        // Объявляем постоянную переменную с именем функции в текущей области видимости
+        if ( ! appendVariable(funcName, true, isPublic) ) {
+            delete funcObj;
+            return false;
+        }
+        VariableInfo info = resolveVariable(funcName);
+        VarScope& varScopes = m_varScopes[ m_scopeLevel ];
+        varScopes[info.varIndex].varInfo.type = "Func";
+        varScopes[info.varIndex].varInfo.funcMeta = funcMetaData;
+        varScopes[info.varIndex].varInfo.constValue = BydaoValue(funcObj, TYPE_FUNC);
     }
-    VariableInfo info = resolveVariable(funcName);
-    VarScope& varScopes = m_varScopes[ m_scopeLevel ];
-    varScopes[info.varIndex].varInfo.type = "Func";
-    varScopes[info.varIndex].varInfo.funcMeta = funcMetaData;
-    varScopes[info.varIndex].varInfo.constValue = BydaoValue(funcObj, TYPE_FUNC);
 
     // Индекс текущей области видимости для self
     int scopeOffset = 0;
@@ -2115,9 +2120,17 @@ bool BydaoParser::parseFuncDecl() {
         funcObj->bytecode = std::move(ctx.m_funcCode);
     }
 
-    // Генерируем FuncDecl для функции
-    qint16 nameIdx = addString(funcName);
-    emitCode( BydaoOpCode::FuncDecl, nameIdx, funcIdx, funcToken );
+    if ( m_exprCount == 0 ) {
+
+        // Генерируем FuncDecl для функции
+        qint16 nameIdx = addString(funcName);
+        emitCode( BydaoOpCode::FuncDecl, nameIdx, funcIdx, funcToken );
+    }
+    else {
+
+        setLastType( TypeInfo( "Func" ) );
+        emitCode( BydaoOpCode::FuncVal, 0, funcIdx, funcToken );
+    }
 
     return true;
 }
@@ -3280,6 +3293,10 @@ bool BydaoParser::parsePrimary() {
         return parseIf();
     }
 
+    if ( match( BydaoTokenType::Func ) ) {
+        return parseFuncDecl();
+    }
+
     // Обрабатываем идентификаторы (переменные, типы, модули)
     if ( match(BydaoTokenType::Scope) ) {
 
@@ -3512,6 +3529,8 @@ bool BydaoParser::parseCallSuffix() {
 
         // TODO: получить метаданные функции модуля
 
+        error( "Not implemented");
+        return false;
     }
     else if ( typeInfo.operand == Module || typeInfo.operand == Type ) {
         func = metaData->typeFunc( memberName );

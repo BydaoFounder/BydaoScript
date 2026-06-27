@@ -403,6 +403,10 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
         args << QString("f%2").arg(instr.arg2);
         break;
 
+    case BydaoOpCode::FuncVal:
+        args << QString("f%2").arg(instr.arg2);
+        break;
+
     case BydaoOpCode::CallVoid:
     case BydaoOpCode::Call:
     case BydaoOpCode::NewObj:
@@ -451,10 +455,6 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
     case BydaoOpCode::LoadScope:
     case BydaoOpCode::StoreScope:
         args << QString("scope[%1]").arg(instr.arg1);
-        break;
-
-    case BydaoOpCode::PushAddr:
-        args << QString("&v%1").arg(instr.arg1);
         break;
 
     case BydaoOpCode::EqNull:

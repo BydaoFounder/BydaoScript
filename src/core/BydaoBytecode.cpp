@@ -82,12 +82,12 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::UseBuiltin] = "BUILTIN";
         names[BydaoOpCode::PushArray] = "PUSHARRAY";
         names[BydaoOpCode::FuncDecl] = "FUNCDECL";
+        names[BydaoOpCode::FuncVal] = "FUNCVAL";
         names[BydaoOpCode::CallFunc] = "CALLFUNC";
         names[BydaoOpCode::CallFuncVoid] = "CALLFUNCVOID";
         names[BydaoOpCode::Return] = "RETURN";
         names[BydaoOpCode::LoadScope] = "LOADSCOPE";
         names[BydaoOpCode::StoreScope] = "STORESCOPE";
-        names[BydaoOpCode::PushAddr] = "PUSHADDR";
         names[BydaoOpCode::StkPop] = "STKPOP";
         names[BydaoOpCode::EqNull] = "EQNULL";
         names[BydaoOpCode::NeqNull] = "NEQNULL";
