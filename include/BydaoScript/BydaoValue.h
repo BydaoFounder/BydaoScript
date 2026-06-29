@@ -34,7 +34,8 @@ enum BydaoTypeId {
     TYPE_NULL = 6,
     TYPE_MODULE = 7,
     TYPE_OBJECT = 8,
-    TYPE_FUNC = 9
+    TYPE_FUNC = 9,
+    TYPE_DICT = 10
 };
 
 class BydaoValue {

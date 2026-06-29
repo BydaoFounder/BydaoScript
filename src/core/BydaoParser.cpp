@@ -19,6 +19,7 @@
 #include "BydaoScript/BydaoParser.h"
 #include "BydaoScript/BydaoIntClass.h"
 #include "BydaoScript/BydaoArray.h"
+#include "BydaoScript/BydaoDict.h"
 #include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoString.h"
 #include "BydaoScript/BydaoBool.h"
@@ -101,9 +102,17 @@ BydaoParser::BydaoParser(const QString& moduleName, const QVector<BydaoToken>& t
         }
     }
 
+    m_metaData["Dict"]  = new MetaData( BydaoDict::metaData() );
+    UsedMetaDataList usedDictList = BydaoDict::usedMetaData();
+    foreach ( const UsedMetaData& used, usedArrayList ) {
+        if ( ! m_metaData.contains( used.type ) ) {
+            m_metaData[ used.type ] = new MetaData( used.metaData );
+        }
+    }
+
     // Список встроенных типов.
     // В виртуальной машине должен быть такой же список в том же порядке.
-    m_builtinTypes << "Int" << "String" << "Real" << "Bool" << "Null" << "Array";
+    m_builtinTypes << "Int" << "String" << "Real" << "Bool" << "Null" << "Array" << "Dict";
 }
 
 BydaoParser::~BydaoParser() {
@@ -3251,6 +3260,10 @@ bool BydaoParser::parsePrimaryBase() {
         return parseArrayLiteral();
     }
 
+    if (match(BydaoTokenType::HashBracket)) {
+        return parseDictLiteral();
+    }
+
     if (match(BydaoTokenType::LParen)) {
         nextToken();
         if (!parseExpression()) return false;
@@ -3885,6 +3898,10 @@ bool    BydaoParser::parseMemberAssing() {
         m_bytecode.takeAt( exprPos - 1 );
         emitCode(BydaoOpCode::SetByIdx, memberInst.arg1, 0, exprToken);
     }
+    else if ( m_bytecode[ exprPos - 1 ].op == BydaoOpCode::GetByKey ) {
+        m_bytecode.takeAt( exprPos - 1 );
+        emitCode(BydaoOpCode::SetByKey, memberInst.arg1, 0, exprToken);
+    }
     else {
         emitCode(BydaoOpCode::SetMember, memberInst.arg1, memberInst.arg2, exprToken);
     }
@@ -3899,18 +3916,19 @@ bool BydaoParser::parseIndexSuffix() {
     }
 
     TypeInfo typeInfo = getLastType();
-    if ( typeInfo.type != "Array" && typeInfo.type != "Any" ) {
+    if ( typeInfo.type != "Array" && typeInfo.type != "Dict" && typeInfo.type != "Any" ) {
         error( QString("Indexed expression cannot apply to type '%1'").arg( typeInfo.type ) );
         return false;
     }
 
-    BydaoToken bracketToken = m_current;
 //    qDebug() << "parseIndexSuffix at line" << bracketToken.line << "," << bracketToken.column;
 
     // Пропускаем '['
     nextToken();
 
     // Парсим выражение-индекс
+
+    BydaoToken indexToken = m_current;
     if (!parseExpression()) {
         error("Invalid expression inside '[]'");
         return false;
@@ -3931,7 +3949,26 @@ bool BydaoParser::parseIndexSuffix() {
     // Генерируем инструкцию INDEX
     // Объект для индексации уже лежит на стеке (результат предыдущих операций)
     // Индекс тоже уже на стеке (результат parseExpression)
-    emitCode(BydaoOpCode::GetByIdx, 0, 0, bracketToken);
+    if ( typeInfo.type == "Array" ) {
+        emitCode(BydaoOpCode::GetByIdx, 0, 0, indexToken);
+    }
+    else if ( typeInfo.type == "Dict" ) {
+        emitCode(BydaoOpCode::GetByKey, 0, 0, indexToken);
+    }
+    else {
+
+        // Проверить тип индекса
+
+        if ( exprTypeInfo.type == "Int" ) {
+            emitCode(BydaoOpCode::GetByIdx, 0, 0, indexToken);
+        }
+        else if ( exprTypeInfo.type == "String" ) {
+            emitCode(BydaoOpCode::GetByKey, 0, 0, indexToken);
+        }
+        else {
+            error( "Unknown type of index/key expression ", indexToken);
+        }
+    }
 
 //    qDebug() << "parseIndexSuffix: emitted INDEX";
 
@@ -3966,6 +4003,56 @@ bool BydaoParser::parseArrayLiteral() {
     // Генерируем PushArray с количеством элементов
     // Элементы уже на стеке в правильном порядке (благодаря parseExpression)
     emitCode(BydaoOpCode::PushArray, elementCount, 0, token);
+
+    return true;
+}
+
+bool BydaoParser::parseDictLiteral() {
+    BydaoToken token = m_current;
+    nextToken(); // #[
+
+    int elementCount = 0;
+
+    while ( ! match(BydaoTokenType::RBracket) ) {
+
+        // Сделать разбор ключа
+
+        if ( ! parseExpression() ) return false;
+        TypeInfo keyTypeInfo = getLastType();
+        if ( keyTypeInfo.type != "String" ) {
+
+        }
+
+        // Проверить ':'
+
+        if ( ! match(BydaoTokenType::Colon ) ) {
+            error( "Missed ':' after key");
+            return false;
+        }
+        nextToken();
+
+        // Сделать разбор значения
+
+        if ( ! parseExpression() ) return false;
+        TypeInfo exprTypeInfo = getLastType();
+
+        ++elementCount;
+
+        if ( match(BydaoTokenType::Comma) ) {
+            nextToken();
+        }
+        else if ( ! match(BydaoTokenType::RBracket) ) {
+            error( "Missed comma in dictionary");
+            return false;
+        }
+    }
+    if ( ! expect(BydaoTokenType::RBracket) ) return false;
+
+    setLastType( TypeInfo( "Dict", Expr ) );
+
+    // Генерируем PushArray с количеством элементов
+    // Элементы уже на стеке в правильном порядке (благодаря parseExpression)
+    emitCode(BydaoOpCode::PushDict, elementCount, 0, token);
 
     return true;
 }

@@ -19,6 +19,7 @@
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoArray.h"
+#include "BydaoScript/BydaoDict.h"
 #include "BydaoScript/BydaoNull.h"
 #include "BydaoScript/BydaoIterator.h"
 #include "BydaoScript/BydaoIntRange.h"
@@ -76,6 +77,11 @@ BydaoVM::BydaoVM()
     arrayClass->ref();
     arrayClass->setRuntime( this );
     s_builtinTypes.append( {"Array", BydaoValue(arrayClass, BydaoTypeId::TYPE_OBJECT)} );
+
+    auto* dictClass = new BydaoDict();
+    dictClass->ref();
+    dictClass->setRuntime( this );
+    s_builtinTypes.append( {"Dict", BydaoValue(dictClass, BydaoTypeId::TYPE_OBJECT)} );
 }
 
 BydaoVM::~BydaoVM() {
@@ -1375,6 +1381,33 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
+    case BydaoOpCode::GetByKey: {
+        BydaoValue key = m_stack.pop();
+        BydaoValue obj = m_stack.pop();
+
+        if (auto* dict = (BydaoDict*)(obj.toObject())) {
+            m_stack.push(dict->get( key.toString() ));
+        } else {
+            error("Get by key not supported for non-Dict value", instr);
+            return false;
+        }
+        break;
+    }
+
+    case BydaoOpCode::SetByKey: {
+        BydaoValue val = m_stack.pop();
+        BydaoValue key = m_stack.pop();
+        BydaoValue obj = m_stack.pop();
+
+        if (auto* dict = (BydaoDict*)(obj.toObject())) {
+            dict->set( key.toString(), val );
+        } else {
+            error("Set by key not supported for non-Dict object", instr);
+            return false;
+        }
+        break;
+    }
+
     case BydaoOpCode::GetByIdx: {
         BydaoValue index = m_stack.pop();
         BydaoValue obj = m_stack.pop();
@@ -1761,6 +1794,32 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Кладём массив на стек
         m_stack.push( BydaoValue(array, BydaoTypeId::TYPE_ARRAY) );
+        break;
+    }
+
+    case BydaoOpCode::PushDict: {
+        int count = arg1;
+
+        // Создаём новый массив
+        auto* dict = new BydaoDict();
+        dict->setRuntime( this );
+
+        QVector<BydaoDict::Entry> entries;
+        entries.resizeForOverwrite( count );
+        while ( --count >= 0 ) {
+            m_stack.popTo( entries[ count ].value );
+            BydaoValue key;
+            m_stack.popTo( key );
+            entries[ count ].key = key.toString();
+        }
+
+        // Добавляем элементы в массив
+        foreach ( const auto& elem, entries ) {
+            dict->set( elem.key, elem.value );
+        }
+
+        // Кладём массив на стек
+        m_stack.push( BydaoValue( dict, BydaoTypeId::TYPE_DICT ) );
         break;
     }
 

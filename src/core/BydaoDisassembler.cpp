@@ -417,6 +417,7 @@ QString BydaoDisassembler::formatArg(int index, const QVector<BydaoInstruction>&
         break;
 
     case BydaoOpCode::PushArray:
+    case BydaoOpCode::PushDict:
         args << QString("%1").arg(instr.arg1);
         break;
 

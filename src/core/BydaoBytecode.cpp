@@ -81,6 +81,9 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::UseModule] = "USE";
         names[BydaoOpCode::UseBuiltin] = "BUILTIN";
         names[BydaoOpCode::PushArray] = "PUSHARRAY";
+        names[BydaoOpCode::PushDict] = "PUSHDICT";
+        names[BydaoOpCode::GetByKey] = "GETBYKEY";
+        names[BydaoOpCode::SetByKey] = "SETBYKEY";
         names[BydaoOpCode::FuncDecl] = "FUNCDECL";
         names[BydaoOpCode::FuncVal] = "FUNCVAL";
         names[BydaoOpCode::CallFunc] = "CALLFUNC";
