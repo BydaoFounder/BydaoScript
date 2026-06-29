@@ -78,6 +78,10 @@ public:
     BydaoValue gt(const BydaoValue& other) override;
     BydaoValue ge(const BydaoValue& other) override;
 
+    bool lessThan(const BydaoValue& other) override {
+        return m_value < other.toReal();
+    }
+
 private:
 
     bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);

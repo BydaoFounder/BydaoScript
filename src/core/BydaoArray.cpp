@@ -11,6 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include "BydaoScript/BydaoInt.h"
+#include "BydaoScript/BydaoReal.h"
+#include "BydaoScript/BydaoString.h"
 #include "BydaoScript/BydaoArray.h"
 #include "BydaoScript/BydaoArrayIterator.h"
 
@@ -29,7 +32,7 @@ MetaData*   BydaoArray::metaData() {
         metaData
             // методы объекта
             ->appendObj( "append",      FuncMetaData(0,"Void", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
-            .appendObj( "sort",         FuncMetaData(1,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN) )
+            .appendObj( "sort",         FuncMetaData(1,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
             .appendObj( "iter",         FuncMetaData("ArrayIter", FMD_IMMUTABLE) )
             .appendObj( "toString",     FuncMetaData("String", FMD_IMMUTABLE) )
             .appendObj( "get",          FuncMetaData("Int", FMD_IMMUTABLE) << FuncArgMetaData("pos","Int",ARG_IN) )
@@ -342,20 +345,41 @@ bool BydaoArray::method_indexOf(const QVector<BydaoValue>& args, BydaoValue& res
 }
 
 bool BydaoArray::method_sort(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED( result );
     if (args.size() != 1) return false;
     const BydaoValue& callback = args[0];
+    if ( callback.isNull() ) {  // сортировка по умолчанию
 
-    QVector<BydaoValue> callArgs(2); // = {a, b};
+        std::sort(m_elements.begin(), m_elements.end(), [](const BydaoValue& a, const BydaoValue& b) {
+            if (a.typeId() == BydaoTypeId::TYPE_INT && b.typeId() == BydaoTypeId::TYPE_INT) {
+                return ((BydaoInt*)a.toObject())->value() < ((BydaoInt*)b.toObject())->value();
+            }
+            if (a.typeId() == BydaoTypeId::TYPE_STRING && b.typeId() == BydaoTypeId::TYPE_STRING) {
+                return ((BydaoString*)a.toObject())->value() < ((BydaoString*)b.toObject())->value();
+            }
+            if (a.typeId() == BydaoTypeId::TYPE_REAL && b.typeId() == BydaoTypeId::TYPE_REAL) {
+                return ((BydaoReal*)a.toObject())->value() < ((BydaoReal*)b.toObject())->value();
+            }
+            if ( a.isNull() ) {
+                return ! b.isNull();
+            }
+            if ( b.isNull() ) {
+                return false;
+            }
+            return a.toObject()->lessThan( b );
+        });
+    }
+    else {                      // сортировка с использованием колбек-фукнции
 
-    std::sort(m_elements.begin(), m_elements.end(), [this,callback,&callArgs](BydaoValue& a, BydaoValue& b) {
-        callArgs[0] = a;
-        callArgs[1] = b;
+        QVector<BydaoValue> callArgs(2);
         BydaoValue cmpResult;
-        m_runtime->callFunction(callback, callArgs, cmpResult);
-        return cmpResult.toBool();
-    });
-
-    result = BydaoValue::fromBool( false );
+        std::sort(m_elements.begin(), m_elements.end(), [this,callback,&callArgs,&cmpResult](BydaoValue& a, BydaoValue& b) {
+            callArgs[0] = a;
+            callArgs[1] = b;
+            m_runtime->callFunction(callback, callArgs, cmpResult);
+            return cmpResult.toBool();
+        });
+    }
     return true;
 }
 

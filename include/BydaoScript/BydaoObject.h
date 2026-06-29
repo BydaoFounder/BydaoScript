@@ -186,6 +186,12 @@ public:
         return BydaoValue();
     }
 
+    virtual bool lessThan(const BydaoValue& other) {
+        Q_UNUSED( other );
+        qWarning() << "lessTan() not supported for" << typeName();
+        return false;
+    }
+
     virtual BydaoValue le(const BydaoValue& other) {
         Q_UNUSED( other );
         qWarning() << "le not supported for" << typeName();

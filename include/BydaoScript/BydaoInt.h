@@ -113,6 +113,10 @@ public:
     BydaoValue gt(const BydaoValue& other) override;
     BydaoValue ge(const BydaoValue& other) override;
 
+    bool lessThan(const BydaoValue& other) override {
+        return m_value < other.toInt();
+    }
+
 private:
 
     // Методы

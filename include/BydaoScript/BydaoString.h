@@ -152,6 +152,10 @@ public:
     BydaoValue gt(const BydaoValue& other) override;    // лексикографическое сравнение
     BydaoValue ge(const BydaoValue& other) override;    // лексикографическое сравнение
 
+    bool lessThan(const BydaoValue& other) override {
+        return m_value < other.toString();
+    }
+
 private:
 
     bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
