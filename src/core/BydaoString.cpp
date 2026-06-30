@@ -178,7 +178,7 @@ MetaData*   BydaoString::metaData() {
             .appendObj( "contains",    FuncMetaData("Bool", FMD_IMMUTABLE)
                                        << FuncArgMetaData("str","String",false)
                        )
-            .appendObj( "at",          FuncMetaData("String", FMD_IMMUTABLE)
+            .appendObj( "at",          FuncMetaData(0,"String", FMD_IMMUTABLE)
                                        << FuncArgMetaData("pos","Int",false)
                        )
             .appendObj( "startsWith",  FuncMetaData("Bool", FMD_IMMUTABLE)
@@ -230,11 +230,15 @@ BydaoString::BydaoString(const QString& value)
     registerMethod("toBool", &BydaoString::method_toBool);
     registerMethod("isEmpty", &BydaoString::method_toBool);
     registerMethod("md5", &BydaoString::method_md5);
-
     registerMethod("iter", &BydaoString::method_iter);
 
     // Свойства
     registerVar("length",   &BydaoString::getvar_length );
+
+    // Регистрация функций для вызова по индексу
+
+    m_stdMethodTable.resize(1);
+    m_stdMethodTable[0] = &BydaoString::atImpl;
 }
 
 void BydaoString::registerMethod(const QString& name, MethodPtr method) {

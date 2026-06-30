@@ -200,6 +200,10 @@ private:
         return true;
     };
 
+    static bool atImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        return (static_cast<BydaoString*>(self))->method_at( args, result );
+    }
+
     QString m_value;
 };
 
