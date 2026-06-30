@@ -1449,17 +1449,19 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         QString memberName = m_stringTable[arg1];
 
-        BydaoObject* obj;
+
+        BydaoValue objVal;
         if ( arg2 > 0 ) {
-            obj = getVariable( arg2, instr ).toObject();
+            objVal = getVariable( arg2, instr );
+        }
+        else if (m_stack.isEmpty()) {
+            error("Stack underflow in MEMBER", instr);
+            return false;
         }
         else {
-            if (m_stack.isEmpty()) {
-                error("Stack underflow in MEMBER", instr);
-                return false;
-            }
-            obj = m_stack.pop().toObject();
+            m_stack.popTo( objVal );
         }
+        BydaoObject* obj = objVal.toObject();
         if ( ! obj ) {
             if ( memberName == QStringLiteral("type") ) {
                 BydaoValue value( BydaoString::create(QStringLiteral("Null")), TYPE_STRING );

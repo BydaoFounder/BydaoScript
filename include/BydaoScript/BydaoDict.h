@@ -72,6 +72,13 @@ public:
     };
     BydaoRuntime*   runtime() { return m_runtime; };
 
+    // Операции
+    void    assign( BydaoObject* obj ) override {
+        BydaoDict* dict = (BydaoDict*)obj;
+        m_entries = dict->m_entries;
+        m_index   = dict->m_index;
+    }
+
 private:
 
     bool method_iter(const QVector<BydaoValue>& args, BydaoValue& result);
