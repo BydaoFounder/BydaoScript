@@ -129,7 +129,7 @@ BydaoValue BydaoValue::fromNull() {
 
 QString BydaoValue::toString() const {
     if (!m_obj) return QStringLiteral( "null" );
-/*
+
     // Быстрый путь для известных типов
     switch (m_typeId) {
         case TYPE_INT: {
@@ -148,19 +148,10 @@ QString BydaoValue::toString() const {
             const auto* s = (const BydaoString*)(m_obj);
             return s->value();
         }
-        case TYPE_ARRAY: {
-            const auto* a = (const BydaoArray*)(m_obj);
-            // Можно сделать красивое представление
-            QStringList parts;
-            for (int i = 0; i < a->size(); i++) {
-                parts << a->at(i).toString();
-            }
-            return "[" + parts.join(", ") + "]";
-        }
         case TYPE_NULL:
             return "null";
     }
-*/
+
     // Для неизвестных типов пробуем вызвать метод toString
     BydaoValue result;
     if (m_obj->callMethod(QStringLiteral( "toString" ), {}, result)) {

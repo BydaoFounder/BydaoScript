@@ -33,6 +33,7 @@ MetaData*   BydaoArray::metaData() {
             // методы объекта
             ->appendObj( "append",      FuncMetaData(0,"Void", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
             .appendObj( "sort",         FuncMetaData(1,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
+            .appendObj( "contains",     FuncMetaData(2,"Bool", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
             .appendObj( "iter",         FuncMetaData("ArrayIter", FMD_IMMUTABLE) )
             .appendObj( "toString",     FuncMetaData("String", FMD_IMMUTABLE) )
             .appendObj( "get",          FuncMetaData("Int", FMD_IMMUTABLE) << FuncArgMetaData("pos","Int",ARG_IN) )
@@ -82,6 +83,7 @@ BydaoArray::BydaoArray()
     registerMethod("take",      &BydaoArray::method_take);
     registerMethod("remove",    &BydaoArray::method_remove);
     registerMethod("indexOf",   &BydaoArray::method_indexOf);
+    registerMethod("contains",  &BydaoArray::method_contains);
     registerMethod("sort",      &BydaoArray::method_sort);
 
     // Свойства объекта
@@ -89,9 +91,10 @@ BydaoArray::BydaoArray()
 
     // Регистрация функций для вызова по индексу
 
-    m_stdMethodTable.resize(2);
+    m_stdMethodTable.resize(3);
     m_stdMethodTable[0] = &BydaoArray::appendImpl;
     m_stdMethodTable[1] = &BydaoArray::sortImpl;
+    m_stdMethodTable[2] = &BydaoArray::containsImpl;
 }
 
 void BydaoArray::registerMethod(const QString& name, MethodPtr method) {
@@ -341,6 +344,22 @@ bool BydaoArray::method_indexOf(const QVector<BydaoValue>& args, BydaoValue& res
         }
     }
     result = BydaoValue::fromInt( -1 );
+    return true;
+}
+
+bool BydaoArray::method_contains(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 1) return false;
+    const BydaoValue& val = args[0];
+
+    int count = m_elements.size();
+    for( int i = 0; i < count; ++i ) {
+        BydaoObject* myObj = m_elements[ i ].toObject();
+        if ( myObj && myObj->eq( val ).toBool() ) {
+            result = BydaoValue::fromBool( true );
+            return true;
+        }
+    }
+    result = BydaoValue::fromBool( false );
     return true;
 }
 

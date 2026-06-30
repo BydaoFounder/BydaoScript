@@ -33,8 +33,8 @@ MetaData*   BydaoDict::metaData() {
             ->appendObj( "toString",    FuncMetaData("String", FMD_IMMUTABLE) )
             .appendObj( "get",          FuncMetaData("Any", FMD_IMMUTABLE) << FuncArgMetaData("key","String",ARG_IN) )
             .appendObj( "set",          FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("key","String",ARG_IN) << FuncArgMetaData("obj","Any",ARG_IN) )
-            .appendObj( "sort",         FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
-            .appendObj( "ksort",        FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
+            .appendObj( "sort",         FuncMetaData(0,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
+            .appendObj( "ksort",        FuncMetaData(1,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
             .appendObj( "iter",         FuncMetaData("DictIter", FMD_IMMUTABLE) )
             ;
     }
@@ -70,9 +70,9 @@ BydaoDict::BydaoDict()
 
     // Регистрация функций для вызова по индексу
 
-//    m_stdMethodTable.resize(2);
-//    m_stdMethodTable[0] = &BydaoDict::appendImpl;
-//    m_stdMethodTable[1] = &BydaoDict::sortImpl;
+    m_stdMethodTable.resize(2);
+    m_stdMethodTable[0] = &BydaoDict::sortImpl;
+    m_stdMethodTable[1] = &BydaoDict::ksortImpl;
 }
 
 void BydaoDict::registerMethod(const QString& name, MethodPtr method) {
@@ -108,21 +108,21 @@ BydaoValue BydaoDict::iter() {
 
 // ========== Реализация методов массива ==========
 
-void    BydaoDict::set( const QString& key, const BydaoValue& value) {
+void    BydaoDict::set( const BydaoValue& key, const BydaoValue& value) {
     auto iter = m_index.find( key );
     if ( iter == m_index.end() ) {  // не нашли такого ключа
 
         // Добавить новый ключ и значение
 
         int index = m_entries.size();
-        m_entries.append( { key, value } );
         m_index[ key ] = index;
+        m_entries.append( { key, value } );
         return;
     }
     m_entries[ iter.value() ].value = value;
 }
 
-BydaoValue  BydaoDict::get( const QString& key ) {
+BydaoValue  BydaoDict::get( const BydaoValue& key ) {
     auto iter = m_index.find( key );
     if ( iter == m_index.end() ) {  // не нашли такого ключа
         return BydaoValue::fromNull();
@@ -142,7 +142,7 @@ bool BydaoDict::method_toString(const QVector<BydaoValue>& args, BydaoValue& res
     Q_UNUSED(args);
     QStringList parts;
     foreach ( const auto& elem, m_entries ) {
-        QString str = "\"" + elem.key + "\": ";
+        QString str = "\"" + elem.key.toString() + "\": ";
         if ( elem.value.isNull() ) {
             str += "null";
         }
@@ -160,14 +160,14 @@ bool BydaoDict::method_toString(const QVector<BydaoValue>& args, BydaoValue& res
 
 bool BydaoDict::method_get(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
-    result = get( args[0].toString() );
+    result = get( args[0] );
     return true;
 }
 
 bool BydaoDict::method_set(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED( result );
     if (args.size() != 2) return false;
-    set(args[0].toString(), args[1]);
+    set( args[0], args[1]);
     return true;
 }
 
@@ -178,7 +178,12 @@ bool BydaoDict::method_ksort(const QVector<BydaoValue>& args, BydaoValue& result
     if ( callback.isNull() ) {  // сортировка по умолчанию
 
         std::sort( m_entries.begin(), m_entries.end(), [](const Entry& a, const Entry& b) {
-            return a.key < b.key;
+            const BydaoValue& keyA = a.key;
+            const BydaoValue& keyB = b.key;
+            if ( keyA.isString() && keyB.isString() ) {
+                return ( (BydaoString*) keyA.toObject() )->value() < ( (BydaoString*) keyB.toObject() )->value();
+            }
+            return keyA.toString() < keyB.toString();
         });
     }
     else {                      // сортировка с использованием колбек-фукнции
@@ -186,8 +191,8 @@ bool BydaoDict::method_ksort(const QVector<BydaoValue>& args, BydaoValue& result
         QVector<BydaoValue> callArgs(2);
         BydaoValue cmpResult;
         std::sort( m_entries.begin(), m_entries.end(), [this,callback,&callArgs,&cmpResult](const Entry& a, const Entry& b) {
-            callArgs[0] = BydaoValue::fromString( a.key );
-            callArgs[1] = BydaoValue::fromString( b.key );
+            callArgs[0] = a.key;
+            callArgs[1] = b.key;
             m_runtime->callFunction(callback, callArgs, cmpResult);
             return cmpResult.toBool();
         });
@@ -300,7 +305,7 @@ BydaoValue BydaoDictIterator::key() const {
     if ( ! isValid() ) {
         return BydaoValue::fromNull();
     }
-    return BydaoValue::fromString( m_dict->key( m_index ) );
+    return m_dict->key( m_index );
 }
 
 BydaoValue BydaoDictIterator::value() const {

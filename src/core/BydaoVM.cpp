@@ -141,12 +141,13 @@ bool    BydaoVM::callFunction(BydaoValue valFunc, const QVector<BydaoValue>& arg
 
     // Копируем аргументы в локальные переменные
 
+    ++argCount; // увеличим число аргументов на 1 фиктивный
     m_scopeStack.resizeForOverwrite( scopeDeep + argCount );
     m_scopeOffset = scopeDeep;
-    while ( --argCount >= 0 ) {
+    while ( --argCount > 0 ) {
         RuntimeVar& var = m_scopeStack[ m_scopeOffset + argCount ];
-        var.name = func->funcMetaData.argList[ argCount ].name;
-        var.value = args[ argCount ];
+        var.name = func->funcMetaData.argList[ argCount - 1 ].name;
+        var.value = args[ argCount - 1 ];
     }
 
     // Сохраняем фрейм
@@ -1386,7 +1387,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoValue obj = m_stack.pop();
 
         if (auto* dict = (BydaoDict*)(obj.toObject())) {
-            m_stack.push(dict->get( key.toString() ));
+            m_stack.push(dict->get( key ));
         } else {
             error("Get by key not supported for non-Dict value", instr);
             return false;
@@ -1400,7 +1401,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoValue obj = m_stack.pop();
 
         if (auto* dict = (BydaoDict*)(obj.toObject())) {
-            dict->set( key.toString(), val );
+            dict->set( key, val );
         } else {
             error("Set by key not supported for non-Dict object", instr);
             return false;
@@ -1808,9 +1809,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         entries.resizeForOverwrite( count );
         while ( --count >= 0 ) {
             m_stack.popTo( entries[ count ].value );
-            BydaoValue key;
-            m_stack.popTo( key );
-            entries[ count ].key = key.toString();
+            m_stack.popTo( entries[ count ].key );
         }
 
         // Добавляем элементы в массив
@@ -1878,11 +1877,12 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Копируем аргументы в локальные переменные
 
+        ++argCount; // увеличим число аргументов на 1 фиктивный
         m_scopeStack.resizeForOverwrite( scopeDeep + argCount );
         m_scopeOffset = ( arg2 < 0 ) ? func->scopeOffset : scopeDeep;
-        while ( --argCount >= 0 ) {
+        while ( --argCount > 0 ) {
             RuntimeVar& var = m_scopeStack[ m_scopeOffset + argCount ];
-            var.name = func->funcMetaData.argList[ argCount ].name;
+            var.name = func->funcMetaData.argList[ argCount - 1 ].name;
             m_stack.popTo( var.value );
         }
 

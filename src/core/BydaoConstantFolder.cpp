@@ -21,6 +21,7 @@
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoString.h"
 #include "BydaoScript/BydaoNull.h"
+#include "BydaoScript/BydaoArray.h"
 
 namespace BydaoScript {
 
@@ -103,25 +104,70 @@ BydaoValue BydaoConstantFolder::evaluateLogicalOr() {
 // ===== Logical AND (&&) =====
 
 bool BydaoConstantFolder::isConstantLogicalAnd() {
-//    qDebug() << "isConstantLogicalAnd: start";
-    if (!isConstantEquality()) return false;
+    if (!isConstantBitOr()) return false;
 
     while (m_parser->match(BydaoTokenType::And)) {
+        m_parser->nextToken();
+        if (!isConstantBitOr()) return false;
+    }
+    return true;
+}
+
+BydaoValue BydaoConstantFolder::evaluateLogicalAnd() {
+    BydaoValue result = evaluateBitOr();
+
+    while (m_parser->match(BydaoTokenType::And)) {
+        m_parser->nextToken();
+        BydaoValue right = evaluateBitOr();
+
+        bool boolResult = result.toBool() && right.toBool();
+        result = BydaoValue::fromBool(boolResult);
+    }
+    return result;
+}
+
+bool BydaoConstantFolder::isConstantBitOr() {
+    if (!isConstantBitAnd()) return false;
+
+    while (m_parser->match(BydaoTokenType::BitOr)) {
+        m_parser->nextToken();
+        if (!isConstantBitAnd()) return false;
+    }
+    return true;
+}
+
+BydaoValue BydaoConstantFolder::evaluateBitOr() {
+    BydaoValue result = evaluateBitAnd();
+
+    while (m_parser->match(BydaoTokenType::BitOr)) {
+        m_parser->nextToken();
+        BydaoValue right = evaluateBitAnd();
+
+        int intResult = result.toInt() | right.toInt();
+        result = BydaoValue::fromInt(intResult);
+    }
+    return result;
+}
+
+bool BydaoConstantFolder::isConstantBitAnd() {
+    if (!isConstantEquality()) return false;
+
+    while (m_parser->match(BydaoTokenType::BitAnd)) {
         m_parser->nextToken();
         if (!isConstantEquality()) return false;
     }
     return true;
 }
 
-BydaoValue BydaoConstantFolder::evaluateLogicalAnd() {
+BydaoValue BydaoConstantFolder::evaluateBitAnd() {
     BydaoValue result = evaluateEquality();
 
-    while (m_parser->match(BydaoTokenType::And)) {
+    while (m_parser->match(BydaoTokenType::BitAnd)) {
         m_parser->nextToken();
         BydaoValue right = evaluateEquality();
 
-        bool boolResult = result.toBool() && right.toBool();
-        result = BydaoValue::fromBool(boolResult);
+        int intResult = result.toInt() & right.toInt();
+        result = BydaoValue::fromInt(intResult);
     }
     return result;
 }
@@ -452,9 +498,16 @@ BydaoValue BydaoConstantFolder::evaluatePrimary() {
 
 //        qDebug() << "evaluatePrimary: number" << text;  // ОТЛАДКА
 
-        if (text.contains('.') || text.contains('e') || text.contains('E')) {
+        if ( text.contains('x') || text.contains('X')) {
+            return BydaoValue::fromInt(text.toLongLong(nullptr,16));
+        }
+        else if (text.contains('.') || text.contains('e') || text.contains('E')) {
             return BydaoValue::fromReal(text.toDouble());
-        } else {
+        }
+        else if ( text.contains('b') || text.contains('B')) {
+            return BydaoValue::fromInt(text.toLongLong(nullptr,2));
+        }
+        else {
             return BydaoValue::fromInt(text.toLongLong());
         }
     }
@@ -504,6 +557,22 @@ BydaoValue BydaoConstantFolder::evaluatePrimary() {
         m_parser->expect(BydaoTokenType::RParen);
         return result;
     }
+
+    // Массив из констант
+/*
+    if (m_parser->match(BydaoTokenType::LBracket)) {
+        m_parser->nextToken();
+
+        BydaoArray
+        while( ! m_parser->match( BydaoTokenType::RBracket )) {
+
+            BydaoValue val = evaluate();
+        }
+        BydaoValue result = evaluateLogicalOr();
+        m_parser->expect(BydaoTokenType::RParen);
+        return result;
+    }
+*/
 
     return BydaoValue();  // null
 }

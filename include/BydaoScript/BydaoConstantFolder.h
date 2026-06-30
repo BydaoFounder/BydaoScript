@@ -48,6 +48,12 @@ private:
     bool isConstantLogicalAnd();
     BydaoValue evaluateLogicalAnd();
 
+    bool isConstantBitOr();
+    BydaoValue evaluateBitOr();
+
+    bool isConstantBitAnd();
+    BydaoValue evaluateBitAnd();
+
     bool isConstantEquality();
     BydaoValue evaluateEquality();
 

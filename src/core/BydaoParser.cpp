@@ -1966,8 +1966,11 @@ bool    BydaoParser::parseFuncSignature( FuncMetaData& metaData, bool useArgName
                     error("Default value must be constant expression", defToken);
                     return false;
                 }
-                defVal = m_current.text;
-                // m_pos уже на следующем токене после evaluate()
+                defVal = constVal.toString();
+                if ( argType == "Any" && constVal.typeId() != TYPE_UNKNOWN ) {
+                    argMeta.types.removeLast();
+                    argMeta.types.append( constVal.toObject()->typeName() );
+                }
             }
         }
         argMeta.defVal = defVal;
@@ -2161,6 +2164,12 @@ bool BydaoParser::parseFuncBody(FuncParseContext& ctx) {
     // TODO: Добавить локальнную область видимости, и все аргументы и внутренние
     // переменные функции должны быть определены в этой области видимости.
     // Доступ к переменным модуля или вышестоящей функции - через self.
+
+    // Добавить фиктивную локальную переменную, чтобы индексы переменных начинались с 1
+
+    if (!appendVariable( "_dummy_var_", true, false)) {
+        return false;
+    }
 
     // Объявляем параметры как локальные переменные
     int funcIndex = 0;

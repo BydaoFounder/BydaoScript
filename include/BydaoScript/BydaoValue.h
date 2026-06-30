@@ -14,7 +14,9 @@
 #ifndef _BYDAOVALUE_H_
 #define _BYDAOVALUE_H_
 
-#include <QString>
+#include <stddef.h>
+#include <QtCore>
+#include <qhash.h>
 
 namespace BydaoScript {
 
@@ -60,6 +62,8 @@ public:
 
     // Быстрый доступ к типу
     inline int typeId() const { return m_typeId; }
+    bool        isInt() const { return m_typeId == TYPE_INT; }
+    bool        isString() const { return m_typeId == TYPE_STRING; }
 
     void    set(BydaoObject* obj, BydaoTypeId typeId ) {
         m_obj = obj;
@@ -85,6 +89,29 @@ private:
     BydaoObject*    m_obj;
     int             m_typeId;  // кэш типа
 };
+
+inline uint qHash(const BydaoValue& v, uint seed = 0) {
+    if (v.isInt()) {
+        return ::qHash( v.toInt(), seed);
+    }
+    if (v.isString()) {
+        return ::qHash(v.toString(), seed);
+    }
+    if (v.isNull()) {
+        return ::qHash(nullptr, seed);
+    }
+    // fallback: хэш по указателю на объект
+    return ::qHash( reinterpret_cast<quintptr>(v.toObject()), seed);
+}
+
+inline bool operator==(const BydaoValue& a, const BydaoValue& b) {
+    if (a.typeId() != b.typeId()) return false;
+    if (a.isInt()) return a.toInt() == b.toInt();
+    if (a.isString()) return a.toString() == b.toString();
+    if (a.isNull()) return true;
+    // fallback: сравнение по указателю или через equals()
+    return a.toObject() == b.toObject();
+}
 
 } // namespace BydaoScript
 

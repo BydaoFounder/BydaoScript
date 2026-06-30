@@ -29,7 +29,7 @@ public:
     virtual ~BydaoDict() override = default;
 
     struct Entry {
-        QString     key;
+        BydaoValue  key;
         BydaoValue  value;
     };
 
@@ -45,17 +45,17 @@ public:
 
     bool        callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
 
-    BydaoValue  get( const QString& key );
-    void        set( const QString& key, const BydaoValue& value);
+    BydaoValue  get( const BydaoValue& key );
+    void        set( const BydaoValue& key, const BydaoValue& value);
     int         size() {
         return m_entries.size();
     }
 
-    QString     key( int index ) {
+    BydaoValue  key( int index ) {
         if ( 0 <= index && index < m_entries.size() ) {
             return m_entries[ index ].key;
         }
-        return QString();
+        return BydaoValue();
     }
 
     BydaoValue  value( int index ) {
@@ -101,8 +101,16 @@ private:
         return true;
     };
 
-    QVector< Entry >     m_entries;      // пары ключ-значение в порядке
-    QHash< QString, qint32> m_index;        // ключ → позиция в m_entries
+    static bool sortImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        return (static_cast<BydaoDict*>(self))->method_sort( args, result );
+    }
+
+    static bool ksortImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        return (static_cast<BydaoDict*>(self))->method_ksort( args, result );
+    }
+
+    QVector< Entry >            m_entries;  // пары ключ-значение в порядке
+    QHash< BydaoValue, qint32>   m_index;   // ключ → позиция в m_entries
 
     BydaoRuntime*   m_runtime;
 };

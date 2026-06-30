@@ -165,6 +165,7 @@ private:
     bool method_lower(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_trim(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_substring(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_at(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_indexOf(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_contains(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_startsWith(const QVector<BydaoValue>& args, BydaoValue& result);

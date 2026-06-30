@@ -178,6 +178,9 @@ MetaData*   BydaoString::metaData() {
             .appendObj( "contains",    FuncMetaData("Bool", FMD_IMMUTABLE)
                                        << FuncArgMetaData("str","String",false)
                        )
+            .appendObj( "at",          FuncMetaData("String", FMD_IMMUTABLE)
+                                       << FuncArgMetaData("pos","Int",false)
+                       )
             .appendObj( "startsWith",  FuncMetaData("Bool", FMD_IMMUTABLE)
                                          << FuncArgMetaData("str","String",false)
                        )
@@ -217,6 +220,7 @@ BydaoString::BydaoString(const QString& value)
     registerMethod("substr", &BydaoString::method_substring);
     registerMethod("indexOf", &BydaoString::method_indexOf);
     registerMethod("contains", &BydaoString::method_contains);
+    registerMethod("at", &BydaoString::method_at);
     registerMethod("startsWith", &BydaoString::method_startsWith);
     registerMethod("endsWith", &BydaoString::method_endsWith);
     registerMethod("split", &BydaoString::method_split);
@@ -415,6 +419,12 @@ bool BydaoString::method_contains(const QVector<BydaoValue>& args, BydaoValue& r
 
     QString sub = args[0].toString();
     result = BydaoValue( BydaoBool::create(m_value.contains(sub)), BydaoTypeId::TYPE_BOOL );
+    return true;
+}
+
+bool BydaoString::method_at(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 1) return false;
+    result = BydaoValue( BydaoString::create( m_value.mid( args[0].toInt(),1)), BydaoTypeId::TYPE_STRING );
     return true;
 }
 

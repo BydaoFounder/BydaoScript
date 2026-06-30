@@ -72,6 +72,7 @@ private:
     bool method_merge(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_remove(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_indexOf(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_contains(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_sort(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoArray::*)(const QVector<BydaoValue>&, BydaoValue&);
@@ -102,6 +103,11 @@ private:
     static bool sortImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
         auto* obj = static_cast<BydaoArray*>(self);
         return obj->method_sort( args, result );
+    }
+
+    static bool containsImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        auto* obj = static_cast<BydaoArray*>(self);
+        return obj->method_contains( args, result );
     }
 
     QVector<BydaoValue> m_elements;
