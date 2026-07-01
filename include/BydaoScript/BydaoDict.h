@@ -46,7 +46,27 @@ public:
     bool        callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
 
     BydaoValue  get( const BydaoValue& key );
-    void        set( const BydaoValue& key, const BydaoValue& value);
+
+    void        set( const BydaoValue& key, const BydaoValue& value) {
+        auto iter = m_index.find( key );
+        if ( iter == m_index.end() ) {  // не нашли такого ключа
+
+            // Добавить новый ключ и значение
+
+            int index = m_entries.size();
+            m_index[ key ] = index;
+            m_entries.append( { key, value } );
+            return;
+        }
+        m_entries[ iter.value() ].value = value;
+    }
+
+    // Для rvalue (временные объекты) — перемещаем
+    void        set(BydaoValue&& key, BydaoValue&& value) {
+        m_entries.append({std::move(key), std::move(value)});
+        m_index[m_entries.last().key] = m_entries.size() - 1;
+    }
+
     int         size() {
         return m_entries.size();
     }

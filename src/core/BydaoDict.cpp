@@ -108,20 +108,6 @@ BydaoValue BydaoDict::iter() {
 
 // ========== Реализация методов массива ==========
 
-void    BydaoDict::set( const BydaoValue& key, const BydaoValue& value) {
-    auto iter = m_index.find( key );
-    if ( iter == m_index.end() ) {  // не нашли такого ключа
-
-        // Добавить новый ключ и значение
-
-        int index = m_entries.size();
-        m_index[ key ] = index;
-        m_entries.append( { key, value } );
-        return;
-    }
-    m_entries[ iter.value() ].value = value;
-}
-
 BydaoValue  BydaoDict::get( const BydaoValue& key ) {
     auto iter = m_index.find( key );
     if ( iter == m_index.end() ) {  // не нашли такого ключа
