@@ -18,7 +18,13 @@ typedef QList<RuntimeVar>   VarScope;
 
 class BydaoRuntime {
 public:
+
     virtual ~BydaoRuntime() = default;
+
+    typedef QHash< QString, QString > Environment;
+
+    virtual void            setEnvironment( Environment* env ) = 0;
+    virtual Environment*    getEnvironment() = 0;
 
     virtual QTextStream* outStream() = 0;
     virtual QTextStream* errStream() = 0;

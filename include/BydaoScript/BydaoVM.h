@@ -199,6 +199,13 @@ public:
 
     bool loadModule(const ModuleInfo& module);
 
+    void    setEnvironment( Environment* env ) override {
+        m_environment = env;
+    };
+    Environment*    getEnvironment() override {
+        return m_environment;
+    };
+
     // Выполнение
     bool run();
     void stop();
@@ -296,6 +303,8 @@ private:
 
     QTextStream*    m_outStream;
     bool            m_ownOutStream;
+
+    Environment*    m_environment;
 };
 
 } // namespace BydaoScript

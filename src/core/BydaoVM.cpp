@@ -45,6 +45,8 @@ BydaoVM::BydaoVM()
     m_outStream->setEncoding( QStringConverter::Utf8 );
     m_ownOutStream = true;
 
+    m_environment = nullptr;
+
     // Инициализируем область видимости
     m_scopeStack.clear();
     m_scopeStack.append( VarScope() );

@@ -16,6 +16,9 @@
 #include <windows.h>
 #endif
 
+#include <stdio.h>
+extern char **environ;
+
 using namespace BydaoScript;
 
 int main(int argc, char *argv[]) {
@@ -142,6 +145,14 @@ int main(int argc, char *argv[]) {
     BydaoVM vm;
     vm.setTraceMode(cmdLineParser.isSet(traceOption));
     vm.setProfileMode(cmdLineParser.isSet(profileOption));
+
+    QHash< QString, QString > env;
+    for ( int i=0; environ[i] != nullptr; i++) {
+        QString str( environ[i] );
+        int pos = str.indexOf('=');
+        env.insert( str.mid(0, pos ), str.mid( pos+1) );
+    }
+    vm.setEnvironment( &env );
 
     if ( ! vm.loadModule( moduleInfo ) ) {
         out << "Cannot load bytecode" << eol;

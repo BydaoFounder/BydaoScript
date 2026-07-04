@@ -51,6 +51,7 @@ private:
     bool method_setenv(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_unsetenv(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_env(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_envList(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_sleep(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_time(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_date(const QVector<BydaoValue>& args, BydaoValue& result);

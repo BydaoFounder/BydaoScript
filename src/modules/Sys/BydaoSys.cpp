@@ -1,14 +1,17 @@
+#include <QTextStream>
+#include <QDateTime>
+#include <QDir>
+#include <QThread>
+#include <QProcessEnvironment>
+
 #include "BydaoSys.h"
 #include "../include/BydaoScript/BydaoString.h"
 #include "../include/BydaoScript/BydaoInt.h"
 #include "../include/BydaoScript/BydaoBool.h"
 #include "../include/BydaoScript/BydaoNull.h"
 #include "../include/BydaoScript/BydaoArray.h"
-#include <QTextStream>
-#include <QDateTime>
-#include <QDir>
-#include <QThread>
-#include <QProcessEnvironment>
+#include "../include/BydaoScript/BydaoDict.h"
+#include "../include/BydaoScript/BydaoRuntime.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -42,28 +45,29 @@ BydaoSysModule::BydaoSysModule()
     : BydaoModule()
     , m_process(nullptr)
 {
-    registerMethod("out",     &BydaoSysModule::method_out);
-    registerMethod("outln",   &BydaoSysModule::method_outln);
-    registerMethod("in",      &BydaoSysModule::method_in);
-    registerMethod("err",     &BydaoSysModule::method_err);
-    registerMethod("errln",   &BydaoSysModule::method_errln);
-    registerMethod("run",     &BydaoSysModule::method_run);
-    registerMethod("exec",     &BydaoSysModule::method_exec);
-    registerMethod("shell",     &BydaoSysModule::method_shell);
-    registerMethod("getenv",     &BydaoSysModule::method_getenv);
-    registerMethod("setenv",     &BydaoSysModule::method_setenv);
-    registerMethod("unsetenv",     &BydaoSysModule::method_unsetenv);
-    registerMethod("env",     &BydaoSysModule::method_env);
-    registerMethod("sleep",     &BydaoSysModule::method_sleep);
-    registerMethod("time",     &BydaoSysModule::method_time);
-    registerMethod("date",     &BydaoSysModule::method_date);
-    registerMethod("datetime",     &BydaoSysModule::method_datetime);
-    registerMethod("platform",     &BydaoSysModule::method_platform);
-    registerMethod("currentDir",     &BydaoSysModule::method_currentDir);
-    registerMethod("setCurrentDir",     &BydaoSysModule::method_setCurrentDir);
-    registerMethod("tempDir",     &BydaoSysModule::method_tempDir);
-    registerMethod("homeDir",     &BydaoSysModule::method_homeDir);
-    registerMethod("drives",     &BydaoSysModule::method_drives);
+    registerMethod("out",           &BydaoSysModule::method_out);
+    registerMethod("outln",         &BydaoSysModule::method_outln);
+    registerMethod("in",            &BydaoSysModule::method_in);
+    registerMethod("err",           &BydaoSysModule::method_err);
+    registerMethod("errln",         &BydaoSysModule::method_errln);
+    registerMethod("run",           &BydaoSysModule::method_run);
+    registerMethod("exec",          &BydaoSysModule::method_exec);
+    registerMethod("shell",         &BydaoSysModule::method_shell);
+    registerMethod("getenv",        &BydaoSysModule::method_getenv);
+    registerMethod("setenv",        &BydaoSysModule::method_setenv);
+    registerMethod("unsetenv",      &BydaoSysModule::method_unsetenv);
+    registerMethod("env",           &BydaoSysModule::method_env);
+    registerMethod("envList",       &BydaoSysModule::method_envList);
+    registerMethod("sleep",         &BydaoSysModule::method_sleep);
+    registerMethod("time",          &BydaoSysModule::method_time);
+    registerMethod("date",          &BydaoSysModule::method_date);
+    registerMethod("datetime",      &BydaoSysModule::method_datetime);
+    registerMethod("platform",      &BydaoSysModule::method_platform);
+    registerMethod("currentDir",    &BydaoSysModule::method_currentDir);
+    registerMethod("setCurrentDir", &BydaoSysModule::method_setCurrentDir);
+    registerMethod("tempDir",       &BydaoSysModule::method_tempDir);
+    registerMethod("homeDir",       &BydaoSysModule::method_homeDir);
+    registerMethod("drives",        &BydaoSysModule::method_drives);
 
     m_timer.start();
 }
@@ -78,10 +82,11 @@ MetaData*   BydaoSysModule::metaData() {
         metaData = new MetaData();
         metaData->external = true;
         metaData
-            ->appendType( "out",   FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("str","String",ARG_IN) )
-            .appendType( "outln",  FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("str","String",ARG_IN,"\"\"") )
-            .appendType( "in",     FuncMetaData("String", FMD_IMMUTABLE) )
-            .appendType( "time",   FuncMetaData("Int",    FMD_IMMUTABLE) )
+            ->appendType( "out",    FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("str","String",ARG_IN) )
+            .appendType( "outln",   FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("str","String",ARG_IN,"\"\"") )
+            .appendType( "in",      FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendType( "time",    FuncMetaData("Int",    FMD_IMMUTABLE) )
+            .appendType( "envList", FuncMetaData("Dict",   FMD_IMMUTABLE) )
             ;
     }
     return metaData;
@@ -306,6 +311,26 @@ bool BydaoSysModule::method_env(const QVector<BydaoValue>& args, BydaoValue& res
     }
 
     result = BydaoValue(array, BydaoTypeId::TYPE_ARRAY);
+    return true;
+}
+
+bool BydaoSysModule::method_envList(const QVector<BydaoValue>& args, BydaoValue& result) {
+    Q_UNUSED(args);
+
+    BydaoDict* dict = new BydaoDict();
+
+    if ( m_runtime ) {
+
+        BydaoRuntime::Environment* env = m_runtime->getEnvironment();
+        if ( env ) {
+
+            for ( auto it = env->begin(); it != env->end(); ++it ) {
+                dict->set( BydaoValue::fromString( it.key() ), BydaoValue::fromString( it.value() ) );
+            }
+        }
+    }
+
+    result = BydaoValue( dict, BydaoTypeId::TYPE_DICT );
     return true;
 }
 
