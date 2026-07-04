@@ -1914,12 +1914,12 @@ bool BydaoParser::parseEnum() {
     removeVariable(tmpIterName);
 
     // Удаляем переменную цикла
+    emitCode(BydaoOpCode::Drop, valInfo.varIndex, 0, valToken);
+    removeVariable(valName);
     if ( ! keyName.isEmpty() ) {
         emitCode(BydaoOpCode::Drop, keyInfo.varIndex, 0, keyToken);
         removeVariable(keyName);
     }
-    emitCode(BydaoOpCode::Drop, valInfo.varIndex, 0, valToken);
-    removeVariable(valName);
 
     return true;
 }

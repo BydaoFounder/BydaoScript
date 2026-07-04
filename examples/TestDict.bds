@@ -1,0 +1,56 @@
+use Sys
+
+var a = #[
+    'a': 111,
+    'b': 22,
+    'c': 33,
+    'd': [
+        "4-1",
+        '4-2'
+    ]
+]
+Sys.outln( 'a = ' + a )
+
+var varB = 'b'
+Sys.outln( 'varB = ' + varB )
+Sys.outln( 'a[ varB ] = ' + a[ varB ] )
+
+a[ 'c' ] = 1
+Sys.outln( 'a = ' + a )
+
+a[ 'd' ] = 56
+Sys.outln( 'a = ' + a )
+
+Sys.outln( 'Iterate 1 dictionary a:' )
+iter a as it {
+    Sys.outln( 'key: ' + it.key() + ', value: ' + it.value() )
+}
+
+Sys.outln( 'Iterate 2 dictionary a:' )
+iter a as it {
+    Sys.outln( 'key: ' + it.key + ', value: ' + it.value )
+}
+
+Sys.outln( 'Enumarate 1 dictionary a:' )
+enum a as item {
+    Sys.outln( 'item: ' + item )
+}
+
+Sys.outln( 'Enumarate 2 dictionary a:' )
+enum a as key, value {
+    Sys.outln( 'key: ' + key + ', value: ' + value )
+}
+
+a.sort()
+Sys.outln( 'After default sort(): ' + a )
+
+a.ksort()
+Sys.outln( 'After default ksort(): ' + a )
+
+Sys.outln( 'Enumarate keys:' )
+enum a.keys() as value {
+    Sys.outln( 'key: ' + value )
+}
+
+Sys.outln( 'Pairs count: ' + a.size )
+

@@ -1782,6 +1782,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Создаём новый массив
         auto* array = new BydaoArray();
+        array->ref();
         array->setRuntime( this );
 
         QVector<BydaoValue> elements;

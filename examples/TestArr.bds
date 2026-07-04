@@ -42,9 +42,24 @@ Sys.outln( 'a.slice(1,2) = ' + a.slice(1,2) )
 
 Sys.outln( 'index of 33 in a = ' + a.indexOf(33) )
 
-Sys.outln( 'Enumarate array a:' )
+Sys.outln( 'Iterate 1 array a:' )
+iter a as it {
+    Sys.outln( 'key: ' + it.key() + ', value: ' + it.value() )
+}
+
+Sys.outln( 'Iterate 2 array a:' )
+iter a as it {
+    Sys.outln( 'key: ' + it.key + ', value: ' + it.value )
+}
+
+Sys.outln( 'Enumerate 1 array a:' )
 enum a as item {
     Sys.outln( 'item: ' + item )
+}
+
+Sys.outln( 'Enumerate 2 array a:' )
+enum a as key, value {
+    Sys.outln( 'key: ' + key + ', value: ' + value )
 }
 
 a.append('next')
@@ -69,15 +84,16 @@ Sys.outln( "After a.take(1,3) = " + a )
 Sys.outln( "Result a.take(1,3) = " + d )
 
 a.remove(0,2)
-Sys.outln( "After a.remove(1,3) = " + a )
+Sys.outln( "After a.remove(0,2) = " + a )
 
 var arr = []
 var j = 0
 while j < 10 next j += 1 {
     arr.append( Int.random(0,100) )
 }
-Sys.outln( 'Source array: ' + arr )
+Sys.outln( 'Source array arr: ' + arr )
+
 arr.sort( func(a,b) {
     return a < b
 })
-Sys.outln( 'Sorted array: ' + arr )
+Sys.outln( 'Sorted array arr: ' + arr )
