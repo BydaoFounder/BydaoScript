@@ -24,8 +24,10 @@ MetaData*   BydaoArrayIterator::metaData() {
         metaData = new MetaData();
         metaData
             // методы объекта
-            ->appendObj( "next",    FuncMetaData("Bool", FMD_ALTERABLE) )
-            .appendObj( "isValid",  FuncMetaData("Bool", FMD_IMMUTABLE) )
+            ->appendObj( "next",    FuncMetaData( 0, "Bool", FMD_ALTERABLE) )
+            .appendObj( "value",    FuncMetaData( 1, "Int",  FMD_ALTERABLE) )
+            .appendObj( "key",      FuncMetaData( 2, "Int",  FMD_ALTERABLE) )
+            .appendObj( "isValid",  FuncMetaData( 3, "Bool", FMD_ALTERABLE) )
             ;
         metaData
             // переменные объекта
@@ -45,6 +47,12 @@ BydaoArrayIterator::BydaoArrayIterator(BydaoArray* array)
         m_array->ref();
     }
 
+    m_stdMethodTable.resize(4);
+    m_stdMethodTable[0] = &BydaoArrayIterator::nextImpl;
+    m_stdMethodTable[1] = &BydaoArrayIterator::valueImpl;
+    m_stdMethodTable[2] = &BydaoArrayIterator::keyImpl;
+    m_stdMethodTable[3] = &BydaoArrayIterator::isValidImpl;
+
     m_boolMethodTable.resize( 2 );
     m_boolMethodTable[0] = &BydaoArrayIterator::itNext;
     m_boolMethodTable[1] = &BydaoArrayIterator::itIsValid;
@@ -52,12 +60,28 @@ BydaoArrayIterator::BydaoArrayIterator(BydaoArray* array)
     m_valueMethodTable.resize( 2 );
     m_valueMethodTable[0] = &BydaoArrayIterator::itValue;
     m_valueMethodTable[1] = &BydaoArrayIterator::itKey;
+
+    registerVar("key",   &BydaoArrayIterator::getvar_key );
+    registerVar("value", &BydaoArrayIterator::getvar_value );
 }
 
 BydaoArrayIterator::~BydaoArrayIterator() {
     if (m_array) {
         m_array->unref();
     }
+}
+
+void BydaoArrayIterator::registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter ) {
+    m_vars[ name ] = { getter, setter };
+}
+
+bool    BydaoArrayIterator::getVar( const QString& varName, BydaoValue& value ) {
+    auto it = m_vars.find( varName );
+    if ( it == m_vars.end() ) {
+        return BydaoIterator::getVar( varName, value );
+    }
+    GetVarPtr getter = it.value().getter;
+    return ( this->*( getter) )( value );
 }
 
 bool BydaoArrayIterator::next() {

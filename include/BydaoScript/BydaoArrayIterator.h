@@ -35,17 +35,21 @@ public:
     BydaoValue key() const override;
     BydaoValue value() const override;
 
+    bool    getVar( const QString& varName, BydaoValue& value ) override;
+
 protected:
 
     static bool itNext(BydaoObject* self) {
         auto* iter = static_cast<BydaoArrayIterator*>(self);
-        if ( ! iter->m_array ) return false;
-        return ++iter->m_index < iter->m_array->size();
+        if ( iter->m_array && iter->m_index < iter->m_array->size() ) {
+            return ++iter->m_index < iter->m_array->size();
+        }
+        return false;
     }
 
     static bool itIsValid(BydaoObject* self) {
         auto* iter = static_cast<BydaoArrayIterator*>(self);
-        return iter->m_array && iter->m_index >= 0 && iter->m_index < iter->m_array->size();
+        return iter->m_array && 0 <= iter->m_index && iter->m_index < iter->m_array->size();
     }
 
     static BydaoValue itValue(BydaoObject* self) {
@@ -63,6 +67,47 @@ protected:
         }
         return BydaoValue::fromNull();
     }
+
+    // Статические методы
+    static bool nextImpl(BydaoObject* self, const QVector<BydaoValue>&, BydaoValue& result) {
+        result = BydaoValue::fromBool( BydaoArrayIterator::itNext( static_cast<BydaoArrayIterator*>(self) ) );
+        return true;
+    }
+
+    static bool isValidImpl(BydaoObject* self, const QVector<BydaoValue>&, BydaoValue& result) {
+        result = BydaoValue::fromBool( BydaoArrayIterator::itIsValid( static_cast<BydaoArrayIterator*>(self) ) );
+        return true;
+    }
+
+    static bool valueImpl(BydaoObject* self, const QVector<BydaoValue>&, BydaoValue& result) {
+        result = BydaoArrayIterator::itValue( static_cast<BydaoArrayIterator*>(self) );
+        return true;
+    }
+
+    static bool keyImpl(BydaoObject* self, const QVector<BydaoValue>&, BydaoValue& result) {
+        result = BydaoArrayIterator::itKey( static_cast<BydaoArrayIterator*>(self) );
+        return true;
+    }
+
+    using GetVarPtr = bool (BydaoArrayIterator::*)(BydaoValue&);
+    using SetVarPtr = bool (BydaoArrayIterator::*)(const BydaoValue&);
+    struct VarMethod {
+        GetVarPtr   getter;
+        SetVarPtr   setter;
+    };
+    QHash<QString,VarMethod> m_vars;
+
+    void registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter = nullptr );
+
+    bool getvar_key( BydaoValue& value ) {
+        value = key();
+        return true;
+    };
+
+    bool getvar_value( BydaoValue& value ) {
+        value = this->value();
+        return true;
+    };
 
     BydaoArray* m_array;
     int m_index;

@@ -1745,7 +1745,7 @@ bool BydaoParser::parseIter() {
 }
 
 /*
- * enum = "enum" expr "as" var_name "{" block "}"
+ * enum = "enum" expr "as" [key_name "," ] value_name "{" block "}"
  *
  * expr
  * var _enum_iter_n = expr.iter()
@@ -1773,20 +1773,69 @@ bool BydaoParser::parseEnum() {
         return false;
     }
 
-    if (!expect(BydaoTokenType::As)) return false;
+    if (!expect(BydaoTokenType::As)) {
+        error("Expected keyword 'as'");
+        return false;
+    }
+
+    // Сделать разбор названий переменных для ключа и значения
+
+    QString keyName, valName;
+    BydaoToken keyToken, valToken;
 
     if (!match(BydaoTokenType::Identifier)) {
         error("Expected variable name");
         return false;
     }
-
     QString varName = m_current.text;
     BydaoToken varToken = m_current;
     nextToken();
 
-    // Объявляем переменную а текущей области видимости для значения
-    declareVariable(varName, varToken);
-    VariableInfo varInfo = resolveVariable(varName);
+    if ( match( BydaoTokenType::Comma ) ) {
+        keyName = varName;
+        keyToken = varToken;
+        nextToken();
+        if (!match(BydaoTokenType::Identifier)) {
+            error("Expected variable name");
+            return false;
+        }
+        valName = m_current.text;
+        valToken = m_current;
+        nextToken();
+    }
+    else {
+        valName = varName;
+        valToken = varToken;
+    }
+
+    // Создать переменную для ключа
+
+    VariableInfo keyInfo;
+    if ( ! keyName.isEmpty() ) {
+
+        declareVariable(keyName, keyToken);
+        keyInfo = resolveVariable(keyName);
+
+        // Подготовить тип переменной
+        const FuncMetaData funcIter = exprMetaData->objFunc("iter");
+        QString iterType = funcIter.retType;
+        MetaData* iterMetaData = m_metaData[ iterType ];
+        if ( ! iterMetaData ) {
+            error("Unknown type '" + iterType + "'", exprToken );
+            return false;
+        }
+        if ( ! iterMetaData->hasObjVar("key") ) {
+            error("Iterator of type '" + iterType + "' does not have variable 'key'", exprToken );
+            return false;
+        }
+        VarMetaData varMetaData = iterMetaData->objVar("key");
+        setVariableType( keyName, varMetaData.type, varMetaData.isConst );
+    }
+
+    // Создать переменную для значения
+
+    declareVariable(valName, valToken);
+    VariableInfo valInfo = resolveVariable(valName);
 
     // Подготовить тип переменной
     const FuncMetaData funcIter = exprMetaData->objFunc("iter");
@@ -1800,10 +1849,11 @@ bool BydaoParser::parseEnum() {
         error("Iterator of type '" + iterType + "' does not have variable 'value'", exprToken );
         return false;
     }
-    VarMetaData varMetaData = iterMetaData->objVar("value");
-    setVariableType( varName, varMetaData.type, varMetaData.isConst );
+    VarMetaData valMetaData = iterMetaData->objVar("value");
+    setVariableType( valName, valMetaData.type, valMetaData.isConst );
 
     // Создаём временный итератор
+
     if ( ! iterMetaData->hasObjFunc("next") ) {
         error("Iterator of type '" + iterType + "' does not have func 'next'", exprToken );
         return false;
@@ -1824,8 +1874,11 @@ bool BydaoParser::parseEnum() {
 
     int condJump = emitCode(BydaoOpCode::JumpFalse, 0, 0, token);
 
-    // Получаем значение и сохраняем в переменную
-    emitCode(BydaoOpCode::ItValue, iterInfo.varIndex, varInfo.varIndex, token);
+    // Получаем ключ и значение и сохраняем в переменных
+    if ( ! keyName.isEmpty() ) {
+        emitCode(BydaoOpCode::ItKey, iterInfo.varIndex, keyInfo.varIndex, token);
+    }
+    emitCode(BydaoOpCode::ItValue, iterInfo.varIndex, valInfo.varIndex, token);
 
     m_loopStack.push(loop);
     m_inLoop = true;
@@ -1861,8 +1914,12 @@ bool BydaoParser::parseEnum() {
     removeVariable(tmpIterName);
 
     // Удаляем переменную цикла
-    emitCode(BydaoOpCode::Drop, varInfo.varIndex, 0, varToken);
-    removeVariable(varName);
+    if ( ! keyName.isEmpty() ) {
+        emitCode(BydaoOpCode::Drop, keyInfo.varIndex, 0, keyToken);
+        removeVariable(keyName);
+    }
+    emitCode(BydaoOpCode::Drop, valInfo.varIndex, 0, valToken);
+    removeVariable(valName);
 
     return true;
 }
