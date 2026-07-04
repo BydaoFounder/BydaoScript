@@ -25,9 +25,9 @@ MetaData*   BydaoArrayIterator::metaData() {
         metaData
             // методы объекта
             ->appendObj( "next",    FuncMetaData( 0, "Bool", FMD_ALTERABLE) )
-            .appendObj( "value",    FuncMetaData( 1, "Int",  FMD_ALTERABLE) )
-            .appendObj( "key",      FuncMetaData( 2, "Int",  FMD_ALTERABLE) )
-            .appendObj( "isValid",  FuncMetaData( 3, "Bool", FMD_ALTERABLE) )
+            .appendObj( "value",    FuncMetaData( 1, "Int",  FMD_IMMUTABLE) )
+            .appendObj( "key",      FuncMetaData( 2, "Int",  FMD_IMMUTABLE) )
+            .appendObj( "isValid",  FuncMetaData( 3, "Bool", FMD_IMMUTABLE) )
             ;
         metaData
             // переменные объекта

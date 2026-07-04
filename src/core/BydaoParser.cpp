@@ -104,7 +104,7 @@ BydaoParser::BydaoParser(const QString& moduleName, const QVector<BydaoToken>& t
 
     m_metaData["Dict"]  = new MetaData( BydaoDict::metaData() );
     UsedMetaDataList usedDictList = BydaoDict::usedMetaData();
-    foreach ( const UsedMetaData& used, usedArrayList ) {
+    foreach ( const UsedMetaData& used, usedDictList ) {
         if ( ! m_metaData.contains( used.type ) ) {
             m_metaData[ used.type ] = new MetaData( used.metaData );
         }

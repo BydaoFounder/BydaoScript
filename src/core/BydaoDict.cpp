@@ -14,6 +14,7 @@
 #include "BydaoScript/BydaoInt.h"
 #include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoString.h"
+#include "BydaoScript/BydaoArray.h"
 #include "BydaoScript/BydaoDict.h"
 
 namespace BydaoScript {
@@ -36,6 +37,7 @@ MetaData*   BydaoDict::metaData() {
             .appendObj( "sort",         FuncMetaData(0,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
             .appendObj( "ksort",        FuncMetaData(1,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
             .appendObj( "iter",         FuncMetaData("DictIter", FMD_IMMUTABLE) )
+            .appendObj( "keys",         FuncMetaData("Array", FMD_IMMUTABLE) )
             ;
     }
     return metaData;
@@ -64,6 +66,7 @@ BydaoDict::BydaoDict()
     registerMethod("sort",      &BydaoDict::method_sort);
     registerMethod("ksort",     &BydaoDict::method_ksort);
     registerMethod("iter",      &BydaoDict::method_iter);
+    registerMethod("keys",      &BydaoDict::method_keys);
 
     // Свойства объекта
     registerVar( "size",        &BydaoDict::getvar_size );
@@ -143,6 +146,16 @@ bool BydaoDict::method_toString(const QVector<BydaoValue>& args, BydaoValue& res
     result = BydaoValue::fromString("#[" + parts.join(", ") + "]");
     return true;
 }
+
+bool BydaoDict::method_keys(const QVector<BydaoValue>&, BydaoValue& result) {
+    BydaoArray* arr = new BydaoArray();
+    foreach ( const auto& elem, m_entries ) {
+        arr->append( elem.key );
+    }
+    result = BydaoValue( arr, BydaoTypeId::TYPE_ARRAY );
+    return true;
+}
+
 
 bool BydaoDict::method_get(const QVector<BydaoValue>& args, BydaoValue& result) {
     if (args.size() != 1) return false;
@@ -240,8 +253,10 @@ MetaData*   BydaoDictIterator::metaData() {
         metaData = new MetaData();
         metaData
             // методы объекта
-            ->appendObj( "next",    FuncMetaData("Bool", FMD_ALTERABLE) )
-            .appendObj( "isValid",  FuncMetaData("Bool", FMD_IMMUTABLE) )
+            ->appendObj( "next",    FuncMetaData( 0, "Bool", FMD_ALTERABLE) )
+            .appendObj( "value",    FuncMetaData( 1, "Int",  FMD_IMMUTABLE) )
+            .appendObj( "key",      FuncMetaData( 2, "Int",  FMD_IMMUTABLE) )
+            .appendObj( "isValid",  FuncMetaData( 3, "Bool", FMD_IMMUTABLE) )
             ;
         metaData
             // переменные объекта
@@ -261,6 +276,12 @@ BydaoDictIterator::BydaoDictIterator(BydaoDict* dict)
         m_dict->ref();
     }
 
+    m_stdMethodTable.resize(4);
+    m_stdMethodTable[0] = &BydaoDictIterator::nextImpl;
+    m_stdMethodTable[1] = &BydaoDictIterator::valueImpl;
+    m_stdMethodTable[2] = &BydaoDictIterator::keyImpl;
+    m_stdMethodTable[3] = &BydaoDictIterator::isValidImpl;
+
     m_boolMethodTable.resize( 2 );
     m_boolMethodTable[0] = &BydaoDictIterator::itNext;
     m_boolMethodTable[1] = &BydaoDictIterator::itIsValid;
@@ -268,6 +289,9 @@ BydaoDictIterator::BydaoDictIterator(BydaoDict* dict)
     m_valueMethodTable.resize( 2 );
     m_valueMethodTable[0] = &BydaoDictIterator::itValue;
     m_valueMethodTable[1] = &BydaoDictIterator::itKey;
+
+    registerVar("key",      &BydaoDictIterator::getvar_key );
+    registerVar("value",    &BydaoDictIterator::getvar_value );
 }
 
 BydaoDictIterator::~BydaoDictIterator() {
@@ -276,8 +300,21 @@ BydaoDictIterator::~BydaoDictIterator() {
     }
 }
 
+void BydaoDictIterator::registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter ) {
+    m_vars[ name ] = { getter, setter };
+}
+
+bool    BydaoDictIterator::getVar( const QString& varName, BydaoValue& value ) {
+    auto it = m_vars.find( varName );
+    if ( it == m_vars.end() ) {
+        return BydaoIterator::getVar( varName, value );
+    }
+    GetVarPtr getter = it.value().getter;
+    return ( this->*( getter) )( value );
+}
+
 bool BydaoDictIterator::next() {
-    if ( m_dict && 0 <= m_index && m_index < m_dict->size() ) {
+    if ( m_dict && m_index < m_dict->size() ) {
         return ( ++m_index < m_dict->size() );
     }
     return false;
@@ -288,17 +325,11 @@ bool BydaoDictIterator::isValid() const {
 }
 
 BydaoValue BydaoDictIterator::key() const {
-    if ( ! isValid() ) {
-        return BydaoValue::fromNull();
-    }
-    return m_dict->key( m_index );
+    return isValid() ? m_dict->key( m_index ) : BydaoValue::fromNull();
 }
 
 BydaoValue BydaoDictIterator::value() const {
-    if ( ! isValid() ) {
-        return BydaoValue::fromNull();
-    }
-    return m_dict->value( m_index );
+    return isValid() ? m_dict->value( m_index ) : BydaoValue::fromNull();
 }
 
 } // namespace BydaoScript

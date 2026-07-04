@@ -107,6 +107,7 @@ private:
     bool method_set(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_ksort(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_sort(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_keys(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoDict::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);
@@ -160,27 +161,66 @@ public:
     BydaoValue key() const override;
     BydaoValue value() const override;
 
+    bool    getVar( const QString& varName, BydaoValue& value ) override;
+
 protected:
 
     static bool itNext(BydaoObject* self) {
-        auto* iter = static_cast<BydaoDictIterator*>(self);
-        return iter->next();
+        return static_cast<BydaoDictIterator*>(self)->next();
     }
 
     static bool itIsValid(BydaoObject* self) {
-        auto* iter = static_cast<BydaoDictIterator*>(self);
-        return iter->isValid();
+        return static_cast<BydaoDictIterator*>(self)->isValid();
     }
 
     static BydaoValue itValue(BydaoObject* self) {
-        auto* iter = static_cast<BydaoDictIterator*>(self);
-        return iter->value();
+        return static_cast<BydaoDictIterator*>(self)->value();
     }
 
     static BydaoValue itKey(BydaoObject* self) {
-        auto* iter = static_cast<BydaoDictIterator*>(self);
-        return iter->key();
+        return static_cast<BydaoDictIterator*>(self)->key();
     }
+
+    // Статические методы
+    static bool nextImpl(BydaoObject* self, const QVector<BydaoValue>&, BydaoValue& result) {
+        result = BydaoValue::fromBool( static_cast<BydaoDictIterator*>(self)->next() );
+        return true;
+    }
+
+    static bool isValidImpl(BydaoObject* self, const QVector<BydaoValue>&, BydaoValue& result) {
+        result = BydaoValue::fromBool( static_cast<BydaoDictIterator*>(self)->isValid() );
+        return true;
+    }
+
+    static bool valueImpl(BydaoObject* self, const QVector<BydaoValue>&, BydaoValue& result) {
+        result = static_cast<BydaoDictIterator*>(self)->value();
+        return true;
+    }
+
+    static bool keyImpl(BydaoObject* self, const QVector<BydaoValue>&, BydaoValue& result) {
+        result = static_cast<BydaoDictIterator*>(self)->key();
+        return true;
+    }
+
+    using GetVarPtr = bool (BydaoDictIterator::*)(BydaoValue&);
+    using SetVarPtr = bool (BydaoDictIterator::*)(const BydaoValue&);
+    struct VarMethod {
+        GetVarPtr   getter;
+        SetVarPtr   setter;
+    };
+    QHash<QString,VarMethod> m_vars;
+
+    void registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter = nullptr );
+
+    bool getvar_key( BydaoValue& value ) {
+        value = key();
+        return true;
+    };
+
+    bool getvar_value( BydaoValue& value ) {
+        value = this->value();
+        return true;
+    };
 
     BydaoDict*  m_dict;
     int         m_index;
