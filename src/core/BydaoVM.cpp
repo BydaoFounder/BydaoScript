@@ -47,6 +47,8 @@ BydaoVM::BydaoVM()
 
     m_environment = nullptr;
 
+    m_inputData = nullptr;
+
     // Инициализируем область видимости
     m_scopeStack.clear();
     m_scopeStack.append( VarScope() );
@@ -87,6 +89,11 @@ BydaoVM::BydaoVM()
 }
 
 BydaoVM::~BydaoVM() {
+
+//    qFatal("BydaoVM destructor called");
+
+    BydaoModuleManager::instance().unloadAllModules();
+
     if (m_ownOutStream && m_outStream) {
         delete m_outStream;
         m_outStream = nullptr;
@@ -104,6 +111,8 @@ BydaoVM::~BydaoVM() {
         m_funcs[ i ] = nullptr;
     }
     m_funcs.remove( 0, m_funcs.size() );
+
+
 }
 
 void    BydaoVM::logError(const QString& msg) {
@@ -1251,6 +1260,18 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         m_stack.push(a.toObject()->ge(b));
+        break;
+    }
+
+    case BydaoOpCode::IsNull: {
+        if ( arg1 > 0 ) {   // сравнение переменной на равенство null
+            BydaoValue& a = getVariable( arg1, instr );
+            m_stack.push( BydaoValue::fromBool( a.isNull() ) );
+        }
+        else {              // сравнение значения на стеке на равенство null
+            BydaoValue a = m_stack.pop();
+            m_stack.push( BydaoValue::fromBool( a.isNull() ) );
+        }
         break;
     }
 

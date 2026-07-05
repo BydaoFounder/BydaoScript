@@ -92,6 +92,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::LoadScope] = "LOADSCOPE";
         names[BydaoOpCode::StoreScope] = "STORESCOPE";
         names[BydaoOpCode::StkPop] = "STKPOP";
+        names[BydaoOpCode::IsNull] = "ISNULL";
         names[BydaoOpCode::EqNull] = "EQNULL";
         names[BydaoOpCode::NeqNull] = "NEQNULL";
     }

@@ -36,11 +36,6 @@ extern "C" {
 
 // ========== BydaoSysModule ==========
 
-#define REGISTER_MODULE_METHOD(name) \
-registerMethod(#name, [this](const QVector<BydaoValue>& args, BydaoValue& result) { \
-        return method_##name(args, result); \
-})
-
 BydaoSysModule::BydaoSysModule()
     : BydaoModule()
     , m_process(nullptr)
@@ -314,11 +309,8 @@ bool BydaoSysModule::method_env(const QVector<BydaoValue>& args, BydaoValue& res
     return true;
 }
 
-bool BydaoSysModule::method_envList(const QVector<BydaoValue>& args, BydaoValue& result) {
-    Q_UNUSED(args);
-
+bool BydaoSysModule::method_envList(const QVector<BydaoValue>&, BydaoValue& result) {
     BydaoDict* dict = new BydaoDict();
-
     if ( m_runtime ) {
 
         BydaoRuntime::Environment* env = m_runtime->getEnvironment();

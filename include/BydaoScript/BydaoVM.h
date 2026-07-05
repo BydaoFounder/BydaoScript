@@ -206,6 +206,14 @@ public:
         return m_environment;
     };
 
+    void    setInputData( const QByteArray* inputData ) override {
+        m_inputData = inputData;
+    }
+
+    const QByteArray* getInputData() const override {
+        return m_inputData;
+    }
+
     // Выполнение
     bool run();
     void stop();
@@ -305,6 +313,8 @@ private:
     bool            m_ownOutStream;
 
     Environment*    m_environment;
+
+    const QByteArray*   m_inputData;
 };
 
 } // namespace BydaoScript

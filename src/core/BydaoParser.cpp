@@ -3786,15 +3786,36 @@ bool BydaoParser::parseMemberSuffix() {
     nextToken();
 
     // Смотрим, что идёт после имени члена
-    if (match(BydaoTokenType::LParen)) {            // это вызов метода
+    if (match(BydaoTokenType::LParen)) {            // '(' - это вызов метода
 
         // Запомним название метода
 
         objTypeInfo.member = memberName;
 
-        // Проверим, что у текущего типа есть такая функция
+        if ( memberName == QStringLiteral("isNull") ) {
 
-        if ( objMetaData ) {
+            // Пропустим скобки "()"
+
+            nextToken();    // '('
+            if ( ! match( BydaoTokenType::RParen ) ) {
+                error( "Missed ')' after 'isNull('");
+                return false;
+            }
+            nextToken();    // ')'
+
+            getLastType();
+            setLastType( TypeInfo("Bool", Expr ) );
+
+            int size = m_bytecode.size();
+            int leftIndex = ( m_bytecode[size-1].op == BydaoOpCode::Load )
+                                ? m_bytecode.takeLast().arg1
+                                : 0;
+            emitCode( BydaoOpCode::IsNull, leftIndex, 0, memberToken );
+        }
+        else if ( objMetaData ) {
+
+            // Проверим, что у текущего типа есть такая функция
+
             if ( thisIsType ) {
                 if ( ! objMetaData->hasTypeFunc( memberName ) ) {
                     error("Type '" + objType + "' does not have function '" + memberName + "'", memberToken);

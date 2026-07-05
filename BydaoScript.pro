@@ -9,9 +9,10 @@ SUBDIRS += src/core/core.pro
 SUBDIRS += \
     src/modules/Dir/Dir.pro \
     src/modules/File/File.pro \
-    src/modules/Sys/Sys.pro
+    src/modules/Sys/Sys.pro \
+    src/modules/Web/Web.pro
 
-# CLI интерпретатор (зависит от ядра и модулей)
+# CLI интерпретатор (зависит от ядра)
 SUBDIRS += src/cli/cli.pro
 
 # Порядок сборки
@@ -19,7 +20,9 @@ src/core/core.pro.depends =
 src/modules/Dir/Dir.pro.depends = src/core/core.pro
 src/modules/File/File.pro.depends = src/core/core.pro
 src/modules/Sys/Sys.pro.depends = src/core/core.pro
-src/cli/cli.pro.depends = src/core/core.pro \
-    src/modules/Dir/Dir.pro \
-    src/modules/File/File.pro \
-    src/modules/Sys/Sys.pro
+src/modules/Web/Web.pro.depends = src/core/core.pro
+src/cli/cli.pro.depends = src/core/core.pro
+#    \
+#    src/modules/Dir/Dir.pro \
+#    src/modules/File/File.pro \
+#    src/modules/Sys/Sys.pro

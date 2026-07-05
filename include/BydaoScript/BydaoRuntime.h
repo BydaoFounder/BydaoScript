@@ -26,6 +26,9 @@ public:
     virtual void            setEnvironment( Environment* env ) = 0;
     virtual Environment*    getEnvironment() = 0;
 
+    virtual void            setInputData( const QByteArray* inputData ) = 0;
+    virtual const QByteArray* getInputData() const = 0;
+
     virtual QTextStream* outStream() = 0;
     virtual QTextStream* errStream() = 0;
     virtual void logError(const QString& msg) = 0;
