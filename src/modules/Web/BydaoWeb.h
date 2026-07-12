@@ -13,7 +13,73 @@
 namespace BydaoScript {
 namespace Modules {
 
-class WebRequest;
+
+/**
+ * Класс запроса от веб-сервера.
+ *
+ * Методы объекта:
+ *
+ * headers(): Dict
+ * header( name: String ): String
+ */
+
+class BYDAOWEB_EXPORT WebRequest: public BydaoObject {
+
+public:
+    explicit WebRequest();
+    virtual ~WebRequest() override;
+
+    // Получить мета-данные
+    static MetaData*   metaData();
+
+    // Получить список используемых мета-данных
+    static UsedMetaDataList usedMetaData();
+
+    QString typeName() const override { return "WebRequest"; }
+
+    bool    getVar( const QString& varName, BydaoValue& value ) override;
+
+    bool    callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) override;
+
+    void            setRuntime(BydaoRuntime* runtime) {
+        m_runtime = runtime;
+    };
+    BydaoRuntime*   runtime() { return m_runtime; };
+
+private:
+
+    void    parseHeaders();
+
+    bool    method_headers(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool    method_header(const QVector<BydaoValue>& args, BydaoValue& result);
+
+    using MethodPtr = bool (WebRequest::*)(const QVector<BydaoValue>&, BydaoValue&);
+    void    registerMethod(const QString& name, MethodPtr method);
+
+    QHash<QString, MethodPtr> m_methods;
+
+    using GetVarPtr = bool (WebRequest::*)(BydaoValue&);
+    using SetVarPtr = bool (WebRequest::*)(const BydaoValue&);
+    struct VarMethod {
+        GetVarPtr   getter;
+        SetVarPtr   setter;
+    };
+    QHash<QString,VarMethod> m_vars;
+
+    void    registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter = nullptr );
+
+    static bool headersImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        return ( static_cast<WebRequest*>(self) )->method_headers( args, result );
+    }
+
+    static bool headerImpl( BydaoObject* self, const QVector<BydaoValue>& args, BydaoValue& result ) {
+        return ( static_cast<WebRequest*>(self) )->method_header( args, result );
+    }
+
+    BydaoRuntime*   m_runtime;
+
+    QHash< QString, QString > m_headers;
+};
 
 /**
  * Класс ответа веб-серверу.
@@ -21,11 +87,11 @@ class WebRequest;
  * Методы объекта:
  *
  * out( data: String )
- * json( data: Array | Dict )
+ * status( val )
  * header( name: String, value: String )
  * headers( list: Dict )
- * status( val )
  * redirect( url: String )
+ * json( data: Array | Dict )
  */
 
 class BYDAOWEB_EXPORT WebResponse: public BydaoObject {
@@ -84,11 +150,6 @@ private:
         return ( static_cast<WebResponse*>(self) )->method_header( args, result );
     }
 
-    // bool getvar_length( BydaoValue& value ) {
-    //     value = BydaoValue::fromInt( m_elements.size() );
-    //     return true;
-    // };
-
     BydaoRuntime*   m_runtime;
 
     int             m_statusCode;
@@ -135,6 +196,8 @@ private:
 
     // Методы модуля
     bool method_server(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_request(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_response(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoWebModule::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);
@@ -156,6 +219,11 @@ private:
     };
 
     bool getvar_request( BydaoValue& value ) {
+        if ( ! m_request ) {
+            m_request = new WebRequest();
+            m_request->ref();
+            m_request->setRuntime( m_runtime );
+        }
         value = BydaoValue( (BydaoObject*)m_request, BydaoTypeId::TYPE_OBJECT );
         return true;
     };

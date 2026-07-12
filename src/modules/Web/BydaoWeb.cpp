@@ -44,7 +44,7 @@ MetaData*   BydaoWebModule::metaData() {
         metaData
             // переменные модуля (типа данных)
             ->appendType( "server",     VarMetaData("Dict",VMD_CONST) )
-//            .appendType( "request",     VarMetaData("WebRequest",VMD_CONST) )
+            .appendType( "request",     VarMetaData("WebRequest",VMD_CONST) )
             .appendType( "response",    VarMetaData("WebResponse",VMD_CONST) )
             ;
         metaData
@@ -61,7 +61,7 @@ UsedMetaDataList    BydaoWebModule::usedMetaData() {
     static UsedMetaDataList list;
 
     if ( list.isEmpty() ) {
-        // list << UsedMetaData( "WebRequest",  BydaoWebRequest::metaData() );
+        list << UsedMetaData( "WebRequest",  WebRequest::metaData() );
         list << UsedMetaData( "WebResponse", WebResponse::metaData() );
     }
 
@@ -99,6 +99,10 @@ bool BydaoWebModule::initialize() {
 }
 
 bool BydaoWebModule::shutdown() {
+    if ( m_request ) {
+        delete m_request;
+        m_request = nullptr;
+    }
     if ( m_response ) {
         delete m_response;
         m_response = nullptr;
@@ -142,12 +146,6 @@ bool    BydaoWebModule::getServerParams( BydaoValue& result ) {
 
             for ( auto it = env->begin(); it != env->end(); ++it ) {
                 dict->set( BydaoValue::fromString( it.key() ), BydaoValue::fromString( it.value() ) );
-                // QString key = it.key();
-                // if ( ! key.startsWith("HTTP_")
-                //     && key != QStringLiteral("CONTENT_TYPE")
-                //     && key != QStringLiteral("CONTENT_LENGTH") ) {
-                //     dict->set( BydaoValue::fromString( key ), BydaoValue::fromString( it.value() ) );
-                // }
             }
         }
     }
@@ -161,8 +159,149 @@ bool BydaoWebModule::method_server(const QVector<BydaoValue>&, BydaoValue& resul
     return getServerParams( result );
 }
 
+bool BydaoWebModule::method_request(const QVector<BydaoValue>&, BydaoValue& result) {
+    return getvar_request( result );
+}
+
+bool BydaoWebModule::method_response(const QVector<BydaoValue>&, BydaoValue& result) {
+    return getvar_response( result );
+}
+
+//==============================================================================
+// WebRequest - запрос от веб-сервера
 //==============================================================================
 
+// Получить мета-данные
+MetaData*   WebRequest::metaData() {
+    static MetaData* metaData = nullptr;
+    if ( ! metaData ) {
+        metaData = new MetaData();
+        metaData->name = "WebResponse";
+        metaData
+            // методы объекта
+            ->appendObj( "headers", FuncMetaData(0,"Dict", FMD_IMMUTABLE) )
+            .appendObj( "header",   FuncMetaData(1,"String", FMD_IMMUTABLE) << FuncArgMetaData("name","String",ARG_IN) << FuncArgMetaData("default","String",ARG_IN,"null") )
+            ;
+    }
+    return metaData;
+}
+
+/**
+ * Вернуть список используемых типов.
+ */
+UsedMetaDataList    WebRequest::usedMetaData() {
+    static UsedMetaDataList list;
+
+    if ( list.isEmpty() ) {
+    }
+
+    return list;
+}
+
+WebRequest::WebRequest()
+    : BydaoObject()
+{
+
+    // Методы объекта
+    registerMethod("headers",   &WebRequest::method_headers);
+    registerMethod("header",    &WebRequest::method_header);
+
+    // Регистрация функций для вызова по индексу
+
+    m_stdMethodTable.resize(2);
+    m_stdMethodTable[0] = &WebRequest::headersImpl;
+    m_stdMethodTable[1] = &WebRequest::headerImpl;
+}
+
+WebRequest::~WebRequest() {
+}
+
+void    WebRequest::registerMethod(const QString& name, MethodPtr method) {
+    m_methods[name] = method;
+}
+
+void    WebRequest::registerVar(const QString& name, GetVarPtr getter, SetVarPtr setter ) {
+    m_vars[ name ] = { getter, setter };
+}
+
+bool    WebRequest::getVar( const QString& varName, BydaoValue& value ) {
+    auto it = m_vars.find( varName );
+    if ( it == m_vars.end() ) {
+        return BydaoObject::getVar( varName, value );
+    }
+    GetVarPtr getter = it.value().getter;
+    return ( this->*( getter) )( value );
+}
+
+bool    WebRequest::callMethod(const QString& name, const QVector<BydaoValue>& args, BydaoValue& result) {
+    auto it = m_methods.find(name);
+    if (it != m_methods.end()) {
+        return (this->*(it.value()))(args, result);
+    }
+    return false;
+}
+
+void    WebRequest::parseHeaders() {
+    if ( m_runtime ) {
+
+        BydaoRuntime::Environment* env = m_runtime->getEnvironment();
+        if ( env ) {
+
+            for ( auto it = env->begin(); it != env->end(); ++it ) {
+                QString key = it.key();
+                if ( key.startsWith("HTTP_") ) {
+                    QString header = key.mid(5).toLower();
+                    QStringList parts = header.split('_');
+                    for (QString& part : parts) {
+                        if (!part.isEmpty()) {
+                            part[0] = part[0].toUpper();
+                        }
+                    }
+                    m_headers[ parts.join('-') ] = it.value();
+                }
+                else if ( key == QStringLiteral("CONTENT_TYPE") ) {
+                    m_headers[ "Content-Type" ] = it.value();
+                }
+                else if ( key == QStringLiteral("CONTENT_LENGTH") ) {
+                    m_headers[ "Content-Length" ] = it.value();
+                }
+            }
+        }
+    }
+}
+
+bool    WebRequest::method_header(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 2) return false;
+    if ( m_headers.isEmpty() ) {
+        parseHeaders();
+    }
+    auto it = m_headers.find( args[0].toString() );
+    if ( it != m_headers.end() ) {
+        result = BydaoValue::fromString( it.value() );
+    }
+    if ( args[1].isString() ) {
+        result = args[1];
+    }
+    result = BydaoValue::fromNull();
+    return true;
+}
+
+bool    WebRequest::method_headers(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 0) return false;
+    if ( m_headers.isEmpty() ) {
+        parseHeaders();
+    }
+    BydaoDict* dict = new BydaoDict();
+    for ( auto it = m_headers.begin(); it != m_headers.end(); ++it ) {
+        dict->set( BydaoValue::fromString( it.key() ), BydaoValue::fromString( it.value() ) );
+    }
+    result = BydaoValue( dict, BydaoTypeId::TYPE_DICT );
+    return true;
+}
+
+//==============================================================================
+//  WebResponse - ответ веб-серу
+//==============================================================================
 
 // Получить мета-данные
 MetaData*   WebResponse::metaData() {
