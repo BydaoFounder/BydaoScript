@@ -9,6 +9,8 @@
 #include <QDate>
 #include <QTime>
 
+#include "BydaoRuntime.h"
+
 namespace BydaoScript {
 
 class BydaoLogger {
@@ -24,6 +26,10 @@ public:
     // Универсальный метод
     enum Level { DEBUG, INFO, ERROR };
     void log(Level level, const QString& message, const QString& source = "");
+
+    void    setRuntime( BydaoRuntime* runtime ) {
+        m_runtime = runtime;
+    }
 
     void setRequestId(uint16_t id) { m_requestId = id; }
 
@@ -47,6 +53,8 @@ private:
 
     uint16_t m_requestId = 0;
     bool m_initialized = false;
+
+    BydaoRuntime*   m_runtime = nullptr;
 
 #ifndef NDEBUG
     bool m_debugEnabled = true;

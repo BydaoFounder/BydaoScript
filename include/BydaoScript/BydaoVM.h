@@ -188,17 +188,6 @@ public:
 
     // Методы BydaoRuntime
 
-    QTextStream* outStream() override { return m_outStream; }
-    QTextStream* errStream() override { return m_outStream; }
-    void logError(const QString& msg)  override;
-    bool callFunction(BydaoValue func, const QVector<BydaoValue>& args, BydaoValue& result) override;
-
-    // Методы виртуальной машины
-
-    void setOutputStream(QTextStream* stream);
-
-    bool loadModule(const ModuleInfo& module);
-
     void    setEnvironment( Environment* env ) override {
         m_environment = env;
     };
@@ -213,6 +202,24 @@ public:
     const QByteArray* getInputData() const override {
         return m_inputData;
     }
+
+    void        setTraceId( const QString& traceId ) override {
+        m_traceId = traceId;
+    }
+    QString     getTraceId() const override {
+        return m_traceId;
+    }
+
+    QTextStream* outStream() override { return m_outStream; }
+    QTextStream* errStream() override { return m_outStream; }
+    void logError(const QString& msg)  override;
+    bool callFunction(BydaoValue func, const QVector<BydaoValue>& args, BydaoValue& result) override;
+
+    // Методы виртуальной машины
+
+    void setOutputStream(QTextStream* stream);
+
+    bool loadModule(const ModuleInfo& module);
 
     // Выполнение
     bool run();
@@ -315,6 +322,8 @@ private:
     Environment*    m_environment;
 
     const QByteArray*   m_inputData;
+
+    QString         m_traceId;
 };
 
 } // namespace BydaoScript

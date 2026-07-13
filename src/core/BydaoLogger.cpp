@@ -76,14 +76,19 @@ void BydaoLogger::write(Level level, const QString& message, const QString& sour
 }
 
 QString BydaoLogger::formatMessage(Level level, const QString& message, const QString& source) const {
-    QString timeStr = QTime::currentTime().toString("HH:mm:ss.zzz");
-    QString levelStr = levelToString(level);
 
-    QString result;
-    result += timeStr;
-    result += " " + levelStr;
+    QString result = QTime::currentTime().toString("HH:mm:ss.zzz");
 
-    if (!source.isEmpty()) {
+    if ( m_runtime ) {
+        QString traceId = m_runtime->getTraceId();
+        if ( ! traceId.isEmpty() ) {
+            result += " " + traceId;
+        }
+    }
+
+    result += " " + levelToString(level);
+
+    if ( ! source.isEmpty() ) {
         result += " [" + source + "]";
     }
 
