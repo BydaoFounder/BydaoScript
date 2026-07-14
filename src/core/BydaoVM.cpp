@@ -19,7 +19,6 @@
 #include "BydaoScript/BydaoBool.h"
 #include "BydaoScript/BydaoReal.h"
 #include "BydaoScript/BydaoArray.h"
-#include "BydaoScript/BydaoDict.h"
 #include "BydaoScript/BydaoNull.h"
 #include "BydaoScript/BydaoIterator.h"
 #include "BydaoScript/BydaoIntRange.h"
@@ -44,6 +43,10 @@ BydaoVM::BydaoVM()
     m_outStream = new QTextStream( stdout );
     m_outStream->setEncoding( QStringConverter::Utf8 );
     m_ownOutStream = true;
+
+    m_errStream = new QTextStream( stderr );
+    m_errStream->setEncoding( QStringConverter::Utf8 );
+    m_ownErrStream = true;
 
     m_environment = nullptr;
 
@@ -81,11 +84,6 @@ BydaoVM::BydaoVM()
     arrayClass->ref();
     arrayClass->setRuntime( this );
     s_builtinTypes.append( {"Array", BydaoValue(arrayClass, BydaoTypeId::TYPE_OBJECT)} );
-
-    auto* dictClass = new BydaoDict();
-    dictClass->ref();
-    dictClass->setRuntime( this );
-    s_builtinTypes.append( {"Dict", BydaoValue(dictClass, BydaoTypeId::TYPE_OBJECT)} );
 }
 
 BydaoVM::~BydaoVM() {
@@ -116,7 +114,7 @@ BydaoVM::~BydaoVM() {
 }
 
 void    BydaoVM::logError(const QString& msg) {
-    Q_UNUSED( msg );
+    *m_errStream << msg << "\n";
 }
 
 bool    BydaoVM::callFunction(BydaoValue valFunc, const QVector<BydaoValue>& args, BydaoValue& result) {
@@ -1409,7 +1407,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoValue key = m_stack.pop();
         BydaoValue obj = m_stack.pop();
 
-        if (auto* dict = (BydaoDict*)(obj.toObject())) {
+        if (auto* dict = (BydaoArray*)(obj.toObject())) {
             m_stack.push(dict->get( key ));
         } else {
             error("Get by key not supported for non-Dict value", instr);
@@ -1423,7 +1421,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoValue key = m_stack.pop();
         BydaoValue obj = m_stack.pop();
 
-        if (auto* dict = (BydaoDict*)(obj.toObject())) {
+        if (auto* dict = (BydaoArray*)(obj.toObject())) {
             dict->set( key, val );
         } else {
             error("Set by key not supported for non-Dict object", instr);
@@ -1451,7 +1449,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         BydaoValue obj = m_stack.pop();
 
         if (auto* array = (BydaoArray*)(obj.toObject())) {
-            array->set( index.toInt(), val );
+            array->set( index, val );
         } else {
             error("SETBYIDX not supported for non-Array object", instr);
             return false;
@@ -1805,7 +1803,6 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
 
         // Создаём новый массив
         auto* array = new BydaoArray();
-        array->ref();
         array->setRuntime( this );
 
         QVector<BydaoValue> elements;
@@ -1828,10 +1825,10 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         int count = arg1;
 
         // Создаём новый массив
-        auto* dict = new BydaoDict();
+        auto* dict = new BydaoArray();
         dict->setRuntime( this );
 
-        QVector<BydaoDict::Entry> entries;
+        QVector<BydaoArray::Entry> entries;
         entries.resizeForOverwrite( count );
         while ( --count >= 0 ) {
             m_stack.popTo( entries[ count ].value );

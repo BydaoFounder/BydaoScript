@@ -17,7 +17,6 @@
 
 #include "BydaoObject.h"
 #include "BydaoArray.h"
-#include "BydaoArrayIterator.h"
 #include "BydaoMetaData.h"
 
 namespace BydaoScript {

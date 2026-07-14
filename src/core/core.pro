@@ -6,11 +6,9 @@ CONFIG += shared
 include(../../BydaoScript.pri)
 
 HEADERS += \
-    ../../include/BydaoScript/BydaoArrayIterator.h \
     ../../include/BydaoScript/BydaoBool.h \
     ../../include/BydaoScript/BydaoConfig.h \
     ../../include/BydaoScript/BydaoConstantFolder.h \
-    ../../include/BydaoScript/BydaoDict.h \
     ../../include/BydaoScript/BydaoDisassembler.h \
     ../../include/BydaoScript/BydaoFuncObject.h \
     ../../include/BydaoScript/BydaoInt.h \
@@ -34,11 +32,9 @@ HEADERS += \
     ../../include/BydaoScript/BydaoVM.h
 
 SOURCES += \
-    BydaoArrayIterator.cpp \
     BydaoBool.cpp \
     BydaoConfig.cpp \
     BydaoConstantFolder.cpp \
-    BydaoDict.cpp \
     BydaoDisassembler.cpp \
     BydaoFuncObject.cpp \
     BydaoInt.cpp \

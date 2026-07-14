@@ -2,7 +2,6 @@
 
 #include "../../../include/BydaoScript/BydaoModule.h"
 #include "../../../include/BydaoScript/BydaoMetaData.h"
-#include "../../../include/BydaoScript/BydaoDict.h"
 
 #ifdef BYDAOWEB_LIBRARY
 #include "BydaoWeb_global.h"

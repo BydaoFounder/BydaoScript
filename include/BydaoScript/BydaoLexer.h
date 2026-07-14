@@ -43,7 +43,6 @@ enum class BydaoTokenType {
     LBrace, RBrace,     // {}
     LBracket, RBracket, // []
     Comma, Dot, Colon, Semicolon,
-    HashBracket,        // #[
 
     // Литералы
     Identifier, Number, String,

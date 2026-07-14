@@ -3,7 +3,7 @@
 #include <QDir>
 
 #include "../../../include/BydaoScript/BydaoModule.h"
-#include "../../../include/BydaoScript/BydaoArrayIterator.h"
+#include "../../../include/BydaoScript/BydaoArray.h"
 
 #ifdef BYDAODIR_LIBRARY
 #include "BydaoDir_global.h"

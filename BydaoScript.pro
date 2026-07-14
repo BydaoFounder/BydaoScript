@@ -22,7 +22,3 @@ src/modules/File/File.pro.depends = src/core/core.pro
 src/modules/Sys/Sys.pro.depends = src/core/core.pro
 src/modules/Web/Web.pro.depends = src/core/core.pro
 src/cli/cli.pro.depends = src/core/core.pro
-#    \
-#    src/modules/Dir/Dir.pro \
-#    src/modules/File/File.pro \
-#    src/modules/Sys/Sys.pro

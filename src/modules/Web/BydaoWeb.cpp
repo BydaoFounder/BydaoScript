@@ -9,8 +9,8 @@
 #include "../include/BydaoScript/BydaoInt.h"
 #include "../include/BydaoScript/BydaoBool.h"
 #include "../include/BydaoScript/BydaoNull.h"
-#include "../include/BydaoScript/BydaoDict.h"
 #include "../include/BydaoScript/BydaoRuntime.h"
+#include "../include/BydaoScript/BydaoArray.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -138,7 +138,7 @@ bool    BydaoWebModule::getVar( const QString& varName, BydaoValue& value ) {
 }
 
 bool    BydaoWebModule::getServerParams( BydaoValue& result ) {
-    BydaoDict* dict = new BydaoDict();
+    BydaoArray* dict = new BydaoArray();
     if ( m_runtime ) {
 
         BydaoRuntime::Environment* env = m_runtime->getEnvironment();
@@ -291,7 +291,7 @@ bool    WebRequest::method_headers(const QVector<BydaoValue>& args, BydaoValue& 
     if ( m_headers.isEmpty() ) {
         parseHeaders();
     }
-    BydaoDict* dict = new BydaoDict();
+    BydaoArray* dict = new BydaoArray();
     for ( auto it = m_headers.begin(); it != m_headers.end(); ++it ) {
         dict->set( BydaoValue::fromString( it.key() ), BydaoValue::fromString( it.value() ) );
     }

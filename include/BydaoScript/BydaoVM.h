@@ -319,6 +319,9 @@ private:
     QTextStream*    m_outStream;
     bool            m_ownOutStream;
 
+    QTextStream*    m_errStream;
+    bool            m_ownErrStream;
+
     Environment*    m_environment;
 
     const QByteArray*   m_inputData;

@@ -6,11 +6,11 @@
 
 #include "BydaoSys.h"
 #include "../include/BydaoScript/BydaoString.h"
+#include "../include/BydaoScript/BydaoValue.h"
 #include "../include/BydaoScript/BydaoInt.h"
 #include "../include/BydaoScript/BydaoBool.h"
 #include "../include/BydaoScript/BydaoNull.h"
 #include "../include/BydaoScript/BydaoArray.h"
-#include "../include/BydaoScript/BydaoDict.h"
 #include "../include/BydaoScript/BydaoRuntime.h"
 
 #ifdef Q_OS_WIN
@@ -310,7 +310,7 @@ bool BydaoSysModule::method_env(const QVector<BydaoValue>& args, BydaoValue& res
 }
 
 bool BydaoSysModule::method_envList(const QVector<BydaoValue>&, BydaoValue& result) {
-    BydaoDict* dict = new BydaoDict();
+    BydaoArray* dict = new BydaoArray();
     if ( m_runtime ) {
 
         BydaoRuntime::Environment* env = m_runtime->getEnvironment();

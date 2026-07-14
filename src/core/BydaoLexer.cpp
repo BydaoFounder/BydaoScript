@@ -191,7 +191,6 @@ BydaoToken BydaoLexer::readOperator(QChar ch) {
         if (two == "*=") { m_pos += 2; m_column += 2; return BydaoToken(BydaoTokenType::MulAssign, two, m_line, startCol); }
         if (two == "/=") { m_pos += 2; m_column += 2; return BydaoToken(BydaoTokenType::DivAssign, two, m_line, startCol); }
         if (two == "%=") { m_pos += 2; m_column += 2; return BydaoToken(BydaoTokenType::ModAssign, two, m_line, startCol); }
-        if (two == "#[") { m_pos += 2; m_column += 2; return BydaoToken(BydaoTokenType::HashBracket, two, m_line, startCol); }
     }
 
     m_pos++; m_column++;
