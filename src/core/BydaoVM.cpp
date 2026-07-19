@@ -68,22 +68,27 @@ BydaoVM::BydaoVM()
     stringClass->ref();
     s_builtinTypes.append( {"String", BydaoValue(stringClass, BydaoTypeId::TYPE_OBJECT)} );
 
-    // auto* realClass = new BydaoReal();
-    // realClass->ref();
-    // s_builtinTypes.append( {"Real", BydaoValue(realClass, BydaoTypeId::TYPE_OBJECT)} );
+    auto* realClass = BydaoReal::create(0.0);
+    realClass->ref();
+    s_builtinTypes.append( {"Real", BydaoValue(realClass, BydaoTypeId::TYPE_OBJECT)} );
 
-    // auto* boolClass = new BydaoBool();
-    // boolClass->ref();
-    // s_builtinTypes.append( {"Bool", BydaoValue(boolClass, BydaoTypeId::TYPE_OBJECT)} );
+    auto* boolClass = BydaoBool::create( false );
+    boolClass->ref();
+    s_builtinTypes.append( {"Bool", BydaoValue(boolClass, BydaoTypeId::TYPE_OBJECT)} );
 
-    // auto* nullClass = new BydaoNull();
-    // nullClass->ref();
-    // s_builtinTypes.append( {QStringLiteral("Null"), BydaoValue(nullClass, BydaoTypeId::TYPE_OBJECT)} );
+    auto* nullClass = BydaoNull::instance();
+    nullClass->ref();
+    s_builtinTypes.append( {QStringLiteral("Null"), BydaoValue(nullClass, BydaoTypeId::TYPE_OBJECT)} );
 
     auto* arrayClass = new BydaoArray();
     arrayClass->ref();
     arrayClass->setRuntime( this );
     s_builtinTypes.append( {"Array", BydaoValue(arrayClass, BydaoTypeId::TYPE_OBJECT)} );
+
+    auto* jsonClass = new BydaoJson();
+    jsonClass->ref();
+    jsonClass->setRuntime( this );
+    s_builtinTypes.append( {"Json", BydaoValue(jsonClass, BydaoTypeId::TYPE_OBJECT)} );
 }
 
 BydaoVM::~BydaoVM() {
@@ -109,12 +114,11 @@ BydaoVM::~BydaoVM() {
         m_funcs[ i ] = nullptr;
     }
     m_funcs.remove( 0, m_funcs.size() );
-
-
 }
 
 void    BydaoVM::logError(const QString& msg) {
-    *m_errStream << msg << "\n";
+    error( msg, m_bytecode[ m_pc ] );
+//    *m_errStream << msg << "\n";
 }
 
 bool    BydaoVM::callFunction(BydaoValue valFunc, const QVector<BydaoValue>& args, BydaoValue& result) {
@@ -1261,6 +1265,18 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         break;
     }
 
+    case BydaoOpCode::IsObject: {
+        if ( arg1 > 0 ) {   // проверка переменной
+            BydaoValue& a = getVariable( arg1, instr );
+            m_stack.push( BydaoValue::fromBool( a.isObject() ) );
+        }
+        else {              // проверка значения на стеке
+            BydaoValue a = m_stack.pop();
+            m_stack.push( BydaoValue::fromBool( a.isObject() ) );
+        }
+        break;
+    }
+
     case BydaoOpCode::IsNull: {
         if ( arg1 > 0 ) {   // сравнение переменной на равенство null
             BydaoValue& a = getVariable( arg1, instr );
@@ -1646,13 +1662,13 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
             }
         }
         else {
-            QString err = obj->lastError();
-            if ( ! err.isEmpty() ) {
-                error( err, instr);
-            }
-            else {
-                error( QString("Unknown error on call function of type '%1'").arg(obj->typeName()), instr);
-            }
+            // QString err = obj->lastError();
+            // if ( ! err.isEmpty() ) {
+            //     error( err, instr);
+            // }
+            // else {
+            //     error( QString("Unknown error on call function of type '%1'").arg(obj->typeName()), instr);
+            // }
             return false;
         }
         break;
@@ -1841,7 +1857,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
 
         // Кладём массив на стек
-        m_stack.push( BydaoValue( dict, BydaoTypeId::TYPE_DICT ) );
+        m_stack.push( BydaoValue( dict, BydaoTypeId::TYPE_ARRAY ) );
         break;
     }
 

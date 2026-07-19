@@ -141,6 +141,7 @@ enum BydaoOpCode : quint8 {
 
     // Сравнение с null
 
+    IsObject,       // выполнение функции isObject()
     IsNull,         // выполнение функции isNull()
     EqNull,         // сравнение на равенство с null
                     // arg1 == 0 - значение на стеке

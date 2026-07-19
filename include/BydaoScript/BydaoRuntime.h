@@ -34,7 +34,10 @@ public:
 
     virtual QTextStream* outStream() = 0;
     virtual QTextStream* errStream() = 0;
-    virtual void logError(const QString& msg) = 0;
+
+    virtual void    logError(const QString& msg) = 0;
+    virtual QString lastError() const = 0;
+
     virtual bool callFunction(BydaoValue func, const QVector<BydaoValue>& args, BydaoValue& result) = 0;
 };
 

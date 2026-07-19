@@ -149,7 +149,7 @@ bool    BydaoWebModule::getServerParams( BydaoValue& result ) {
             }
         }
     }
-    result = BydaoValue( dict, BydaoTypeId::TYPE_DICT );
+    result = BydaoValue( dict, BydaoTypeId::TYPE_ARRAY );
     return true;
 }
 
@@ -295,7 +295,7 @@ bool    WebRequest::method_headers(const QVector<BydaoValue>& args, BydaoValue& 
     for ( auto it = m_headers.begin(); it != m_headers.end(); ++it ) {
         dict->set( BydaoValue::fromString( it.key() ), BydaoValue::fromString( it.value() ) );
     }
-    result = BydaoValue( dict, BydaoTypeId::TYPE_DICT );
+    result = BydaoValue( dict, BydaoTypeId::TYPE_ARRAY );
     return true;
 }
 

@@ -101,9 +101,11 @@ BydaoParser::BydaoParser(const QString& moduleName, const QVector<BydaoToken>& t
         }
     }
 
+    m_metaData["Json"]  = new MetaData( BydaoJson::metaData() );
+
     // Список встроенных типов.
     // В виртуальной машине должен быть такой же список в том же порядке.
-    m_builtinTypes << "Int" << "String" << "Real" << "Bool" << "Null" << "Array";
+    m_builtinTypes << "Int" << "String" << "Real" << "Bool" << "Null" << "Array" << "Json";
 }
 
 BydaoParser::~BydaoParser() {
@@ -2188,6 +2190,7 @@ bool BydaoParser::parseFuncDecl() {
     }
     else {
 
+        getLastType();
         setLastType( TypeInfo( "Func" ) );
         emitCode( BydaoOpCode::FuncVal, 0, funcIdx, funcToken );
     }
@@ -2895,19 +2898,21 @@ bool BydaoParser::parseEquality() {
             // Проверить наличие операции сравнения для левого операнда
 
             QString leftType = leftTypeInfo.type;
-            if ( ! checkTypeOper( leftType, isEq ? "eq" : "neq" , leftToken ) ) {
-                return false;
-            }
-
-            // Если сравнение значений разного типа
-
-            if ( leftTypeInfo.type != rightTypeInfo.type ) {
-
-                // Проверить возможность преобразования типа правого операнда
-                // к типу левого операнда
-
-                if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
+            if ( leftType != "Any" ) {
+                if ( ! checkTypeOper( leftType, isEq ? "eq" : "neq" , leftToken ) ) {
                     return false;
+                }
+
+                // Если сравнение значений разного типа
+
+                if ( leftTypeInfo.type != rightTypeInfo.type ) {
+
+                    // Проверить возможность преобразования типа правого операнда
+                    // к типу левого операнда
+
+                    if ( ! checkTypeConvert( rightTypeInfo.type, leftType, rightToken ) ) {
+                        return false;
+                    }
                 }
             }
 
@@ -3620,45 +3625,50 @@ bool BydaoParser::parseCallSuffix() {
         do {
 
             BydaoToken argToken = m_current;
-            if ( argCount >= func.argList.size() ) {
-                error( QString( "Invalid argument count"), argToken );
-                return false;
+            if ( objType != "Any" ) {
+                if ( argCount >= func.argList.size() ) {
+                    error( QString( "Invalid argument count"), argToken );
+                    return false;
+                }
             }
 
-            if (!parseExpression()) {
+            if ( ! parseExpression() ) {
                 error( QString( "Invalid expression in argument %1 function '%2'").arg( argCount + 1 ).arg( memberName ) );
                 return false;
             }
 
-            const QStringList& argTypeList = func.argList[ argCount ].types;    // допустимые типы аргумента функции
+            if ( objType != "Any" ) {
+                const QStringList& argTypeList = func.argList[ argCount ].types;    // допустимые типы аргумента функции
 
-            TypeInfo exprTypeInfo = getLastType();      // тип выражения аргумента
-            QString exprType = exprTypeInfo.type;
-            if ( ! argTypeList.contains( exprType ) ) {     // тип выражения не соответствует ни одному допустимому типу аргумента функции
+                TypeInfo exprTypeInfo = getLastType();      // тип выражения аргумента
+                QString exprType = exprTypeInfo.type;
+                if ( ! argTypeList.contains( exprType ) ) {     // тип выражения не соответствует ни одному допустимому типу аргумента функции
 
-                if ( ! argTypeList.contains( "Any" ) ) {
+                    if ( ! argTypeList.contains( "Any" ) ) {
 
-                    // Для типа выражения проверить наличие функции приведения к типу аргумента
+                        // Для типа выражения проверить наличие функции приведения к типу аргумента
 
-                    if ( ! m_metaData.contains( exprType ) ) {
-                        error("Unknown expession type '" + exprType + "'" );
-                        return false;
-                    }
-                    bool canConvert = false;
-                    MetaData* exprMetaData = m_metaData[ exprType ];
-                    for ( int i = 0; i < argTypeList.size(); ++i ) {
-                        const QString& argType = argTypeList[ i ];
-                        if ( exprMetaData->hasObjFunc( QString("to%1").arg(argType) ) ) {
-                            canConvert = true;
-                            break;
+                        if ( ! m_metaData.contains( exprType ) ) {
+                            error("Unknown expession type '" + exprType + "'" );
+                            return false;
                         }
-                    }
-                    if ( ! canConvert ) {
-                        error( QString( "Argument %1 cannot convert to allowed type" ).arg( argCount + 1 ), argToken );
-                        return false;
+                        bool canConvert = false;
+                        MetaData* exprMetaData = m_metaData[ exprType ];
+                        for ( int i = 0; i < argTypeList.size(); ++i ) {
+                            const QString& argType = argTypeList[ i ];
+                            if ( exprMetaData->hasObjFunc( QString("to%1").arg(argType) ) ) {
+                                canConvert = true;
+                                break;
+                            }
+                        }
+                        if ( ! canConvert ) {
+                            error( QString( "Argument %1 cannot convert to allowed type" ).arg( argCount + 1 ), argToken );
+                            return false;
+                        }
                     }
                 }
             }
+
             argCount++;
 
             // Если после выражения нет запятой - заканчиваем
@@ -3721,7 +3731,9 @@ bool BydaoParser::parseCallSuffix() {
     }
 
     // Удалим информацию о типе и методе
-    getLastType();
+    if ( ! m_typeStack.isEmpty() ) {
+        getLastType();
+    }
 
 
     if ( objType != "Any" ) {
@@ -3815,6 +3827,26 @@ bool BydaoParser::parseMemberSuffix() {
                                 ? m_bytecode.takeLast().arg1
                                 : 0;
             emitCode( BydaoOpCode::IsNull, leftIndex, 0, memberToken );
+        }
+        else if ( memberName == QStringLiteral("isObject") ) {
+
+            // Пропустим скобки "()"
+
+            nextToken();    // '('
+            if ( ! match( BydaoTokenType::RParen ) ) {
+                error( "Missed ')' after 'hasValue('");
+                return false;
+            }
+            nextToken();    // ')'
+
+            getLastType();
+            setLastType( TypeInfo("Bool", Expr ) );
+
+            int size = m_bytecode.size();
+            int leftIndex = ( m_bytecode[size-1].op == BydaoOpCode::Load )
+                                ? m_bytecode.takeLast().arg1
+                                : 0;
+            emitCode( BydaoOpCode::IsObject, leftIndex, 0, memberToken );
         }
         else if ( objMetaData ) {
 

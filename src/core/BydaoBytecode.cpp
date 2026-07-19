@@ -95,6 +95,7 @@ QString BydaoBytecode::opcodeToString(BydaoOpCode op) {
         names[BydaoOpCode::IsNull] = "ISNULL";
         names[BydaoOpCode::EqNull] = "EQNULL";
         names[BydaoOpCode::NeqNull] = "NEQNULL";
+        names[BydaoOpCode::IsObject] = "ISOBJECT";
     }
     return names.value(op, "???");
 }

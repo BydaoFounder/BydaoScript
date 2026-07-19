@@ -23,25 +23,48 @@ MetaData*   BydaoArray::metaData() {
     static MetaData* metaData = nullptr;
     if ( ! metaData ) {
         metaData = new MetaData();
-        metaData->name = "Dict";
+        metaData->name = "Array";
+        metaData
+            ->appendType( "COMPACT",    VarMetaData("Int", VMD_CONST) )
+            .appendType( "PRETTY",    VarMetaData("Int", VMD_CONST) )
+            ;
         metaData
             // переменные объекта
             ->appendObj( "type",        VarMetaData("String",VMD_CONST) )
-            .appendObj( "size",         VarMetaData("Int", VMD_CONST) );
+            .appendObj( "size",         VarMetaData("Int", VMD_CONST) )
+            ;
         metaData
             // методы объекта
             ->appendObj( "sort",        FuncMetaData(0,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
             .appendObj( "ksort",        FuncMetaData(1,"Void", FMD_ALTERABLE) << FuncArgMetaData("callback","Func",ARG_IN,"null") )
-            .appendObj( "size",         FuncMetaData(2,"Int", FMD_ALTERABLE) )
+            .appendObj( "size",         FuncMetaData(2,"Int", FMD_IMMUTABLE) )
             .appendObj( "toString",     FuncMetaData("String", FMD_IMMUTABLE) )
+            .appendObj( "toJson",       FuncMetaData("String", FMD_IMMUTABLE) << FuncArgMetaData("style","Int",ARG_IN,"0") )
             .appendObj( "get",          FuncMetaData("Any", FMD_IMMUTABLE) << FuncArgMetaData("key","String",ARG_IN) )
             .appendObj( "set",          FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("key","String",ARG_IN) << FuncArgMetaData("obj","Any",ARG_IN) )
-            .appendObj( "iter",         FuncMetaData("DictIter", FMD_IMMUTABLE) )
+            .appendObj( "iter",         FuncMetaData("ArrayIter", FMD_IMMUTABLE) )
             .appendObj( "keys",         FuncMetaData("Array", FMD_IMMUTABLE) )
-            .appendObj( "slice",        FuncMetaData("Array", FMD_ALTERABLE) << FuncArgMetaData("start","Int",ARG_IN) << FuncArgMetaData("count","Int",ARG_IN,"null") )
-            .appendObj( "indexOf",      FuncMetaData("Int", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
-            .appendObj( "append",       FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
+            .appendObj( "values",       FuncMetaData("Array", FMD_IMMUTABLE) )
+            .appendObj( "slice",        FuncMetaData("Array", FMD_IMMUTABLE) << FuncArgMetaData("start","Int",ARG_IN) << FuncArgMetaData("count","Int",ARG_IN,"null") )
             .appendObj( "merge",        FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("arr","Array",ARG_IN) )
+            .appendObj( "indexOf",      FuncMetaData("Int", FMD_IMMUTABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
+            .appendObj( "keyOf",        FuncMetaData("String", FMD_IMMUTABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
+            .appendObj( "append",       FuncMetaData("Void", FMD_ALTERABLE) << FuncArgMetaData("obj","Any",ARG_IN) )
+            .appendObj( "forEach",      FuncMetaData("Void", FMD_IMMUTABLE) << FuncArgMetaData("callback","Func",ARG_IN) )
+            .appendObj( "hasValue",     FuncMetaData("Bool", FMD_IMMUTABLE) << FuncArgMetaData("val","Any",ARG_IN) )
+            .appendObj( "hasKey",       FuncMetaData("Bool", FMD_IMMUTABLE) << FuncArgMetaData("key","String",ARG_IN) )
+            .appendObj( "filter",       FuncMetaData("Array", FMD_IMMUTABLE) << FuncArgMetaData("callback","Func",ARG_IN) )
+            .appendObj( "filterKey",    FuncMetaData("Array", FMD_IMMUTABLE) << FuncArgMetaData("callback","Func",ARG_IN) )
+            .appendObj( "filterValue",  FuncMetaData("Array", FMD_IMMUTABLE) << FuncArgMetaData("callback","Func",ARG_IN) )
+            .appendObj( "insertAt",     FuncMetaData("Void", FMD_IMMUTABLE) << FuncArgMetaData("pos","Int",ARG_IN) << FuncArgMetaData("val","Any",ARG_IN) )
+            .appendObj( "removeAt",     FuncMetaData("Void", FMD_IMMUTABLE) << FuncArgMetaData("pos","Int",ARG_IN) )
+            .appendObj( "takeAt",       FuncMetaData("Void", FMD_IMMUTABLE) << FuncArgMetaData("pos","Int",ARG_IN) )
+            .appendObj( "takeFirst",    FuncMetaData("Any", FMD_IMMUTABLE) )
+            .appendObj( "removeFirst",  FuncMetaData("Void", FMD_IMMUTABLE) )
+            .appendObj( "takeLast",     FuncMetaData("Any", FMD_IMMUTABLE) )
+            .appendObj( "removeLast",   FuncMetaData("Void", FMD_IMMUTABLE) )
+            .appendObj( "takeKay",      FuncMetaData("Any", FMD_IMMUTABLE) << FuncArgMetaData("key","String",ARG_IN) )
+            .appendObj( "removeKey",    FuncMetaData("Void", FMD_IMMUTABLE) << FuncArgMetaData("key","String",ARG_IN) )
             ;
     }
     return metaData;
@@ -54,7 +77,7 @@ UsedMetaDataList    BydaoArray::usedMetaData() {
     static UsedMetaDataList list;
 
     if ( list.isEmpty() ) {
-        list << UsedMetaData( "DictIter", BydaoArrayIterator::metaData() );
+        list << UsedMetaData( "ArrayIter", BydaoArrayIterator::metaData() );
     }
 
     return list;
@@ -64,21 +87,41 @@ BydaoArray::BydaoArray()
     : BydaoObject()
 {
     // Методы объекта
-    registerMethod("toString",  &BydaoArray::method_toString);
-    registerMethod("get",       &BydaoArray::method_get);
-    registerMethod("set",       &BydaoArray::method_set);
-    registerMethod("sort",      &BydaoArray::method_sort);
-    registerMethod("ksort",     &BydaoArray::method_ksort);
-    registerMethod("iter",      &BydaoArray::method_iter);
-    registerMethod("keys",      &BydaoArray::method_keys);
-    registerMethod("size",      &BydaoArray::method_size);
-    registerMethod("slice",     &BydaoArray::method_slice);
-    registerMethod("indexOf",   &BydaoArray::method_indexOf);
-    registerMethod("append",    &BydaoArray::method_append);
-    registerMethod("merge",     &BydaoArray::method_merge);
+    registerMethod("toString",      &BydaoArray::method_toString);
+    registerMethod("toJson",        &BydaoArray::method_toJson);
+    registerMethod("get",           &BydaoArray::method_get);
+    registerMethod("set",           &BydaoArray::method_set);
+    registerMethod("sort",          &BydaoArray::method_sort);
+    registerMethod("ksort",         &BydaoArray::method_ksort);
+    registerMethod("iter",          &BydaoArray::method_iter);
+    registerMethod("keys",          &BydaoArray::method_keys);
+    registerMethod("values",        &BydaoArray::method_values);
+    registerMethod("size",          &BydaoArray::method_size);
+    registerMethod("slice",         &BydaoArray::method_slice);
+    registerMethod("append",        &BydaoArray::method_append);
+    registerMethod("merge",         &BydaoArray::method_merge);
+    registerMethod("indexOf",       &BydaoArray::method_indexOf);
+    registerMethod("keyOf",         &BydaoArray::method_keyOf);
+    registerMethod("forEach",       &BydaoArray::method_forEach);
+    registerMethod("hasValue",      &BydaoArray::method_hasValue);
+    registerMethod("hasKey",        &BydaoArray::method_hasKey);
+    registerMethod("filter",        &BydaoArray::method_filter);
+    registerMethod("filterKey",     &BydaoArray::method_filterKey);
+    registerMethod("filterValue",   &BydaoArray::method_filterValue);
+    registerMethod("insertAt",      &BydaoArray::method_insertAt);
+    registerMethod("removeAt",      &BydaoArray::method_removeAt);
+    registerMethod("takeAt",        &BydaoArray::method_takeAt);
+    registerMethod("takeFirst",     &BydaoArray::method_takeFirst);
+    registerMethod("removeFirst",   &BydaoArray::method_removeFirst);
+    registerMethod("takeLast",      &BydaoArray::method_takeLast);
+    registerMethod("removeLast",    &BydaoArray::method_removeLast);
+    registerMethod("takeKey",       &BydaoArray::method_takeKey);
+    registerMethod("removeKey",     &BydaoArray::method_removeKey);
 
     // Свойства объекта
-    registerVar( "size",        &BydaoArray::getvar_size );
+    registerVar( "size",            &BydaoArray::getvar_size );
+    registerVar( "COMPACT",         &BydaoArray::getvar_COMPACT );
+    registerVar( "PRETTY",          &BydaoArray::getvar_PRETTY );
 
     // Регистрация функций для вызова по индексу
 
@@ -112,6 +155,7 @@ bool BydaoArray::callMethod(const QString& name,
     if (it != m_methods.end()) {
         return (this->*(it.value()))(args, result);
     }
+    m_runtime->logError( QString("Array does not have method '%1'").arg( name ) );
     return false;
 }
 
@@ -120,6 +164,62 @@ BydaoValue BydaoArray::iter() {
 }
 
 // ========== Реализация методов массива ==========
+
+QString     BydaoArray::toJson( BydaoJson::JsonStyle style, int nestLevel ) const {
+    bool formated = ( style == BydaoJson::PRETTY );
+    QString padValue( ( nestLevel + 1 ) * 4, ' ' );
+    QString pad( nestLevel * 4, ' ' );
+    ArrayType type = arrayType();
+    if ( type == ARR_EMPTY ) {
+        return formated ? QString("[\n%1]").arg( pad ) : QString("[]");
+    }
+    if ( type == ARR_ASSOCIATIVE ) {
+        QStringList parts;
+        foreach ( const auto& elem, m_entries ) {
+            QString str = formated ? QString("\n%1\"%2\": ").arg( padValue, elem.key.toString() ) : "\"" + elem.key.toString() + "\":";
+            if ( elem.value.isNull() ) {
+                str += "null";
+            }
+            else if ( elem.value.typeId() == TYPE_STRING ) {
+                str += "\"" + elem.value.toString() + "\"";
+            }
+            else if ( elem.value.isArray() ) {
+                str += ( (BydaoArray*) elem.value.toObject() )->toJson( style, nestLevel + 1 );
+            }
+            else {
+                str += elem.value.toString();
+            }
+            parts << str;
+        }
+        return formated ? QString("{%2\n%1}").arg( pad, parts.join(", ") ) : QString("{%1}").arg( parts.join(",") );
+    }
+
+    // type == ARR_INDEXED
+    QStringList parts;
+    foreach ( const auto& elem, m_entries ) {
+        // У индексированного массива ключи должны быть пустыми
+        assert(elem.key.isNull() || elem.key.toString().isEmpty());
+
+        if ( elem.value.isNull() ) {
+            parts << ( formated ? QString( "\n%1null" ).arg( padValue ) : "null" );
+        }
+        else if ( elem.value.isString() ) {
+            parts << ( formated ? QString("\n%1\"%2\"").arg( padValue, elem.value.toString() ) : QString("\"%1\"").arg( elem.value.toString() ) );
+        }
+        else if ( elem.value.isArray() ) {
+            BydaoArray* arr = ( (BydaoArray*) elem.value.toObject() );
+            parts << ( formated ? QString("\n%1%2").arg( padValue, arr->toJson( style, nestLevel + 1 ) ) : arr->toJson( style, nestLevel + 1 ) );
+        }
+        else {
+            parts << ( formated ? QString("\n%1%2").arg( padValue, elem.value.toString() ) : elem.value.toString() );
+        }
+    }
+    return formated ? QString("[%2\n%1]").arg( pad, parts.join(", ") ) : QString("[%1]").arg( parts.join(",") );
+}
+
+BydaoArray* BydaoArray::fromJson( const QString& /*json*/ ) {
+    return nullptr;
+}
 
 BydaoValue BydaoArray::at(qint64 index) const {
     ArrayType type = arrayType();
@@ -177,7 +277,8 @@ bool        BydaoArray::set( const BydaoValue& key, const BydaoValue& value) {
 
             int index = m_entries.size();
             m_index[ key ] = index;
-            m_entries.append( { key, value } );
+            Entry entry = { key, value };
+            m_entries.append( entry );
         }
         else {
             m_entries[ iter.value() ].value = value;
@@ -207,7 +308,7 @@ bool        BydaoArray::set(BydaoValue&& key, BydaoValue&& value) {
     }
     if ( type == ARR_ASSOCIATIVE ) {
         BydaoValue k = std::move(key);
-        if ( ! key.isString() ) {
+        if ( ! k.isString() ) {
             m_runtime->logError( "Invalid key type" );
             return false;
         }
@@ -245,6 +346,17 @@ bool        BydaoArray::set(BydaoValue&& key, BydaoValue&& value) {
 bool    BydaoArray::method_iter(const QVector<BydaoValue>& args, BydaoValue& result) {
     Q_UNUSED(args);
     result = BydaoValue(new BydaoArrayIterator(this), BydaoTypeId::TYPE_OBJECT);
+    return true;
+}
+
+bool BydaoArray::method_toJson(const QVector<BydaoValue>& args, BydaoValue& result) {
+    BydaoJson::JsonStyle style = BydaoJson::COMPACT;
+    if ( args.size() == 1 ) {
+        if ( args[0].toInt() == BydaoJson::PRETTY ) {
+            style = BydaoJson::PRETTY;
+        }
+    }
+    result = BydaoValue::fromString( toJson( style, 0 ) );
     return true;
 }
 
@@ -293,6 +405,15 @@ bool BydaoArray::method_keys(const QVector<BydaoValue>&, BydaoValue& result) {
     BydaoArray* arr = new BydaoArray();
     foreach ( const auto& elem, m_entries ) {
         arr->append( elem.key );
+    }
+    result = BydaoValue( arr, BydaoTypeId::TYPE_ARRAY );
+    return true;
+}
+
+bool BydaoArray::method_values(const QVector<BydaoValue>&, BydaoValue& result) {
+    BydaoArray* arr = new BydaoArray();
+    foreach ( const auto& elem, m_entries ) {
+        arr->append( elem.value );
     }
     result = BydaoValue( arr, BydaoTypeId::TYPE_ARRAY );
     return true;
@@ -461,7 +582,7 @@ bool BydaoArray::method_slice(const QVector<BydaoValue>& args, BydaoValue& resul
 
     auto* newArray = new BydaoArray();
     for (qint64 i = 0; i < count; ++i) {
-        newArray->append( m_entries[ start + i ].value.copy() );
+        newArray->append( m_entries[ start + i ].value/*.copy()*/ );
     }
     result = BydaoValue( newArray, BydaoTypeId::TYPE_ARRAY );
     return true;
@@ -475,27 +596,426 @@ bool BydaoArray::method_indexOf(const QVector<BydaoValue>& args, BydaoValue& res
         result = BydaoValue::fromInt( -1 );
         return true;
     }
-    if ( type == ARR_ASSOCIATIVE ) {
-        m_runtime->logError( "Invalid array type for operation 'indexOf'" );
-        return false;
-    }
+
     const BydaoValue& val = args[0];
 
     int count = m_entries.size();
-    for( int i = 0; i < count; ++i ) {
-        BydaoObject* obj = m_entries[ i ].value.toObject();
-        if ( obj && obj->eq( val ).toBool() ) {
-            result = BydaoValue::fromInt( i );
-            return true;
+    if ( val.isFunc() ) {   // поиск элемента с использованием колбек-функции
+        QVector<BydaoValue> callArgs(1);
+        BydaoValue cmpResult;
+        for( int i = 0; i < count; ++i ) {
+            callArgs[0] = m_entries[ i ].value;
+            if ( ! m_runtime->callFunction( val, callArgs, cmpResult ) ) {
+                break;
+            }
+            if ( cmpResult.toBool() ) {
+                result = BydaoValue::fromInt( i );
+                return true;
+            }
+        }
+    }
+    else {                  // поиск элемента сравнением с заданным значением
+        for( int i = 0; i < count; ++i ) {
+            BydaoObject* obj = m_entries[ i ].value.toObject();
+            if ( obj && obj->eq( val ).toBool() ) {
+                result = BydaoValue::fromInt( i );
+                return true;
+            }
         }
     }
     result = BydaoValue::fromInt( -1 );
     return true;
 }
 
-/*==============================================================================
- *  Итератор по словарю
- */
+bool BydaoArray::method_keyOf(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 1) return false;
+
+    ArrayType type = arrayType();
+    if ( type == ARR_EMPTY ) {
+        result = BydaoValue::fromNull();
+        return true;
+    }
+    if ( type != ARR_ASSOCIATIVE ) {
+        m_runtime->logError( "Invalid array type for operation 'keyOf'" );
+        return false;
+    }
+    const BydaoValue& val = args[0];
+
+    int count = m_entries.size();
+    if ( val.isFunc() ) {   // поиск элемента с использованием колбек-функции
+        QVector<BydaoValue> callArgs(1);
+        BydaoValue cmpResult;
+        for( int i = 0; i < count; ++i ) {
+            callArgs[0] = m_entries[ i ].value;
+            if ( ! m_runtime->callFunction( val, callArgs, cmpResult ) ) {
+                break;
+            }
+            if ( cmpResult.toBool() ) {
+                result = m_entries[ i ].key;
+                return true;
+            }
+        }
+    }
+    else {                  // поиск элемента сравнением с заданным значением
+        for( int i = 0; i < count; ++i ) {
+            BydaoObject* obj = m_entries[ i ].value.toObject();
+            if ( obj && obj->eq( val ).toBool() ) {
+                result = m_entries[ i ].key;
+                return true;
+            }
+        }
+    }
+    result = BydaoValue::fromNull();
+    return true;
+}
+
+bool BydaoArray::method_forEach(const QVector<BydaoValue>& args, BydaoValue& ) {
+    if (args.size() != 1) return false;
+    const BydaoValue& val = args[0];
+    if ( ! val.isFunc() ) {
+        m_runtime->logError( "Argument must be type of Func(Any,Any):Void" );
+        return false;
+    }
+
+    ArrayType type = arrayType();
+    if ( type == ARR_EMPTY ) {
+        return true;
+    }
+    bool isAssoc = ( type == ARR_ASSOCIATIVE );
+
+    int count = m_entries.size();
+    QVector<BydaoValue> callArgs(2);
+    BydaoValue result;
+    for( int i = 0; i < count; ++i ) {
+        callArgs[0] = isAssoc ? m_entries[ i ].key : BydaoValue::fromInt( i );
+        callArgs[1] = m_entries[ i ].value;
+        if ( ! m_runtime->callFunction( val, callArgs, result ) ) {
+            break;
+        }
+    }
+    return true;
+}
+
+bool BydaoArray::method_hasValue(const QVector<BydaoValue>& args, BydaoValue& result ) {
+    if (args.size() != 1) return false;
+    if ( arrayType() != ARR_EMPTY ) {
+
+        const BydaoValue& val = args[0];
+
+        int count = m_entries.size();
+        if ( val.isFunc() ) {   // поиск элемента с использованием колбек-функции
+
+            QVector<BydaoValue> callArgs(1);
+            BydaoValue cmpResult;
+            for( int i = 0; i < count; ++i ) {
+                callArgs[0] = m_entries[ i ].value;
+                if ( ! m_runtime->callFunction( val, callArgs, cmpResult ) ) {
+                    break;
+                }
+                if ( cmpResult.toBool() ) {
+                    result = BydaoValue::fromBool( true );
+                    return true;
+                }
+            }
+        }
+        else {                  // поиск элемента сравнением с заданным значением
+
+            for( int i = 0; i < count; ++i ) {
+                BydaoObject* obj = m_entries[ i ].value.toObject();
+                if ( obj && obj->eq( val ).toBool() ) {
+                    result = BydaoValue::fromBool( true );
+                    return true;
+                }
+            }
+        }
+    }
+    result = BydaoValue::fromBool( false );
+    return true;
+}
+
+bool BydaoArray::method_hasKey(const QVector<BydaoValue>& args, BydaoValue& result ) {
+    if (args.size() != 1) return false;
+    result = ( arrayType() == ARR_ASSOCIATIVE )
+        ? BydaoValue::fromBool( m_index.find( args[0] ) != m_index.end() )
+        : BydaoValue::fromBool( false );
+    return true;
+}
+
+bool BydaoArray::method_filter(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 1) return false;
+    const BydaoValue& val = args[0];
+    if ( ! val.isFunc() ) {
+        m_runtime->logError( "Argument must be type of Func(String,Any):Bool" );
+        return false;
+    }
+
+    ArrayType type = arrayType();
+    if ( type == ARR_EMPTY ) {
+        result = BydaoValue(new BydaoArray(), BydaoTypeId::TYPE_ARRAY);
+        return true;
+    }
+    bool isAssoc = ( type == ARR_ASSOCIATIVE );
+
+    QVector<BydaoValue> callArgs(2);
+    BydaoValue cmpResult;
+
+    auto* newArray = new BydaoArray();
+    int count = m_entries.count();
+    for( int i = 0; i < count; ++i ) {
+        auto& entry = m_entries[ i ];
+        callArgs[0] = isAssoc ? entry.key : BydaoValue::fromInt( i );
+        callArgs[1] = entry.value;
+        if ( ! m_runtime->callFunction( val, callArgs, cmpResult ) ) {
+            result = BydaoValue::fromNull();
+            return true;
+        }
+        if ( cmpResult.toBool() ) {
+            if ( isAssoc ) {
+                newArray->set( entry.key/*.copy()*/, entry.value/*.copy()*/ );
+            }
+            else {
+                newArray->append( entry.value/*.copy()*/ );
+            }
+        }
+    }
+    result = BydaoValue( newArray, BydaoTypeId::TYPE_ARRAY );
+    return true;
+}
+
+bool BydaoArray::method_filterKey(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 1) return false;
+    const BydaoValue& val = args[0];
+    if ( ! val.isFunc() ) {
+        m_runtime->logError( "Argument must be type of Func(String):Bool" );
+        return false;
+    }
+
+    ArrayType type = arrayType();
+    if ( type == ARR_EMPTY ) {
+        result = BydaoValue(new BydaoArray(), BydaoTypeId::TYPE_ARRAY);
+        return true;
+    }
+    if ( type == ARR_INDEXED ) {
+        m_runtime->logError( "Invalid array type for operation 'filterKey'" );
+        return false;
+    }
+
+    QVector<BydaoValue> callArgs(1);
+    BydaoValue cmpResult;
+
+    auto* newArray = new BydaoArray();
+    int count = m_entries.count();
+    for( int i = 0; i < count; ++i ) {
+        auto& entry = m_entries[ i ];
+        callArgs[0] = entry.key;
+        if ( ! m_runtime->callFunction( val, callArgs, cmpResult ) ) {
+            result = BydaoValue::fromNull();
+            return true;
+        }
+        if ( cmpResult.toBool() ) {
+            newArray->set( entry.key/*.copy()*/, entry.value/*.copy()*/ );
+        }
+    }
+    result = BydaoValue( newArray, BydaoTypeId::TYPE_ARRAY );
+    return true;
+}
+
+bool BydaoArray::method_filterValue(const QVector<BydaoValue>& args, BydaoValue& result) {
+    if (args.size() != 1) return false;
+    const BydaoValue& val = args[0];
+    if ( ! val.isFunc() ) {
+        m_runtime->logError( "Argument must be type of Func(Any):Bool" );
+        return false;
+    }
+
+    ArrayType type = arrayType();
+    if ( type == ARR_EMPTY ) {
+        result = BydaoValue(new BydaoArray(), BydaoTypeId::TYPE_ARRAY);
+        return true;
+    }
+
+    bool isAssoc = ( type == ARR_ASSOCIATIVE );
+
+    QVector<BydaoValue> callArgs(1);
+    BydaoValue cmpResult;
+
+    auto* newArray = new BydaoArray();
+    int count = m_entries.count();
+    for( int i = 0; i < count; ++i ) {
+        auto& entry = m_entries[ i ];
+        callArgs[0] = entry.value;
+        if ( ! m_runtime->callFunction( val, callArgs, cmpResult ) ) {
+            result = BydaoValue::fromNull();
+            return true;
+        }
+        if ( cmpResult.toBool() ) {
+            if ( isAssoc ) {
+                newArray->set( entry.key/*.copy()*/, entry.value/*.copy()*/ );
+            }
+            else {
+                newArray->append( entry.value/*.copy()*/ );
+            }
+        }
+    }
+    result = BydaoValue( newArray, BydaoTypeId::TYPE_ARRAY );
+    return true;
+}
+
+bool        BydaoArray::method_insertAt( const QVector<BydaoValue>& args, BydaoValue& ) {
+    if ( args.size() != 2 ) return false;
+    if ( arrayType() == ARR_ASSOCIATIVE ) {
+        m_runtime->logError( "Associative array not support operation 'insertAt'" );
+        return false;
+    }
+    const BydaoValue& idx = args[0];    // индекс
+    if ( ! idx.isInt() ) {
+        m_runtime->logError("Invalid argument 1 type of 'insertAt'");
+        return false;
+    }
+    int index = idx.toInt();
+    if ( index >= 0 ) {
+        if ( index >= m_entries.size() ) {
+            m_entries.resize( index + 1 );
+        }
+        m_entries[ index ].value = args[1];
+    }
+    return true;
+}
+
+bool        BydaoArray::method_removeAt( const QVector<BydaoValue>& args, BydaoValue& ) {
+    if ( args.size() != 1 ) return false;
+    if ( arrayType() == ARR_ASSOCIATIVE ) {
+        m_runtime->logError( "Associative array not support operation 'removeAt'" );
+        return false;
+    }
+    const BydaoValue& idx = args[0];    // индекс
+    if ( ! idx.isInt() ) {
+        m_runtime->logError("Invalid argument 1 type of 'removeAt'");
+        return false;
+    }
+    int index = idx.toInt();
+    if ( index < 0 || m_entries.size() <= index ) {
+        m_runtime->logError("Index is out of range");
+        return false;
+    }
+    m_entries.removeAt( index );
+    return true;
+}
+
+bool        BydaoArray::method_takeAt( const QVector<BydaoValue>& args, BydaoValue& result ) {
+    if ( args.size() != 1 ) return false;
+    if ( arrayType() == ARR_ASSOCIATIVE ) {
+        m_runtime->logError( "Associative array not support operation 'takeAt'" );
+        return false;
+    }
+    const BydaoValue& idx = args[0];    // индекс
+    if ( ! idx.isInt() ) {
+        m_runtime->logError("Invalid argument 1 type of 'removeAt'");
+        return false;
+    }
+    int index = idx.toInt();
+    if ( index < 0 || m_entries.size() <= index ) {
+        m_runtime->logError("Index is out of range");
+        return false;
+    }
+    result = m_entries.takeAt( index ).value;
+    return true;
+}
+
+bool        BydaoArray::method_takeFirst( const QVector<BydaoValue>&, BydaoValue& result ) {
+    if ( m_entries.isEmpty() ) {
+        m_runtime->logError("Array is empty");
+        return false;
+    }
+    if ( arrayType() == ARR_ASSOCIATIVE ) {
+        m_runtime->logError( "Associative array not support operation 'takeFirst'" );
+        return false;
+    }
+    result = m_entries.takeAt( 0 ).value;
+    return true;
+}
+
+bool        BydaoArray::method_removeFirst( const QVector<BydaoValue>&, BydaoValue& ) {
+    if ( m_entries.isEmpty() ) {
+        m_runtime->logError("Array is empty");
+        return false;
+    }
+    if ( arrayType() == ARR_ASSOCIATIVE ) {
+        m_runtime->logError( "Associative array not support operation 'removeFirst'" );
+        return false;
+    }
+    m_entries.removeAt( 0 );
+    return true;
+}
+
+bool        BydaoArray::method_takeLast( const QVector<BydaoValue>&, BydaoValue& result ) {
+    if ( m_entries.isEmpty() ) {
+        m_runtime->logError("Array is empty");
+        return false;
+    }
+    if ( arrayType() == ARR_ASSOCIATIVE ) {
+        m_runtime->logError( "Associative array not support operation 'takeLast'" );
+        return false;
+    }
+    result = m_entries.takeLast().value;
+    return true;
+}
+
+bool        BydaoArray::method_removeLast( const QVector<BydaoValue>&, BydaoValue& ) {
+    if ( m_entries.isEmpty() ) {
+        m_runtime->logError("Array is empty");
+        return false;
+    }
+    if ( arrayType() == ARR_ASSOCIATIVE ) {
+        m_runtime->logError( "Associative array not support operation 'removeLast'" );
+        return false;
+    }
+    m_entries.removeLast();
+    return true;
+}
+
+bool        BydaoArray::method_takeKey( const QVector<BydaoValue>& args, BydaoValue& result ) {
+    if ( m_entries.isEmpty() ) {
+        m_runtime->logError("Array is empty");
+        return false;
+    }
+    if ( arrayType() == ARR_INDEXED ) {
+        m_runtime->logError( "Indexed array not support operation 'takeKey'" );
+        return false;
+    }
+    const BydaoValue& key = args[0];
+    auto it = m_index.find( key );
+    if ( it != m_index.end() ) {
+        m_entries.removeAt( it.value() );
+        m_index.remove( key );
+    }
+    else {
+        result = BydaoValue::fromNull();
+    }
+    return true;
+}
+
+bool        BydaoArray::method_removeKey( const QVector<BydaoValue>& args, BydaoValue& ) {
+    if ( m_entries.isEmpty() ) {
+        m_runtime->logError("Array is empty");
+        return false;
+    }
+    if ( arrayType() == ARR_INDEXED ) {
+        m_runtime->logError( "Indexed array not support operation 'takeKey'" );
+        return false;
+    }
+    const BydaoValue& key = args[0];
+    auto it = m_index.find( key );
+    if ( it != m_index.end() ) {
+        m_entries.removeAt( it.value() );
+        m_index.remove( key );
+    }
+    return true;
+}
+
+/*============================================================================*/
+/*                      Итератор по массиву                                   */
+/*============================================================================*/
 
 // Получить мета-данные
 MetaData*   BydaoArrayIterator::metaData() {

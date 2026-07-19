@@ -19,6 +19,7 @@
 #include "BydaoRuntime.h"
 #include "BydaoMetaData.h"
 #include "BydaoIterator.h"
+#include "BydaoJson.h"
 
 namespace BydaoScript {
 
@@ -29,7 +30,7 @@ public:
     virtual ~BydaoArray() override = default;
 
     enum ArrayType {
-        ARR_EMPTY     = 0,    // неизвестный
+        ARR_EMPTY       = 0,    // неизвестный
         ARR_INDEXED     = 1,    // индексный
         ARR_ASSOCIATIVE = 2     // ассоциативный
     };
@@ -97,6 +98,10 @@ public:
         return BydaoValue();
     }
 
+    QString     toJson( BydaoJson::JsonStyle style, int nestLevel ) const;
+
+    static BydaoArray* fromJson( const QString& json );
+
     BydaoValue  iter() override;  // создаёт итератор для словаря
 
     void        setRuntime(BydaoRuntime* runtime) {
@@ -115,16 +120,34 @@ private:
 
     bool method_iter(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_toString(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_toJson(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_get(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_set(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_ksort(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_sort(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_keys(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_values(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_size(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_slice(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_indexOf(const QVector<BydaoValue>& args, BydaoValue& result);
-    bool method_append(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_merge(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_indexOf(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_keyOf(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_append(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_forEach(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_hasValue(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_hasKey(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_filter(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_filterKey(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_filterValue(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_insertAt(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_takeAt(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_removeAt(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_takeFirst(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_removeFirst(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_takeLast(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_removeLast(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_takeKey(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_removeKey(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoArray::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);
@@ -143,6 +166,16 @@ private:
 
     bool getvar_size( BydaoValue& value ) {
         value = BydaoValue::fromInt( m_entries.size() );
+        return true;
+    };
+
+    bool getvar_COMPACT( BydaoValue& value ) {
+        value = BydaoValue::fromInt( 0 );
+        return true;
+    };
+
+    bool getvar_PRETTY( BydaoValue& value ) {
+        value = BydaoValue::fromInt( 1 );
         return true;
     };
 

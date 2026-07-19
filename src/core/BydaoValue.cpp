@@ -271,15 +271,16 @@ double BydaoValue::toReal() const {
 }
 
 bool BydaoValue::isNull() const {
-    if (!m_obj) return true;
+    if ( ! m_obj ) return true;
 
-    BydaoValue result;
-    if (m_obj->callMethod("isNull", {}, result)) {
-        if (result.isObject()) {
-            return result.toBool();
-        }
-    }
-    return false;
+    return ( m_typeId == TYPE_NULL );
+    // BydaoValue result;
+    // if (m_obj->callMethod("isNull", {}, result)) {
+    //     if (result.isObject()) {
+    //         return result.toBool();
+    //     }
+    // }
+    // return false;
 }
 
 } // namespace BydaoScript

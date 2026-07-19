@@ -36,8 +36,7 @@ enum BydaoTypeId {
     TYPE_NULL = 6,
     TYPE_MODULE = 7,
     TYPE_OBJECT = 8,
-    TYPE_FUNC = 9,
-    TYPE_DICT = 10
+    TYPE_FUNC = 9
 };
 
 class BydaoValue {
@@ -60,15 +59,20 @@ public:
     inline bool isObject() const { return m_obj != nullptr; }
     inline BydaoObject* toObject() const { return m_obj; }
 
-    // Быстрый доступ к типу
-    inline int typeId() const { return m_typeId; }
-    bool        isInt() const { return m_typeId == TYPE_INT; }
-    bool        isString() const { return m_typeId == TYPE_STRING; }
-
     void    set(BydaoObject* obj, BydaoTypeId typeId ) {
         m_obj = obj;
         m_typeId = typeId;
     }
+
+    // Быстрый доступ к типу
+    inline int typeId() const { return m_typeId; }
+
+    bool        isInt() const { return m_typeId == TYPE_INT; }
+    bool        isReal() const { return m_typeId == TYPE_REAL; }
+    bool        isBool() const { return m_typeId == TYPE_BOOL; }
+    bool        isString() const { return m_typeId == TYPE_STRING; }
+    bool        isArray() const { return m_typeId == TYPE_ARRAY; }
+    bool        isFunc() const { return m_typeId == TYPE_FUNC; }
 
     // Удобные методы
     QString toString() const;

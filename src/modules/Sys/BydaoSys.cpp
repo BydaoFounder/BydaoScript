@@ -322,7 +322,7 @@ bool BydaoSysModule::method_envList(const QVector<BydaoValue>&, BydaoValue& resu
         }
     }
 
-    result = BydaoValue( dict, BydaoTypeId::TYPE_DICT );
+    result = BydaoValue( dict, BydaoTypeId::TYPE_ARRAY );
     return true;
 }
 
