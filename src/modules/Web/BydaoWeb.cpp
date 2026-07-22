@@ -5,12 +5,10 @@
 #include <QProcessEnvironment>
 
 #include "BydaoWeb.h"
-#include "../include/BydaoScript/BydaoString.h"
-#include "../include/BydaoScript/BydaoInt.h"
-#include "../include/BydaoScript/BydaoBool.h"
-#include "../include/BydaoScript/BydaoNull.h"
 #include "../include/BydaoScript/BydaoRuntime.h"
 #include "../include/BydaoScript/BydaoArray.h"
+#include "../include/BydaoScript/BydaoLogger.h"
+#include "../include/BydaoScript/BydaoConfig.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -43,12 +41,16 @@ MetaData*   BydaoWebModule::metaData() {
         metaData->name = "Web";
         metaData
             // переменные модуля (типа данных)
-            ->appendType( "server",     VarMetaData("Dict",VMD_CONST) )
+            ->appendType( "server",     VarMetaData("Array",VMD_CONST) )
             .appendType( "request",     VarMetaData("WebRequest",VMD_CONST) )
             .appendType( "response",    VarMetaData("WebResponse",VMD_CONST) )
             ;
         metaData
-            ->appendType( "server",     FuncMetaData("Dict",   FMD_IMMUTABLE) )
+            ->appendType( "server",     FuncMetaData("Array",   FMD_IMMUTABLE) )
+            .appendType( "info",        FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("message","String",ARG_IN) )
+            .appendType( "log",         FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("message","String",ARG_IN) )
+            .appendType( "error",       FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("message","String",ARG_IN) )
+            .appendType( "debug",       FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("message","String",ARG_IN) )
             ;
     }
     return metaData;
@@ -71,11 +73,15 @@ UsedMetaDataList    BydaoWebModule::usedMetaData() {
 BydaoWebModule::BydaoWebModule()
     : BydaoModule()
 {
-    m_request = nullptr;      // объект запроса с веб-сервера
+    m_request = nullptr;      // объект запроса от веб-сервера
     m_response = nullptr;     // объект ответа веб-серверу
 
     // Методы модуля
     registerMethod("server",    &BydaoWebModule::method_server);
+    registerMethod("info",      &BydaoWebModule::method_info);
+    registerMethod("log",       &BydaoWebModule::method_info);
+    registerMethod("debug",     &BydaoWebModule::method_debug);
+    registerMethod("error",     &BydaoWebModule::method_error);
 
     // Переменные модуля
     registerVar( "server",      &BydaoWebModule::getvar_server );
@@ -84,12 +90,6 @@ BydaoWebModule::BydaoWebModule()
 }
 
 BydaoWebModule::~BydaoWebModule() {
-/*
-    if ( m_request ) {
-        delete m_request;
-        m_request = nullptr;
-    }
-*/
 }
 
 bool BydaoWebModule::initialize() {
@@ -167,6 +167,48 @@ bool BydaoWebModule::method_response(const QVector<BydaoValue>&, BydaoValue& res
     return getvar_response( result );
 }
 
+void BydaoWebModule::logOut( const QString& msg, LogLevel level ) {
+    if ( m_runtime ) {
+        BydaoLogger* logger = m_runtime->getLogger();
+        if ( logger ) {
+            QString moduleName = m_runtime->moduleName();
+            int line = m_runtime->line();
+            QString source = ( ! moduleName.isEmpty() && line > 0 ) ? QString( "%1: %2" ).arg( moduleName ).arg( line ) : "";
+            if ( level == LEVEL_INFO ) {
+                logger->info( msg, source );
+            }
+            else if ( level == LEVEL_ERROR ) {
+                logger->error( msg, source );
+            }
+            else {  // level == LEVEL_DEBUG
+                bool enabled = false;
+                BydaoConfig* conf = m_runtime->getConfig();
+                if ( conf ) {
+                    enabled = conf->getBool("Log/debug.enabled", false );
+                }
+                if ( enabled ) {
+                    logger->debug( msg, source );
+                }
+            }
+        }
+    }
+}
+
+bool BydaoWebModule::method_info(const QVector<BydaoValue>& args, BydaoValue&) {
+    logOut( args.size() > 0 ? args[0].toString() : "", LEVEL_INFO );
+    return true;
+}
+
+bool BydaoWebModule::method_debug(const QVector<BydaoValue>& args, BydaoValue&) {
+    logOut( args.size() > 0 ? args[0].toString() : "", LEVEL_DEBUG );
+    return true;
+}
+
+bool BydaoWebModule::method_error(const QVector<BydaoValue>& args, BydaoValue&) {
+    logOut( args.size() > 0 ? args[0].toString() : "", LEVEL_ERROR );
+    return true;
+}
+
 //==============================================================================
 // WebRequest - запрос от веб-сервера
 //==============================================================================
@@ -179,7 +221,7 @@ MetaData*   WebRequest::metaData() {
         metaData->name = "WebResponse";
         metaData
             // методы объекта
-            ->appendObj( "headers", FuncMetaData(0,"Dict", FMD_IMMUTABLE) )
+            ->appendObj( "headers", FuncMetaData(0,"Array", FMD_IMMUTABLE) )
             .appendObj( "header",   FuncMetaData(1,"String", FMD_IMMUTABLE) << FuncArgMetaData("name","String",ARG_IN) << FuncArgMetaData("default","String",ARG_IN,"null") )
             ;
     }

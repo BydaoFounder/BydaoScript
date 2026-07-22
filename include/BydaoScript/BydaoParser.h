@@ -161,7 +161,6 @@ private:
 
     // Составные конструкции
     bool parseArrayLiteral();
-    bool parseDictLiteral();
 
     QString         m_moduleName;
 

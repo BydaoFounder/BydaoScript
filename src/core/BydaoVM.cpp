@@ -37,6 +37,9 @@ BydaoVM::BydaoVM()
     , m_profileMode(false)
     , m_lastInstrStart(0)
 {
+    m_config = nullptr;
+    m_logger = nullptr;
+
     m_bytecode = nullptr;
     m_bytecodeSize = 0;
 
@@ -235,6 +238,9 @@ void    BydaoVM::setOutputStream(QTextStream* stream) {
 // ========== Загрузка байткода ==========
 
 bool BydaoVM::loadModule(const ModuleInfo& module) {
+
+    m_moduleName = module.name;
+
     // Загружаем глобальные строки и константы
     m_stringTable = module.globalStringTable;
     m_constants = module.globalConstants;
@@ -1426,7 +1432,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         if (auto* dict = (BydaoArray*)(obj.toObject())) {
             m_stack.push(dict->get( key ));
         } else {
-            error("Get by key not supported for non-Dict value", instr);
+            error("Get by key not supported for non-Array value", instr);
             return false;
         }
         break;
@@ -1440,7 +1446,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         if (auto* dict = (BydaoArray*)(obj.toObject())) {
             dict->set( key, val );
         } else {
-            error("Set by key not supported for non-Dict object", instr);
+            error("Set by key not supported for non-Array object", instr);
             return false;
         }
         break;
@@ -1770,7 +1776,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         }
         
         // Проверяем, не загружен ли уже модуль
-        if ( m_moduleName.contains( alias ) ) {
+        if ( m_moduleList.contains( alias ) ) {
             break;
         }
         
@@ -1793,7 +1799,7 @@ bool BydaoVM::execute(const BydaoInstruction& instr) {
         var.value = BydaoValue(module, BydaoTypeId::TYPE_MODULE);
         m_scopeStack.append(var);
 
-        m_moduleName[alias] = varIndex;
+        m_moduleList[alias] = varIndex;
         
         break;
     }

@@ -6,11 +6,6 @@
 
 namespace BydaoScript {
 
-BydaoLogger& BydaoLogger::instance() {
-    static BydaoLogger logger;
-    return logger;
-}
-
 BydaoLogger::~BydaoLogger() {
     QMutexLocker locker(&m_mutex);
     if (m_file.isOpen()) {
@@ -77,7 +72,8 @@ void BydaoLogger::write(Level level, const QString& message, const QString& sour
 
 QString BydaoLogger::formatMessage(Level level, const QString& message, const QString& source) const {
 
-    QString result = QTime::currentTime().toString("HH:mm:ss.zzz");
+//    QString result = QTime::currentTime().toString("HH:mm:ss.zzzzzz");
+    QString result = currentTimeMicro();
 
     if ( m_runtime ) {
         QString traceId = m_runtime->getTraceId();
@@ -96,17 +92,27 @@ QString BydaoLogger::formatMessage(Level level, const QString& message, const QS
     return result;
 }
 
+QString BydaoLogger::currentTimeMicro() const {
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto usec = std::chrono::duration_cast<std::chrono::microseconds>(
+                    now.time_since_epoch()) % 1000000;
+
+    return QDateTime::fromSecsSinceEpoch(time_t)
+               .toString("HH:mm:ss") +
+           QString(".%1").arg(usec.count(), 6, 10, QChar('0'));
+}
+
 QString BydaoLogger::levelToString(Level level) const {
     switch (level) {
     case DEBUG: return "DEBUG";
-    case INFO:  return "INFO";
+    case INFO:  return "INFO ";
     case ERROR: return "ERROR";
-    default:    return "UNKNOWN";
+    default:    return "-----";
     }
 }
 
 void BydaoLogger::debug(const QString& message, const QString& source) {
-    if (!m_debugEnabled) return;
     log(DEBUG, message, source);
 }
 
@@ -119,7 +125,6 @@ void BydaoLogger::error(const QString& message, const QString& source) {
 }
 
 void BydaoLogger::log(Level level, const QString& message, const QString& source) {
-    if (level == DEBUG && !m_debugEnabled) return;
     write(level, message, source);
 }
 

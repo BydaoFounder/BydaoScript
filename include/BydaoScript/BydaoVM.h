@@ -188,6 +188,37 @@ public:
 
     // Методы BydaoRuntime
 
+    QString         moduleName() override {
+        return m_moduleName;
+    }
+
+    int             line() override {
+        int pos = m_pc - 1;
+        if ( pos < 0 ) {
+            pos = 0;
+        }
+        if ( pos >= m_bytecodeSize ) {
+            pos = m_bytecodeSize - 1;
+        }
+        return m_bytecode[ pos ].line;
+    }
+
+    void            setConfig( BydaoConfig* conf ) override {
+        m_config = conf;
+    }
+
+    BydaoConfig*    getConfig() override {
+        return m_config;
+    }
+
+    void            setLogger( BydaoLogger* log ) override {
+        m_logger = log;
+    }
+
+    BydaoLogger*    getLogger() override {
+        return m_logger;
+    }
+
     void    setEnvironment( Environment* env ) override {
         m_environment = env;
     };
@@ -230,7 +261,7 @@ public:
     void setProfileMode(bool enable) { m_profileMode = enable; }
 
     // Информация об ошибках
-    QString lastError() const { return m_lastError; }
+    QString lastError() const override { return m_lastError; }
     int errorLine() const { return m_errorLine; }
 
     // Профилирование
@@ -246,6 +277,9 @@ public:
     }
 
 private:
+
+    BydaoConfig*        m_config;
+    BydaoLogger*        m_logger;
 
     BydaoCallStack      m_callStack;            // Стек вызовов
     QList<RuntimeVar>*  m_currentSelfFrame;     // Текущий self-фрейм
@@ -265,6 +299,8 @@ private:
     void setVariable(int varIndex, const BydaoValue& value, const BydaoInstruction& instr);
 
     void dumpStack(const QString& label = QString());
+
+    QString             m_moduleName;
 
     // Статус возврата: 0 - нормально, 1 - ошибка
     int                 m_exitStatus;
@@ -314,7 +350,7 @@ private:
     QHash<QString, ProfileData> m_profile;
     qint64 m_lastInstrStart;  // время начала текущей инструкции
 
-    QHash<QString, int> m_moduleName;    // для проверки повторной загрузки модулей
+    QHash<QString, int> m_moduleList;    // для проверки повторной загрузки модулей
 
     QTextStream*    m_outStream;
     bool            m_ownOutStream;

@@ -15,7 +15,8 @@ namespace BydaoScript {
 
 class BydaoLogger {
 public:
-    static BydaoLogger& instance();
+    BydaoLogger() = default;
+    ~BydaoLogger();
 
     bool init(const QString& logDir);
 
@@ -34,8 +35,6 @@ public:
     void setRequestId(uint16_t id) { m_requestId = id; }
 
 private:
-    BydaoLogger() = default;
-    ~BydaoLogger();
     BydaoLogger(const BydaoLogger&) = delete;
     BydaoLogger& operator=(const BydaoLogger&) = delete;
 
@@ -43,6 +42,8 @@ private:
     void openFile();
     QString formatMessage(Level level, const QString& message, const QString& source) const;
     QString levelToString(Level level) const;
+
+    QString currentTimeMicro() const;
 
     QMutex m_mutex;
     QString m_logDir;
@@ -55,12 +56,6 @@ private:
     bool m_initialized = false;
 
     BydaoRuntime*   m_runtime = nullptr;
-
-#ifndef NDEBUG
-    bool m_debugEnabled = true;
-#else
-    bool m_debugEnabled = false;
-#endif
 };
 
 } // namespace BydaoScript

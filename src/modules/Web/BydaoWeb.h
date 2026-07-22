@@ -88,9 +88,9 @@ private:
  * out( data: String )
  * status( val )
  * header( name: String, value: String )
- * headers( list: Dict )
+ * headers( list: Array )
  * redirect( url: String )
- * json( data: Array | Dict )
+ * json( data: Array )
  */
 
 class BYDAOWEB_EXPORT WebResponse: public BydaoObject {
@@ -193,10 +193,20 @@ protected:
 
 private:
 
+    enum LogLevel {
+        LEVEL_INFO,
+        LEVEL_DEBUG,
+        LEVEL_ERROR
+    };
+    void logOut( const QString& msg, LogLevel level );
+
     // Методы модуля
     bool method_server(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_request(const QVector<BydaoValue>& args, BydaoValue& result);
     bool method_response(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_info(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_debug(const QVector<BydaoValue>& args, BydaoValue& result);
+    bool method_error(const QVector<BydaoValue>& args, BydaoValue& result);
 
     using MethodPtr = bool (BydaoWebModule::*)(const QVector<BydaoValue>&, BydaoValue&);
     void registerMethod(const QString& name, MethodPtr method);

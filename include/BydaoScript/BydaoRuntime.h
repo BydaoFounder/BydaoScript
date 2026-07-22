@@ -2,6 +2,7 @@
 #define BYDAORUNTIME_H
 
 #include <QtCore>
+
 #include "BydaoValue.h"
 
 namespace BydaoScript {
@@ -15,6 +16,8 @@ struct RuntimeVar {
 
 typedef QList<RuntimeVar>   VarScope;
 
+class BydaoConfig;
+class BydaoLogger;
 
 class BydaoRuntime {
 public:
@@ -22,6 +25,16 @@ public:
     virtual ~BydaoRuntime() = default;
 
     typedef QHash< QString, QString > Environment;
+
+    virtual QString         moduleName() = 0;
+
+    virtual int             line() = 0;
+
+    virtual void            setConfig( BydaoConfig* conf ) = 0;
+    virtual BydaoConfig*    getConfig() = 0;
+
+    virtual void            setLogger( BydaoLogger* log ) = 0;
+    virtual BydaoLogger*    getLogger() = 0;
 
     virtual void            setEnvironment( Environment* env ) = 0;
     virtual Environment*    getEnvironment() = 0;

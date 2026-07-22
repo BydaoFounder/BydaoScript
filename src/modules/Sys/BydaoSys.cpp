@@ -81,7 +81,7 @@ MetaData*   BydaoSysModule::metaData() {
             .appendType( "outln",   FuncMetaData("Void",   FMD_IMMUTABLE) << FuncArgMetaData("str","String",ARG_IN,"\"\"") )
             .appendType( "in",      FuncMetaData("String", FMD_IMMUTABLE) )
             .appendType( "time",    FuncMetaData("Int",    FMD_IMMUTABLE) )
-            .appendType( "envList", FuncMetaData("Dict",   FMD_IMMUTABLE) )
+            .appendType( "envList", FuncMetaData("Array",  FMD_IMMUTABLE) )
             ;
     }
     return metaData;
